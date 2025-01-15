@@ -1,5 +1,5 @@
-# JARVIS
-
+# JAR:VIS
+Jovian Aurora Research: Visualizing Ionospheric Science
 
 ## Roles:
 - Project Coordinator: Yifan Chen

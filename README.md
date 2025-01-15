@@ -1,8 +1,8 @@
 # JARVIS
-Jupiter Auroral Research : Variability in System?
+
 
 ## Roles:
-- Project Coordinator: Yifan
+- Project Coordinator: Yifan Chen
 - Administrator: Sam Courthold
 - Theory Lead: Ronan Szeto
 - Programming Lead: Will Roscoe

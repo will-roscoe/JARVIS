@@ -1,5 +1,5 @@
-# JAR:VIS
-Jovian Aurora Research: Visualizing Ionospheric Science
+## JAR:VIS
+> ***J**ovian **A**urora **R**esearch: **V**isualizing **I**onospheric **S**cience*
 
 ## Roles:
 - Project Coordinator: Yifan Chen

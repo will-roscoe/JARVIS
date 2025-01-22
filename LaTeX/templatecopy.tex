@@ -1,0 +1,402 @@
+\documentclass[11pt]{article}   			% DO NOT EDIT
+\usepackage{geometry}                		% DO NOT EDIT
+\geometry{a4paper, margin=1in}		% DO NOT EDIT
+\renewcommand{\familydefault}{\sfdefault} % DO NOT EDIT
+\usepackage{helvet}					% DO NOT EDIT
+\usepackage{graphicx}				% For pdf, png, jpg, or eps figures with pdflatex; or eps in DVI mode
+\usepackage{amssymb}				% For mathematical symbols
+\usepackage{xcolor}					% For real name colours
+\usepackage{hyperref}				% For web links and active crosslinks
+\usepackage{todonotes}				% For using \todo to keep todo notes
+\usepackage{natbib}					% For different citation styles
+
+
+
+
+
+%\usepackage[superscript,biblabel]{cite}      %uncomment for superscript references
+
+\usepackage[nolist, nohyperlinks]{acronym} % For automatic acronyms use
+\newacro{sfr}[SFR]{star-formation rate} %Example of defining an acronym 
+
+\newcommand{\myr}{$M_{\odot}\,\mathrm{yr}^{-1}$} % Example of defining a new command. Useful for complex symbols etc that you use often. Call with \myr. Or use \myr\ to get a space afterwards. 
+
+
+
+\pagenumbering{roman}% Do not edit this line. 
+\begin{document}
+%%%%%%%%%%%%%%%%%%%%%%%%
+% Section to add acronyms  or new commands, or can define above using \newacro %
+\begin{acronym}
+    \acro{IMF}{interplanetary magnetic field}
+    \acro{AU}{Astronomical Units}
+    \acro{GSE}{Geocentric Solar Ecliptic}
+    \acro{GSM}{Geocentric Solar Magnetospheric}
+    \acro{CME}{Coronal Mass Ejection}
+    \acro{CMEs}{Coronal Mass Ejections}
+    \acro{ICME}{Interplanetary Coronal Mass Ejection}
+    \acro{CIR}{Corotating Interaction Region}
+    \acro{CIRs}{Corotating Interaction Regions}
+    \acro{HSSs}{High-Speed (Solar Wind) Streams}
+    \acro{HSS}{High-Speed (Solar Wind) Stream}
+    \acro{HCS}{Heliospheric Current Sheet}
+    \acro{FFT}{Fast Fourier Transform}
+    \acro{WSO}{Wilcox Solar Observatory}
+    \acro{ACE}{Advanced Composition Explorer}
+\end{acronym}
+
+%%%% then use \ac{IMF} to use an acronym, and will automatically define the acronym on first use.
+%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%
+% 		Insert title & author(s) below		%
+%	Do not edit anything else in this section	%
+%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{titlepage}
+\begin{center}
+{\huge \bfseries 
+	Discrepancy in Jovian Polar Aurorae: Investigating Cause and Impact from magnetospheric Influences
+	 }\\[4ex] 
+	 
+{\LARGE 
+	Yifan Chen, Samuel Courthold, Will Roscoe, Ronan Szeto
+	}\\[4ex] 
+	
+PHYS390 project report
+\\[2ex] 
+
+\today\\[8ex]
+\includegraphics[width=7cm]{LaTeX/Figures/LU_Physics_logo.jpg}
+\\[10ex]
+\end{center}
+
+
+
+%%%%%%%%%%%%%%%%%%%
+% 		Abstract				%
+%%%%%%%%%%%%%%%%%%%
+\begin{center}
+\section*{Abstract}
+\end{center}
+
+This template complies with the Lancaster University Physics Department rules and guidelines for formatting reports. \textbf{Do not adjust the font size, paper size or margins.} The general guidelines and helpful information can be found on the physics department website (\href{https://www.lancaster.ac.uk/physics/information/undergraduate-students/#guidelines-and-useful-documents-434446-1}{follow About Us $\rightarrow$ Information $\rightarrow$ Undergraduate Students}) and there may be more information on your module Moodle pages. Appendix~\ref{sec:hints} includes some hints and tips to get the most out of LaTeX. 
+
+\medskip 
+The abstract should be a self-contained (i.e.\ without references, footnotes, undefined abbreviations or symbols etc.) single paragraph of text that clearly and concisely summarises the project, and announces the main result(s). For this reason the abstract is often the last part to be written. 
+In science the abstract is used to `sell' the article to the reader, and is therefore considered to be very important. Scientists may also only read the abstract and the conclusion of a paper, so these two parts must clearly convey the central message of the report, including the main result and its implications. The abstract may be included on the title page, or may follow it.
+
+\end{titlepage}
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%
+% 		Table of contents				%
+%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\tableofcontents            
+
+\bigskip
+A table of contents is an essential element for longer reports, and must be included for 3rd and 4th year modules. You will often need to run latex more than once to get your table of contents (and references and section/figure/table/equation cross referencing) to update in the final document. 
+
+A table of contents is not required for short reports of just a few pages. 
+If you don't need a table of contents you can remove or comment out the \texttt{\textbackslash newpage} and \texttt{\textbackslash tableofcontents} in this tex file. 
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%
+% 		Main text						%
+%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage\pagenumbering{arabic} % Do not edit this line. 
+
+
+\section{Introduction}
+\label{sec:intro}
+
+The introduction should motivate the work that is described, set it in a wider context and explain why it is important or interesting. The introduction should be relatively accessible and inspire the reader to read on. The main result may be mentioned as part of this process, but repeating the results of the investigation is not the main function of the introduction.
+
+
+
+
+
+\begin{itemize}
+   \item why jupiter aurora interesting, bizzareness of the shape of the aurora
+\end{itemize}
+
+
+\section{A background section}
+\label{sec:background}
+
+\todo[
+\begin{itemize}
+   \item what are Auroras (their features properties characteristics on earth)
+   \item jupiter Aurora features and characteristics
+   \item  possible causes of auroras on jupiter
+\end{itemize}
+
+
+
+
+This section should give a more detailed description of the background knowledge needed to make the report intelligible to a non-expert reader from the same discipline. Standard derivations of formulae should not normally be included; rather these should be stated with a reference to a suitable source, e.g.\ a text book. Important derivations that are peculiar to the background of your particular investigation should normally be included, but if they are long then the principal results should be stated and the full derivation included in an appendix.
+
+
+\section{Additional sections}
+
+The next part of the report contains the specifics of your project. Typically it should include details of any experiments or theoretical approaches, and present the results with analysis and discussion to explore and communicate the meaning and implications of the results. You should usually structure the sections in a way that makes most sense for your particular investigation and report. 
+The section headings are high visibility parts of your report. It is often good practise to use them to convey useful information to the reader beyond a generic description like ``Methods'' or ``Results''.
+Sections~\ref{sec:method} and \ref{sec:results} are examples of typical report sections. 
+
+
+\section{Section(s) with experimental methods or theoretical approach}
+\label{sec:method}
+
+
+\begin{itemize}
+   \item data sourcing which raw data sourcing from
+   \item what program utilising
+   \item equations and theoretical models/ programming models
+   \item what to measure, what to expect and calculate
+\end{itemize}
+
+
+
+
+This section should explain what you did in sufficient detail for the reader to be convinced that the method was suitable. Do not swamp the reader with inconsequential details, but do not omit any crucial information that would be essential for someone knowledgeable in the field to reproduce the result. 
+This section should not simply be a copy of what is written in the module manual/handbook, or what you wrote in your logbook. For experimental projects it should include a diagram of the apparatus used. For theoretical projects this section should contain the substantial steps of original calculations that lead on to the main results.
+
+
+
+\section{Section(s) with results, analysis and discussion}
+\label{sec:results}
+
+
+\begin{itemize}
+   \item Figures, plots
+   \item data analysis, trends graphs
+   \item possible faults
+   \item 
+\end{itemize}
+
+
+
+This part of the report is where the actual results of the investigation are presented, and where they are discussed. It is here that reports will show the largest variation between different project types. You should refer to your module manual/handbook, module leader or supervisor for any specific instructions about what is expected to be included. For example, longer projects, where more discussion is appropriate, may have a separate discussion section, or there may be several sub-sections describing different sets of results. If you have a multi-part investigation using different experimental apparatus or theoretical methods, then you may decide to describe the first part (method, results) and then the second part (method, results).
+For experimental on numerical projects, it is rarely appropriate to present the raw data, you should instead present processed data, e.g. repeated measurements of the same quantity obtained to determine statistical variation need not be listed: stating the mean value and an uncertainty is sufficient. Similarly, large data sets will not be readily digested by the reader if they are in tabular form: graphical representation is usually more appropriate. If the results presented are post-analysis, it should be clear what this analysis involved. Uncertainties should be discussed. If there is a known/standard value or result, then you should compare your result with it, and comment on the likely source of any discrepancy. Hence, you may propose further work to advance or improve the investigation.
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%
+% 		Conclusions				%
+%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Conclusions}
+Here is where you should very succinctly sum up what you have done, and restate the main result or results. You must also remember to conclude the physics understanding which comes from your work, draw out insights and discuss implications in a wider context.  Don't forget to discuss any further work that could or should be done to advance the investigation. Remember that together, the abstract and conclusion should provide a brief but comprehensive description of your work.
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%
+% 		References				%
+%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+\bibliographystyle{unsrt} % Uncomment to use numerical reference list (& comment all other bibliographystyle commands)
+% \bibliographystyle{achemso} % Uncomment to use authorname/year reference list (& comment all other bibliographystyle commands)
+\bibliography{LaTeX/Ref}
+
+
+\bigskip
+All reports will contain references. 
+They should usually be indicated numerically in the text in the order in which they appear, either in brackets like this [1], or as a superscript like this$^2$. 
+Some fields (e.g. observational astrophysics)
+instead refer to the author name(s) and paper year in the text like this (Kennicutt 1998). 
+A list of references should be included under its own heading after the Conclusions section of the report (but before any appendices). 
+
+Styles for the actual list of references vary slightly, but be consistent.  References to journal papers will always include the author or authors, the name of the journal, the volume, page number and the year of publication, e.g.\ \newline\indent
+[1] `The quantized Hall effect' K.\ von Klitzing, Reviews of Modern Physics 58, 519 (1986).
+\newline
+
+Including the title of the paper is not typically required for scientific articles, but can be very helpful, and you are strongly encouraged to do this in your report. For books the title of the book, the author, the publisher and the year should be included, e.g.\ 
+\newline\indent
+[2.] `The physics of low-dimensional semiconductors', J.\ H.\ Davies, Cambridge University Press (1997).
+\newline
+
+If you have used author names in the text the reference list does not require numbers: e.g.\
+\newline\indent
+Kennicutt, Robert C.\, 1998, ARAA, 36, 189
+
+Make sure that all the references in the text refer to the correct reference in the list, and that no reference appears that is not referred to in the text. Referring to the same work multiple times is perfectly acceptable, but you should not duplicate references. 
+
+See Appendix~\ref{sec:bibtex} for how to automate the inclusion and styling of references using BibTeX. Examples of references included using BibTeX are 
+\cite{vonKlitzing86},
+\cite{Davies97}
+\cite{Kennicutt98}, 
+\cite{MadauDickinson14}, and 
+\cite{wikigals}. 
+
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%
+% 		Appendices				%
+%%%%%%%%%%%%%%%%%%%%%%%%
+
+\appendix
+
+\section{Using appendices}
+
+Appendices contain further information that would distract or bore the reader, but may be useful for an expert in the field. For example an extended theoretical derivation that may be necessary for an expert to be able to reproduce your result. Tables of data which is displayed graphically in the main body of the report, should not normally be included. Appendices should not contain material that is published elsewhere, as this may simply be referred to. Appendices are not always necessary. Material in appendices should not be essential to the report, and hence will not typically contribute to the mark.
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%
+% 		LaTeX hints and tips				%
+%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{LaTeX hints and tips}
+\label{sec:hints}
+
+This section includes some LaTeX notes and techniques that you may find helpful. 
+
+\subsection{Subsections and cross-referencing}
+\label{sec:using_subsecs}
+Subsections (and subsubsections, and subsubsubsections....) can be used throughout the report. 
+Simply write \texttt{\textbackslash subsection\{Subsection title\}} or   \texttt{\textbackslash subsubsection\{Subsubsection title\}} etc to include them.  
+
+The sections will be automatically numbered in the order that they appear and you can cross-reference between different sections by adding \texttt{\textbackslash label\{identifying label\}} after the \texttt{\textbackslash section} (or \texttt{\textbackslash subsection} etc) command and then using \texttt{\textbackslash ref\{identifying label\}} when you wish to refer to the (sub)section. 
+These numbers will automatically update when you rerun/compile LaTeX (sometimes you may have to run it twice) For example, in this document the Introduction is Section~\ref{sec:intro}, and this section is Appendix~\ref{sec:using_subsecs}. 
+
+The same method can be used to refer to figures, tables and equations by number: see examples in Appendix~\ref{sec:figsetc}. The numbering will go wrong if you use the same \texttt{label} more than once in your tex file. 
+Make sure to check your LaTeX log files for warnings (and errors): these will help you identify any errors in the tex file that will affect your output pdf.
+
+
+
+\subsection{Figures, tables and equations}
+\label{sec:figsetc}
+
+Most reports will include figures and equations, many will also need tables. For example, the force due to gravity between two objects, $F$, is defined as:
+	\begin{equation}
+		F = \frac{G M m}{r^2},
+	\label{eq:example}
+	\end{equation}
+where $G$ is the gravitational constant, $M$ and $m$ are the masses of two objects, and $r$ is the separation between the centre of masses of the objects. 
+Equation~\ref{eq:example} shows how to include an equation. Examples of how to include figures and captions are shown in Figure~\ref{fig:example} and Figure~\ref{fig:exampleothers}. Table~\ref{tab:example} shows an example table. 
+
+
+\begin{figure} 
+   \centering
+   \includegraphics[width=15cm]{examplefig.pdf} % you can use many different file types here 
+   \caption{Histograms of random numbers generated to follow a Gaussian distribution with a mean of 0 and standard deviation of 1. The left- and right-hand plots include 100 and 10,000 values, respectively. The left-hand plot is noisier and the underlying Gaussian shape is clearer with the larger  sample size shown by the right-hand plot.}
+   \label{fig:example}
+\end{figure}
+
+
+\begin{figure} 
+   \centering
+   \includegraphics[width=10cm]{madaudickinson_fig9c.jpg} % you can use many different file types here 
+   \caption{The evolution of cosmic star-formation rate density as a function of redshift and lookback time. Different symbols are datapoints from different studies with colours representing wavelength of the surveys: UV studies are in greens, blues and purples and IR studies are in reds and yellows. The solid line is a the parameterised fit to the data from \cite{MadauDickinson14}. The cosmic star-formation density peaks at $z\sim2$. Figure taken from \cite{MadauDickinson14}. }
+   \label{fig:exampleothers}
+\end{figure}
+
+
+\begin{table}  
+\centering
+   \caption{Some important physics constants}
+   \label{tab:example}
+\begin{tabular}{lccl}
+Name & Symbol & Value & Unit \\
+\hline
+ Planck's constant            &$h$              &$6.63 \times 10^{-34}$ & J\,s\\
+ Boltzmann's constant        &$k_\mathrm{B}$   &$1.38 \times 10^{-23}$ & J\,K$^{-1}$\\
+  Mass of electron            &$m_e$            &$9.11 \times 10^{-31}$ & kg\\
+  Mass of proton              &$m_p$            &$1.67 \times 10^{-27}$ & kg\\
+  Atomic mass unit                        & $u$             &$1.66 \times 10^{-27}$ & kg\\
+  Electronic charge           &$e$              &$1.60 \times 10^{-19}$ & C\\
+  Speed of light              &$c$              &$3.00 \times 10^8$ & m\,s$^{-1}$\\
+      \hline
+   \end{tabular}
+   \label{tab:example}
+\end{table}
+
+
+
+\subsection{Automating references in LaTeX using BibTeX}
+\label{sec:bibtex}
+
+Arguably, the easiest way to include references correctly in LaTeX is to use BibTeX, which will ensure that your list of references is correct (includes all references that are in the text but without any extras and without duplicates). 
+
+\subsubsection{The *.bib file}
+To use BibTeX you will need to build a \texttt{*.bib} file and include it in the same folder as your tex file. The bib file contains all the information about each reference that you use (or may use) and a ``key". (i.e.\ a shorthand name) that you can uniquely use to identify each reference.  
+LaTeX uses the bib file to generate a bbl file when you compile the paper; depending on your software you may need to run BibTeX separately to generate the bbl file (and then run LaTeX once or twice as usual). 
+
+There are many ways creating/editing the bib file: many professional researchers edit them manually in any text editor or LaTeX editor, but citation manager software is also an option (e.g.\ Zotero, Mendelay).
+For each reference the bib files requires a specially formatted entry with details about the reference. It is easiest to download these from the relevant paper/book page on \href{https://scholar.google.co.uk}{Google Scholar}, journal websites, other scientific search engines (such as \href{https://arxiv.org}{arXiv} and \href{https://ui.adsabs.harvard.edu}{NASA ADS}), and some textbook publishers: just look for \textit{export citation}, \textit{download bibtex} or other similar options. 
+Once accessed you can then change the ``key" in the first line of the BibTeX to something of your preference (e.g.\ \texttt{authornameYear}) and copy it all into your bib file. 
+
+Note that BibTeX ignores anything outside of the actual citations so you can use the rest of the text file to annotate what each paper is and make it easy to visually scan when scrolling quickly through. There is an example bib file included in this template folder and the example file includes several different types of references. 
+
+
+\subsubsection{Adding BibTeX references to the text}
+
+To include references in your text use \texttt{\textbackslash cite\{key\}}.  
+If you have selected a bibliography format that displays the authors in the text (see Appendix~\ref{sec:reflist}) then \texttt{\textbackslash cite\{key\}}, \texttt{\textbackslash citep\{key\}}, or  \texttt{\textbackslash citet\{key\}} can also be use and in this case \texttt{\textbackslash cite\{key\}}, \texttt{\textbackslash citep\{key\}}, and  \texttt{\textbackslash citet\{key\}} will put brackets in different places (different forms are better when citing a reference after a claim or referring directly to a published work). 
+If you are using a non-numeric bibliography format then uncomment the next line in the tex file and recompile this pdf to see examples of the presentation of the different \texttt{cite/citep/citet} commands (note: this will may give a LaTeX error the first time it is run if you previously compiled with a numeric bibliography; rerunning it should remove the error).
+% Here is an example of \texttt{\textbackslash cite\{key\}}\cite{MadauDickinson14},  \texttt{\textbackslash citep\{key\}}\citep{MadauDickinson14}, and \texttt{\textbackslash citet\{key\}}\citet{MadauDickinson14} for the currently selected reference style so you can see how they differ for the currently selected bibliography format.
+There are also other options (e.g.\ for just giving the author without the year, or for not having brackets at all); you can search online for these.  
+BibTeX will automatically truncate the author list and use  ``et al.'' in the text if there are many authors and use have selected non-numerical reference style. 
+
+
+\subsubsection{Generating and formatting a reference list}
+\label{sec:reflist}
+
+To generate the reference list put the following commands after the Conclusions section in your text file:
+\newline\indent \texttt{\textbackslash bibliographystyle\{style\_name\}}
+\newline\indent \texttt{\textbackslash bibliography\{bibtexfile.bib\}}
+\newline
+\texttt{style\_name} sets the output style of the references and \texttt{bibliography} should point to your bib file. 
+
+Commonly used \texttt{style\_name}s are: \texttt{unsrt} for numbers in square brackets[1] or \texttt{achemso} for author/year. 
+For references using superscript numbers you will need to include the following in your document preamble (before the \texttt{\textbackslash begin\{document\}} command): 
+\newline\indent
+\texttt{\textbackslash usepackage[superscript,biblabel]\{cite\}} 
+
+It is important to check for warnings/errors in your LaTeX log file: these will alert you if there is a problem with your bib file (e.g.\ missing references). 
+
+
+\subsection{Defining new commands}
+
+LaTeX allows you to define new command, which can be particularly helpful for combined symbols or phrases that you use a lot. For example, repeatedly needing to type 
+\newline
+\texttt{\$M\_\{\textbackslash odot\}\textbackslash ,\textbackslash mathrm\{yr\}\textasciicircum \{-1\}\$} for the unit of solar masses per year ($M_{\odot}\,\mathrm{yr}^{-1}$) quickly gets tedious. 
+Instead it can be helpful to define a new command, such that it's sufficient to simply type
+ \texttt{\textbackslash myr\textbackslash} or  \texttt{\textbackslash myr} instead (the following backslash puts a space after the command, so is needed in the middle of sentences).
+ 
+New commands are defined in the preamble of the tex file (before \texttt{\textbackslash begindocument}) using 
+\newline\indent
+\texttt{\textbackslash newcommand\{\textbackslash shortcommand\}\{full LaTeX code\}}.
+\newline
+The \myr\ example above is included in the start of this tex file and is: 
+\newline\indent
+\texttt{\textbackslash newcommand\{\textbackslash myr\}\{\$M\_\{\textbackslash odot\}\textbackslash ,\textbackslash mathrm\{yr\}\textasciicircum \{-1\}\$\}}.
+
+
+
+
+\subsection{Useful packages}
+
+Some potentially useful packages are included in this template, you're not required to use them but some people find them helpful.
+These packages have more options and functionality, which you can google if you are looking for more complex uses (e.g. different colour \texttt{\textbackslash todo}) notes. 
+
+\subsubsection{Acronym}
+The  \texttt{acronym} package will keep track of acronyms for you, expanding them the first time that you use a term and using the acronym the other times. For example, in astrophysics we may measure the \ac{sfr} for lots of different galaxies. On average spiral galaxies have higher \ac{sfr}s than elliptical galaxies.  
+
+To use the \texttt{acronym} package first define your acronyms in the preamble near the start of the tex file using 
+\texttt{\textbackslash newacro\{shorthand\}[acronym]\{expanded meaning\}} and then when you want to refer to the item use \texttt{\textbackslash ac\{shorthand\}}.
+For example,
+\texttt{\textbackslash newacro\{sfr\}[SFR]\{star-formation rate\}} in the preamble and then \texttt{\textbackslash ac\{sfr\}} in the main text. 
+
+
+\subsubsection{To do items}
+The  \texttt{todo} package will insert highlighted notes into the main text or margins and can be used to leave notes for yourself about things that you want to add or change. Use \texttt{\textbackslash todo\{Text\}} to get notes in the margin\todo{Like this in the margin}, and \texttt{\textbackslash todo[inline]\{Text\}} to get notes in the body of the text. \todo[inline]{Like this for inline}
+
+
+\end{document}  

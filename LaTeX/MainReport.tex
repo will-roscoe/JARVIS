@@ -1,0 +1,174 @@
+\documentclass[11pt]{article}   			% DO NOT EDIT
+\usepackage{geometry}                		% DO NOT EDIT
+\geometry{a4paper, margin=1in}		% DO NOT EDIT
+\renewcommand{\familydefault}{\sfdefault} % DO NOT EDIT
+\usepackage{helvet}					% DO NOT EDIT
+\usepackage{graphicx}				% For pdf, png, jpg, or eps figures with pdflatex; or eps in DVI mode
+\usepackage{amssymb}				% For mathematical symbols
+\usepackage{xcolor}					% For real name colours
+\usepackage{hyperref}				% For web links and active crosslinks
+\usepackage{todonotes}				% For using \todo to keep todo notes
+\usepackage{natbib}					% For different citation styles
+\usepackage{jarvis}
+%\usepackage[superscript,biblabel]{cite}      %uncomment for superscript references
+\usepackage[nolist, nohyperlinks]{acronym} % For automatic acronyms use
+ 
+\pagenumbering{roman}% Do not edit this line. 
+\begin{document}
+%%%%%%%%%%%%%%%%%%%%%%%%
+% Section to add acronyms  or new commands, or can define above using \newacro %
+\begin{acronym}
+    \acro{IMF}{interplanetary magnetic field}
+    \acro{AU}{Astronomical Units}
+    \acro{GSE}{Geocentric Solar Ecliptic}
+    \acro{GSM}{Geocentric Solar Magnetospheric}
+    \acro{CME}{Coronal Mass Ejection}
+    \acro{CMEs}{Coronal Mass Ejections}
+    \acro{ICME}{Interplanetary Coronal Mass Ejection}
+    \acro{CIR}{Corotating Interaction Region}
+    \acro{CIRs}{Corotating Interaction Regions}
+    \acro{HSSs}{High-Speed (Solar Wind) Streams}
+    \acro{HSS}{High-Speed (Solar Wind) Stream}
+    \acro{HCS}{Heliospheric Current Sheet}
+    \acro{FFT}{Fast Fourier Transform}
+    \acro{WSO}{Wilcox Solar Observatory}
+    \acro{ACE}{Advanced Composition Explorer}
+\end{acronym}
+
+%%%% then use \ac{IMF} to use an acronym, and will automatically define the acronym on first use.
+%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%
+% 		Insert title & author(s) below		%
+%	Do not edit anything else in this section	%
+%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{titlepage}
+\begin{center}
+{\huge \bfseries 
+	Discrepancy in Jovian Polar Aurorae: Investigating Cause and Impact from magnetospheric Influences
+	 }\\[4ex] 
+	 
+{\LARGE 
+	Yifan Chen, Samuel Courthold, Will Roscoe, Ronan Szeto
+	}\\[4ex] 
+	
+PHYS390 project report
+\\[2ex] 
+\today\\[8ex]
+\includegraphics[width=7cm]{LaTeX/Figures/LU_Physics_logo.jpg}
+\\[10ex]
+\end{center}
+%%%%%%%%%%%%%%%%%%%
+% 		Abstract				%
+%%%%%%%%%%%%%%%%%%%
+\begin{center}
+\section*{Abstract}
+\end{center}
+
+
+\end{titlepage}
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%
+% 		Table of contents				%
+%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\tableofcontents            
+%%%%%%%%%%%%%%%%%%%%%%%%
+% 		Main text						%
+%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage\pagenumbering{arabic} % Do not edit this line. 
+
+
+\section{Introduction}
+\label{sec:intro}
+
+The introduction should motivate the work that is described, set it in a wider context and explain why it is important or interesting. The introduction should be relatively accessible and inspire the reader to read on. The main result may be mentioned as part of this process, but repeating the results of the investigation is not the main function of the introduction.
+
+\TODO -- no added text: \verb|\TODO|
+
+\TODO[add something here] -- \verb|\TODO[add something here]|
+
+
+
+\begin{itemize}
+   \item{why Jupiter aurora interesting, bizzareness of the shape of the aurora}
+\end{itemize}
+
+
+\section{\TODO[Background]}
+\label{sec:background}
+
+
+
+\begin{itemize}
+   \item{what are Auroras (their features properties characteristics on earth)}
+   \item{jupiter Aurora features and characteristics}
+   \item{possible causes of auroras on jupiter}
+\end{itemize}
+
+
+
+
+\section{\TODO[Methodology]}
+\label{sec:method}
+
+
+\begin{itemize}
+   \item{data sourcing which raw data sourcing from}
+   \item{what program utilising}
+   \item{equations and theoretical models/ programming models}
+   \item{what to measure, what to expect and calculate}
+\end{itemize}
+
+
+\section{\TODO[Results]}
+\begin{itemize}
+    \item {variation in polar aurorae: boundaries, frequency, intensity}
+    \item {variation of Io volcanic activity and orbit, solar wind, Jupiter magnetic field at that time}
+\end{itemize}
+
+\section{\TODO[Analysis]}
+\begin{itemize}
+    \item {compare polar aurorae variation with possible sources}
+\end{itemize}
+
+\section{\TODO[Discussion]}
+
+\begin{itemize}
+   \item {Figures, plots}
+   \item {data analysis, trends graphs}
+   \item {possible faults}
+   \item {graphics if need and diagrams}
+\end{itemize}
+
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%
+% 		Conclusions				%
+%%%%%%%%%%%%%%%%%%%%%%%%
+\section{\TODO[Conclusions]}
+%%%%%%%%%%%%%%%%%%%%%%%%
+% 		References				%
+%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+\bibliographystyle{unsrt} % Uncomment to use numerical reference list (& comment all other bibliographystyle commands)
+% \bibliographystyle{achemso} % Uncomment to use authorname/year reference list (& comment all other bibliographystyle commands)
+\bibliography{LaTeX/Ref}
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%
+% 		Appendices				%
+%%%%%%%%%%%%%%%%%%%%%%%%
+
+\appendix
+
+\end{document}  

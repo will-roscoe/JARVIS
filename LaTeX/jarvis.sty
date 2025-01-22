@@ -1,0 +1,19 @@
+
+\ProvidesPackage{jarvis}[\today JAR:VIS]
+% <------ COMMANDS ------> %
+%% <--- differentials ---> %%
+\newcommand\diffbackend[4][]{\frac{#4^{#1} {#2}}{#4 {#3}^{#1}}} % backend
+\newcommand{\diff}[3][]{\diffbackend[#1]{#2}{#3}{\mathsf{d}}} % default differential
+\newcommand{\pdiff}[3][]{\diffbackend[#1]{#2}{#3}{\partial}} % partial differential
+\newcommand{\idiff}[3][]{\diffbackend[#1]{#2}{#3}{\delta}} % implicit differential
+\RequirePackage{siunitx} % https://texdoc.org/serve/siunitx/0
+\RequirePackage{float}
+\RequirePackage{caption}
+\RequirePackage{tikz}   
+\RequirePackage{fancyref}
+\RequirePackage{graphicx}
+\RequirePackage{soul}
+    \sethlcolor{black!10}
+
+\newcommand{\TODO}[1][TODO]{[\hl{#1}]\PackageWarning{jarvis}{unresolved todo: "#1"}}
+\newcommand{\PLACEHOLDER}[1][PLACEHOLDER]{\par\fbox{\parbox{0.95\textwidth}{\color{red}{\textit{#1}}}}}

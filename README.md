@@ -12,5 +12,6 @@
 - **Solar wind interactions:** dayside compression, Dungey cycle, coronal mass ejection​
 - **Jupiter's magnetosphere & structure:** non-uniform magnetic field, atmosphere and core composition
 ## Overleaf Project Link
->[!WARNING]+ Anyone with access to this link can edit!
->[Link](https://www.overleaf.com/2265325623zcsdzjvsswpv#22b3d2)
+> [!CAUTION]
+> **Anyone with access to this link can edit!**
+> [Link](https://www.overleaf.com/2265325623zcsdzjvsswpv#22b3d2)

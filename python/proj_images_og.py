@@ -189,14 +189,16 @@ def moind(aa, header, filename, prefix, dpi = 300, crop = 1, rlim = 30, fixed = 
     ax.set_rlim([0,rlim]) # max colat range
     ax.tick_params(axis='both',pad=2.)    # shift position of LT labels
     plt.rgrids(radials)#, color='white')
+    filename = filename[-51:]
+    
 
     #Naming variables
-    v = filename[-20:-18]
-    visita = filename[-51:-5]
-    if moonfp == True:
-        visita = 'mfp_'+visita
-    doy = filename[-39:-36]
-    tinti = int(filename[-25:-22])
+    v = filename[26:28] 
+    visita = filename[-51:-5] 
+    #if moonfp == True:
+        #visita = 'mfp_'+visita
+    doy = filename[7:10]
+    tinti = int(filename[20:24])
     tint = str(tinti)
     hora = filename[11:19]
     year = filename[4:6]
@@ -445,7 +447,7 @@ def moind(aa, header, filename, prefix, dpi = 300, crop = 1, rlim = 30, fixed = 
             os.makedirs(fpath(f'pictures/polar/{prefix}{v}/fin/{tint}s/'))
             
         print('Name of the saved image is mo_'+str(namesave)+"_fixlon.jpg")
-        plt.savefig(fpath(f'pictures/polar/{prefix}{v}/fin/{tint}s/mo_{namesave}_fixlon.jpg', dpi=dpi))
+        plt.savefig(fpath(f'pictures/polar/{prefix}{v}/fin/{tint}s/mo_{namesave}_fixlon.jpg'), dpi=dpi)
         
     elif fixed == 'lt':
         if not os.path.exists(fpath(f'pictures/polar/{prefix}{v}/fin/')):
@@ -586,17 +588,17 @@ def input_run():
 
 
 i,n=0,0
-n = fpath('datasets\HST\jup_16-138-00-08-30_0100_v01_stis_f25srf2_proj.fits')
+n = fpath(r'datasets\HST\jup_16-138-00-08-30_0100_v01_stis_f25srf2_proj.fits')
 hdulist = fits.open(n)
 header = hdulist[1].header
 image = hdulist[1].data
-print(header)
+#print(header)
 try:
     hemis = header['HEMISPH']
 except NameError:
     hemis = str(input('Input hemisphere manually:  ("north" or "south")  '))
-filename = str(i)[-51:-5]
-moind(image, header, filename, prefix='ocx8', dpi = 150, crop=1, rlim = 90, fixed = 'lon',
+#filename = str(i)[-51:-5]
+moind(image, header, filename=n, prefix='ocx8', dpi = 150, crop=1, rlim = 90, fixed = 'lon',
             hemis = hemis, full=True, moonfp=False, photo=n)
 hdulist.close()
 print(f'Image {n} of {str(i)[-51:-5]} created.')

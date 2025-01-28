@@ -21,7 +21,7 @@ from matplotlib.colors import LogNorm
 import glob
 import imageio
 from astropy.io import fits
-import tqdm 
+from tqdm import tqdm 
 from const import fpath
 datapath = Path.cwd()
     
@@ -466,7 +466,7 @@ def multigif(lista, year, prefix, extra, time, radius, moonfp, full, fixed, mf, 
         #we grab all the files we are interested in plotting
         arch = '*_v'+ l
         ti = str('/*0'+time+'*')
-        ab = glob.glob(fpath(f'datasets/HST/Jupiter/{year}/extract/{extra}'+arch+'/nopolar'+time+ti))
+        ab = glob.glob(fpath(f'datasets/HST'))
         #ab = glob.glob(fpath(f'data/HST/Jupiter/{year}/extract/{extra}'+arch+'/nopolar'+time+ti))
         ab.sort()    
 
@@ -544,7 +544,10 @@ def multigif(lista, year, prefix, extra, time, radius, moonfp, full, fixed, mf, 
             imagesgif.append(imageio.imread(file))
 
         #saving the GIF
-        imageio.mimsave(fpath('pictures/gifs/Case studies/fin/') + gifname, imagesgif, fps=fps)
+        if not os.path.exists(fpath(f'pictures/gifs/')):
+            os.makedirs(fpath(f'pictures/gifs/'))
+        imageio.mimsave(fpath('pictures/gifs/') + gifname, imagesgif, fps=fps)
+        
 
 #and this last part is the one that must be run every time:
 os.chdir(fpath('pypeline/'))
@@ -578,8 +581,8 @@ fixed = str(input('Fix longitude (lon) or Local Time (lt):\n'))
 
 #the only part you have to add manually is the particular set of visit numbers you want
 #to plot. If you want only one that is perfectly fine but it must be IN a list
-lista = ['12','16','19','20','21','26'] #for example, or lista = ['0v']
+lista = ['01'] #for example, or lista = ['0v']
 
-multigif(lista, year, prefix, extra, time, radius, moonfp, full, fixed) # this is what I need to call
+multigif(lista, year, prefix, extra, time, radius, moonfp, full, fixed, mf=0, indf=0, polarf=True, secondf=0) # this is what I need to call
 
     

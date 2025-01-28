@@ -547,11 +547,9 @@ def multigif(lista, year, prefix, extra, time, radius, moonfp, full, fixed, mf, 
         if not os.path.exists(fpath(f'pictures/gifs/')):
             os.makedirs(fpath(f'pictures/gifs/'))
         imageio.mimsave(fpath('pictures/gifs/') + gifname, imagesgif, fps=fps)
-        
-
+    
 #and this last part is the one that must be run every time:
 os.chdir(fpath('python/pypeline/'))
-
 #you have to input the year of the visits you are plotting (so cannot mix visits
 #from different years in the same "run" of the code, for filepathing reasons)
 def input_run():
@@ -586,4 +584,19 @@ def input_run():
 
     multigif(lista, year, prefix, extra, time, radius, moonfp, full, fixed, mf=0, indf=0, polarf=True, secondf=0) # this is what I need to call
 
-    
+
+i,n=0,0
+n = fpath('datasets\HST\jup_16-138-00-08-30_0100_v01_stis_f25srf2_proj.fits')
+hdulist = fits.open(n)
+header = hdulist[1].header
+image = hdulist[1].data
+print(header)
+try:
+    hemis = header['HEMISPH']
+except NameError:
+    hemis = str(input('Input hemisphere manually:  ("north" or "south")  '))
+filename = str(i)[-51:-5]
+moind(image, header, filename, prefix='ocx8', dpi = 150, crop=1, rlim = 90, fixed = 'lon',
+            hemis = hemis, full=True, moonfp=False, photo=n)
+hdulist.close()
+print(f'Image {n} of {str(i)[-51:-5]} created.')

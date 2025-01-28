@@ -4,6 +4,14 @@ on:
   push:
     branches:
       - main
+    paths:
+      - '**'  # Monitor all files
+    paths-ignore:
+      - '.github/**'  # Optionally ignore specific paths (like workflows)
+      - '.LaTeX/**'
+    types:
+      - modified  # Only trigger on modified files
+      - removed   # Only trigger on removed files
 
 jobs:
   auto-branch:

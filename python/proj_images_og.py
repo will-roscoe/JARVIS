@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#ignore!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 Created on Tue May 23 13:01:48 2023
@@ -16,7 +16,7 @@ from dateutil.parser import parse
 import datetime as dt
 #import pandas as pd
 from matplotlib.colors import LogNorm
-from reading_mfp import moonfploc
+#from reading_mfp import moonfploc
 #from scipy import stats
 import glob
 import imageio

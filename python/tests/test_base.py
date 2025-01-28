@@ -1,20 +1,17 @@
 import pytest
-
+from jarvis import fpath
+import os
 class TestFileStructure:
         '''Testing class independent functions
         '''
-        def test_(self):
+        def test_nothing(self):
             assert True
-        
+        def test_fpath(self):
+              assert os.path.exists(fpath('python/tests/test_base.py'))
+              assert os.path.exists(fpath(r'python\tests\test_base.py'))
 
-thing = 'something'
-var = 'v1'
+class Test_Image_Generation:
+      pass
 
-if var == 'v1':
-    print(thing + 'v1.x')
-elif var == 'v2':
-    print(thing + 'v2.b')
-
-
-suffix = 'v1.x' if var == 'v1' else 'v2.b'
-print(thing + suffix)
+class Test_GIF_Generation:
+    pass

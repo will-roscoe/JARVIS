@@ -598,7 +598,7 @@ try:
 except NameError:
     hemis = str(input('Input hemisphere manually:  ("north" or "south")  '))
 #filename = str(i)[-51:-5]
-moind(image, header, filename=n, prefix='ocx8', dpi = 150, crop=1, rlim = 90, fixed = 'lon',
+moind(image, header, filename=n, prefix='ocx8', dpi = 300, crop=1, rlim = 90, fixed = 'lon',
             hemis = hemis, full=True, moonfp=False, photo=n)
 hdulist.close()
 print(f'Image {n} of {str(i)[-51:-5]} created.')

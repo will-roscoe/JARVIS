@@ -550,7 +550,7 @@ def multigif(lista, year, prefix, extra, time, radius, moonfp, full, fixed, mf, 
         
 
 #and this last part is the one that must be run every time:
-os.chdir(fpath('pypeline/'))
+os.chdir(fpath('python/pypeline/'))
 
 #you have to input the year of the visits you are plotting (so cannot mix visits
 #from different years in the same "run" of the code, for filepathing reasons)

@@ -438,23 +438,22 @@ def moind(aa, header, filename, prefix, dpi = 300, crop = 1, rlim = 30, fixed = 
 #                              horizontalalignment='center', verticalalignment='center', fontweight='bold')
 # #####################################################################
     #defining the final filename, adding sufixes depending n the stuff we are showing
-   
+    namesave = str(filename)
+
     def ensure_dir(file_path):
         if not os.path.exists(file_path):
             os.makedirs(file_path)
     
     
-    def savedataimg(file_path,fixed='detailtype'):
+    def savedataimg(file_path,fixed='detailtype', dpi=300):
         ensure_dir(file_path)
-        if fixed == 'lon':
-            ensure_dir(file_path/lon)
-            plt.savefig(fpath(f'file_path/lon/{tint}s/mo_{namesave}_fixlon.jpg'), dpi=dpi)
-        elif fixed == 'lt':
-            ensure_dir(fpath(f'file_path/lt'))
-            plt.savefig(fpath(f'file_path/lt/{tint}s_fixedlt/mo_{visita}_fixedlt.jpg', dpi=300))
-    namesave = str(filename)
+        ensure_dir(f'{file_path}/{fixed}')
+        plt.savefig(fpath(f'{file_path}/{fixed}/mo_{namesave}_fix{fixed}.jpg'), dpi=dpi)
+
     
-    savedataimg('HST', fixed='lon')
+    
+    savedataimg('HST', 'lon',dpi=300)
+    savedataimg('pictures','lt',dpi=300)
 
 #ORGINAL CODE
     #if fixed == 'lon':

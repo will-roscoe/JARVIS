@@ -337,6 +337,8 @@ def moind(aa, header, filename, prefix, dpi = 300, crop = 1, rlim = 30, fixed = 
  
     namesave = str(filename)
 
+    def ensure_dir(file_path):
+        if not os.path.exists(file_path):
     if fixed == 'lon':
         if not os.path.exists(fpath(f'pictures/polar/{prefix}{v}/fin/')):
             os.makedirs(fpath(f'pictures/polar/{prefix}{v}/fin/'))
@@ -356,6 +358,39 @@ def moind(aa, header, filename, prefix, dpi = 300, crop = 1, rlim = 30, fixed = 
 def ensure_dir(file_path):
     if not os.path.exists(file_path):
             os.makedirs(file_path)
+    #this function checks if the file path exists, if not it will create one
+    
+    def savedataimg(file_path,fixed='detailtype', dpi=300):
+        ensure_dir(file_path)
+        ensure_dir(f'{file_path}/{fixed}')
+        plt.savefig(fpath(f'{file_path}/{fixed}/mo_{namesave}_fix{fixed}.jpg'), dpi=dpi)
+    #this function creates the image type of lt, or lon, into the desired file path, and what what dpi resolution
+    
+    
+    savedataimg('HST', 'lon',dpi=300) #in HST folder, creates an lon folder with lon type images ate dpi=300
+    savedataimg('pictures','lt',dpi=300)
+
+#ORGINAL CODE
+    #if fixed == 'lon':
+    #    if not os.path.exists(fpath(f'pictures/polar/{prefix}{v}/fin/')):
+    #        os.makedirs(fpath(f'pictures/polar/{prefix}{v}/fin/'))
+    #    if not os.path.exists(fpath(f'pictures/polar/{prefix}{v}/fin/{tint}s/')):
+    #        os.makedirs(fpath(f'pictures/polar/{prefix}{v}/fin/{tint}s/'))
+    #    print('Name of the saved image is mo_'+str(namesave)+"_fixlon.jpg")
+    #    plt.savefig(fpath(f'pictures/polar/{prefix}{v}/fin/{tint}s/mo_{namesave}_fixlon.jpg'), dpi=dpi)
+    
+
+    #elif fixed == 'lt':    
+    #    if not os.path.exists(fpath(f'pictures/polar/{prefix}{v}/fin/')):
+    #        os.makedirs(fpath(f'pictures/polar/{prefix}{v}/fin/'))
+    #    if not os.path.exists(fpath(f'pictures/polar/{prefix}{v}/fin/{tint}s_fixedlt/')):
+    #        os.makedirs(fpath(f'pictures/polar/{prefix}{v}/fin/{tint}s_fixedlt/'))
+    #    print('Name of the saved image is mo_'+str(filename)+"_fixedlt.jpg")
+    #    plt.savefig(fpath(f'pictures/polar/{prefix}{v}/fin/{tint}s_fixedlt/mo_{visita}_fixedlt.jpg', dpi=300)) # save location
+
+
+    #plt.close()
+
 #and this chunk is to call the function:
 def multigif(lista, year, prefix, extra, time, radius, moonfp, full, fixed, mf, indf, polarf, secondf):
     for l in lista:
@@ -482,6 +517,4 @@ def input_run():
     lista = ['01'] #for example, or lista = ['0v']
 
     multigif(lista, year, prefix, extra, time, radius, moonfp, full, fixed, mf=0, indf=0, polarf=True, secondf=0) # this is what I need to call
-
-
-
+    

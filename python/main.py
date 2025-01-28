@@ -2,7 +2,7 @@ from astropy.io import fits
 from proj_images_og import moind
 from const import fpath
 i,n=0,0
-n = fpath(r'datasets\HST\jup_16-138-00-08-30_0100_v01_stis_f25srf2_proj.fits')
+n = fpath(r'datasets\HST\v02\jup_16-138-18-48-16_0100_v02_stis_f25srf2_proj.fits')
 hdulist = fits.open(n)
 header = hdulist[1].header
 image = hdulist[1].data

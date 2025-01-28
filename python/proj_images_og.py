@@ -10,6 +10,7 @@ of the fitting algorithm
 import os
 import matplotlib.pyplot as plt
 import matplotlib.patheffects as patheffects
+import matplotlib.ticker as ticker
 import numpy as np
 
 from dateutil.parser import parse

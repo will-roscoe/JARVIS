@@ -469,7 +469,7 @@ def multigif(lista, year, prefix, extra, time, radius, moonfp, full, fixed, mf, 
         ab = glob.glob(fpath(f'datasets/HST'))
         #ab = glob.glob(fpath(f'data/HST/Jupiter/{year}/extract/{extra}'+arch+'/nopolar'+time+ti))
         ab.sort()    
-
+        print(ab)
         #print(f"Length of ab is: {len(ab)}")
         
         #define the image resolution for when there are many images so the 
@@ -554,35 +554,36 @@ os.chdir(fpath('python/pypeline/'))
 
 #you have to input the year of the visits you are plotting (so cannot mix visits
 #from different years in the same "run" of the code, for filepathing reasons)
-year = input("Year of the visit:  \n")
-if year == '2016':
-    pre = input('Campaign from Jonny or Denis? (1/2)  ')
-    if pre == '1' or pre == 'jonny' or pre == 'j' or pre == 'J' or pre == 'Jonny':
-        prefix = 'ocx8'
-        extra = 'nichols/' #this may be have to be removed if your directory system did not differentiate between Jonny's and Dennis's campaigns
-    else:
+def input_run():
+    year = input("Year of the visit:  \n")
+    if year == '2016':
+        pre = input('Campaign from Jonny or Denis? (1/2)  ')
+        if pre == '1' or pre == 'jonny' or pre == 'j' or pre == 'J' or pre == 'Jonny':
+            prefix = 'ocx8'
+            extra = 'nichols/' #this may be have to be removed if your directory system did not differentiate between Jonny's and Dennis's campaigns
+        else:
+            prefix = 'od8k'
+            extra = 'grodent/' #this may be have to be removed if your directory system did not differentiate between Jonny's and Dennis's campaigns
+    elif year == '2019':
+        prefix = 'odxc'
+        extra = ''
+    elif year == '2021':
+        prefix = 'oef4'
+        extra = ''
+    elif year == '2017' or  year == '2018':
         prefix = 'od8k'
-        extra = 'grodent/' #this may be have to be removed if your directory system did not differentiate between Jonny's and Dennis's campaigns
-elif year == '2019':
-    prefix = 'odxc'
-    extra = ''
-elif year == '2021':
-    prefix = 'oef4'
-    extra = ''
-elif year == '2017' or  year == '2018':
-    prefix = 'od8k'
-    extra = ''
-    
-time = str(input('Exposure time (in seconds: 10, 30, 100...): \n')) #usually 100
-radius = int(input('Max. radius (in degrees of colatitude): \n'))   #usually 40
-moonfp = not bool(input('Moon footprints printed? (Default: Enter for YES)\n')) #usually yes
-full = not bool(input('Show the whole hemisphere? (Default: Enter for YES)\n')) #usually yes
-fixed = str(input('Fix longitude (lon) or Local Time (lt):\n')) 
+        extra = ''
+        
+    time = str(input('Exposure time (in seconds: 10, 30, 100...): \n')) #usually 100
+    radius = int(input('Max. radius (in degrees of colatitude): \n'))   #usually 40
+    moonfp = not bool(input('Moon footprints printed? (Default: Enter for YES)\n')) #usually yes
+    full = not bool(input('Show the whole hemisphere? (Default: Enter for YES)\n')) #usually yes
+    fixed = str(input('Fix longitude (lon) or Local Time (lt):\n')) 
 
-#the only part you have to add manually is the particular set of visit numbers you want
-#to plot. If you want only one that is perfectly fine but it must be IN a list
-lista = ['01'] #for example, or lista = ['0v']
+    #the only part you have to add manually is the particular set of visit numbers you want
+    #to plot. If you want only one that is perfectly fine but it must be IN a list
+    lista = ['01'] #for example, or lista = ['0v']
 
-multigif(lista, year, prefix, extra, time, radius, moonfp, full, fixed, mf=0, indf=0, polarf=True, secondf=0) # this is what I need to call
+    multigif(lista, year, prefix, extra, time, radius, moonfp, full, fixed, mf=0, indf=0, polarf=True, secondf=0) # this is what I need to call
 
     

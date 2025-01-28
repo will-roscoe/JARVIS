@@ -22,7 +22,7 @@ import glob
 import imageio
 from astropy.io import fits
 import tqdm 
-
+from const import fpath
 datapath = Path.cwd()
     
 #this is the funcion used for plotting the images
@@ -439,21 +439,21 @@ def moind(aa, header, filename, prefix, dpi = 300, crop = 1, rlim = 30, fixed = 
     namesave = str(filename)
 
     if fixed == 'lon':
-        if not os.path.exists(f'C:/Users/moralpom/phd/Pictures/polar/{prefix}{v}/fin/'):
-            os.makedirs(f'C:/Users/moralpom/phd/Pictures/polar/{prefix}{v}/fin/')
-        if not os.path.exists(f'C:/Users/moralpom/phd/Pictures/polar/{prefix}{v}/fin/{tint}s/'):
-            os.makedirs(f'C:/Users/moralpom/phd/Pictures/polar/{prefix}{v}/fin/{tint}s/')
+        if not os.path.exists(fpath(f'pictures/polar/{prefix}{v}/fin/')):
+            os.makedirs(fpath(f'pictures/polar/{prefix}{v}/fin/'))
+        if not os.path.exists(fpath(f'pictures/polar/{prefix}{v}/fin/{tint}s/')):
+            os.makedirs(fpath(f'pictures/polar/{prefix}{v}/fin/{tint}s/'))
             
         print('Name of the saved image is mo_'+str(namesave)+"_fixlon.jpg")
-        plt.savefig(f'C:/Users/moralpom/phd/Pictures/polar/{prefix}{v}/fin/{tint}s/mo_{namesave}_fixlon.jpg', dpi=dpi)
+        plt.savefig(fpath(f'pictures/polar/{prefix}{v}/fin/{tint}s/mo_{namesave}_fixlon.jpg', dpi=dpi))
         
     elif fixed == 'lt':
-        if not os.path.exists(f'C:/Users/moralpom/phd/Pictures/polar/{prefix}{v}/fin/'):
-            os.makedirs(f'C:/Users/moralpom/phd/Pictures/polar/{prefix}{v}/fin/')
-        if not os.path.exists(f'C:/Users/moralpom/phd/Pictures/polar/{prefix}{v}/fin/{tint}s_fixedlt/'):
-            os.makedirs(f'C:/Users/moralpom/phd/Pictures/polar/{prefix}{v}/fin/{tint}s_fixedlt/')
+        if not os.path.exists(fpath(f'pictures/polar/{prefix}{v}/fin/')):
+            os.makedirs(fpath(f'pictures/polar/{prefix}{v}/fin/'))
+        if not os.path.exists(fpath(f'pictures/polar/{prefix}{v}/fin/{tint}s_fixedlt/')):
+            os.makedirs(fpath(f'pictures/polar/{prefix}{v}/fin/{tint}s_fixedlt/'))
         print('Name of the saved image is mo_'+str(filename)+"_fixedlt.jpg")
-        plt.savefig(f'C:/Users/moralpom/phd/Pictures/polar/{prefix}{v}/fin/{tint}s_fixedlt/mo_{visita}_fixedlt.jpg', dpi=300) # save location
+        plt.savefig(fpath(f'pictures/polar/{prefix}{v}/fin/{tint}s_fixedlt/mo_{visita}_fixedlt.jpg', dpi=300)) # save location
 
     plt.close()
     
@@ -466,7 +466,8 @@ def multigif(lista, year, prefix, extra, time, radius, moonfp, full, fixed, mf, 
         #we grab all the files we are interested in plotting
         arch = '*_v'+ l
         ti = str('/*0'+time+'*')
-        ab = glob.glob(f'C:/Users/moralpom/phd/data/HST/Jupiter/{year}/extract/{extra}'+arch+'/nopolar'+time+ti)
+        ab = glob.glob(fpath(f'datasets/HST/Jupiter/{year}/extract/{extra}'+arch+'/nopolar'+time+ti))
+        #ab = glob.glob(fpath(f'data/HST/Jupiter/{year}/extract/{extra}'+arch+'/nopolar'+time+ti))
         ab.sort()    
 
         #print(f"Length of ab is: {len(ab)}")
@@ -515,18 +516,18 @@ def multigif(lista, year, prefix, extra, time, radius, moonfp, full, fixed, mf, 
         if polarf == True:
             if fixed == 'lon':
                 gifname += '_flon'
-                gifphotos = glob.glob('C:/Users/moralpom/phd/Pictures/polar/'+visita+'/fin/'+str(time)+'s/mopf'+nam)
+                gifphotos = glob.glob(fpath('pictures/polar/')+visita+'/fin/'+str(time)+'s/mopf'+nam)
             elif fixed == 'lt':
                 gifname += '_flt'
-                gifphotos = glob.glob('C:/Users/moralpom/phd/Pictures/polar/'+visita+'/fin/'+str(time)+'s_fixedlt/mopf'+nam)
+                gifphotos = glob.glob(fpath('pictures/polar/')+visita+'/fin/'+str(time)+'s_fixedlt/mopf'+nam)
 
         else:
             if fixed == 'lon':
                 gifname += '_flon'
-                gifphotos = glob.glob('C:/Users/moralpom/phd/Pictures/polar/'+visita+'/fin/'+str(time)+'s/mo_jup'+nam)
+                gifphotos = glob.glob(fpath('pictures/polar/')+visita+'/fin/'+str(time)+'s/mo_jup'+nam)
             elif fixed == 'lt':
                 gifname += '_flt'
-                gifphotos = glob.glob('C:/Users/moralpom/phd/Pictures/polar/'+visita+'/fin/'+str(time)+'s_fixedlt/'+nam)
+                gifphotos = glob.glob(fpath('pictures/polar/')+visita+'/fin/'+str(time)+'s_fixedlt/'+nam)
         
         if moonfp == True:
             gifname += '_mfp'
@@ -543,10 +544,10 @@ def multigif(lista, year, prefix, extra, time, radius, moonfp, full, fixed, mf, 
             imagesgif.append(imageio.imread(file))
 
         #saving the GIF
-        imageio.mimsave('C:/Users/moralpom/phd/Pictures/gifs/Case studies/fin/' + gifname, imagesgif, fps=fps)
+        imageio.mimsave(fpath('pictures/gifs/Case studies/fin/') + gifname, imagesgif, fps=fps)
 
 #and this last part is the one that must be run every time:
-os.chdir('C:/Users/moralpom/phd/pypeline/')
+os.chdir(fpath('pypeline/'))
 
 #you have to input the year of the visits you are plotting (so cannot mix visits
 #from different years in the same "run" of the code, for filepathing reasons)

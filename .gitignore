@@ -172,4 +172,4 @@ cython_debug/
 
 
 # FITS generations
-**.jpg
+*.jpg

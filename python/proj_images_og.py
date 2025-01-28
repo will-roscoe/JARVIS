@@ -453,7 +453,7 @@ def moind(aa, header, filename, prefix, dpi = 300, crop = 1, rlim = 30, fixed = 
         ensure_dir(fpath(f'pictures/polar/{prefix}{v}/fin/'))
         ensure_dir(fpath(f'pictures/polar/{prefix}{v}/fin/{tint}s_fixedlt/'))
     print('Name of the saved image is mo_'+str(filename)+"_fixedlt.jpg")
-    plt.savefig(fpath(f'pictures/polar/{prefix}{v}/fin/{tint}s_fixedlt/mo_{visita}_fixedlt.jpg', dpi=300)) # save location
+    plt.savefig(fpath(f'pictures/polar/{prefix}{v}/fin/{tint}s_fixedlt/mo_{visita}_fixedlt.jpg'), dpi=300) # save location
 
     plt.close()
 def ensure_dir(file_path):
@@ -587,18 +587,4 @@ def input_run():
     multigif(lista, year, prefix, extra, time, radius, moonfp, full, fixed, mf=0, indf=0, polarf=True, secondf=0) # this is what I need to call
 
 
-i,n=0,0
-n = fpath(r'datasets\HST\jup_16-138-00-08-30_0100_v01_stis_f25srf2_proj.fits')
-hdulist = fits.open(n)
-header = hdulist[1].header
-image = hdulist[1].data
-#print(header)
-try:
-    hemis = header['HEMISPH']
-except NameError:
-    hemis = str(input('Input hemisphere manually:  ("north" or "south")  '))
-#filename = str(i)[-51:-5]
-moind(image, header, filename=n, prefix='ocx8', dpi = 300, crop=1, rlim = 90, fixed = 'lon',
-            hemis = hemis, full=True, moonfp=False, photo=n)
-hdulist.close()
-print(f'Image {n} of {str(i)[-51:-5]} created.')
+

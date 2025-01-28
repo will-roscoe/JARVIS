@@ -438,26 +438,24 @@ def moind(aa, header, filename, prefix, dpi = 300, crop = 1, rlim = 30, fixed = 
 #                              horizontalalignment='center', verticalalignment='center', fontweight='bold')
 # #####################################################################
     #defining the final filename, adding sufixes depending n the stuff we are showing
-    
+   
     def ensure_dir(file_path):
-        if not os.path.exists(file_path):
-            os.makedirs(file_path)
+        dirplace=fpath(f'file_path')
+        if not os.path.exists(dirplace):
+            os.makedirs(dirplace)
     
     
-    def save(file_path, fixed = 'type'):
-        fixed = ['lon','lt']
-        if not os.path.exists(file_path):
-            os.makedirs(file_path)
-            if fixed == 'lon':
-                os.makedirs(fpath(f'file_path/{tint}s/'))
-                plt.savefig(fpath(f'file_path/mo_{namesave}_fixlon.jpg'), dpi=dpi)
-            elif fixed == 'lt':
-                os.makedirs(fpath(f'file_path/{tint}s_fixedlt/'))
-                plt.savefig(fpath(f'file_path/{tint}s_fixedlt/mo_{visita}_fixedlt.jpg', dpi=300))
+    def savedataimg(file_path,fixed='detailtype'):
+        ensure_dir(file_path)
+        if fixed == 'lon':
+            ensure_dir(file_path/lon)
+            plt.savefig(fpath(f'file_path/lon/{tint}s/mo_{namesave}_fixlon.jpg'), dpi=dpi)
+        elif fixed == 'lt':
+            ensure_dir(fpath(f'file_path/lt'))
+            plt.savefig(fpath(f'file_path/lt/{tint}s_fixedlt/mo_{visita}_fixedlt.jpg', dpi=300))
     namesave = str(filename)
     
-
-    ensure_dir('pictures',fixed == 'lon' )
+    savedataimg('HST', fixed='lon')
 
     #if fixed == 'lon':
      #   if not os.path.exists(fpath(f'pictures/polar/{prefix}{v}/fin/')):

@@ -31,7 +31,7 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           branch: ${{ env.branch_name }}
-          base: master
+          base: main
           title: "Auto PR: Changes from direct commit to master"
           body: |
             This pull request was automatically created because a direct commit was made to the `master` branch.

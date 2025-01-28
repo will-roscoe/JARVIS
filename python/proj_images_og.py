@@ -11,19 +11,19 @@ import os
 import matplotlib.pyplot as plt
 import matplotlib.patheffects as patheffects
 import numpy as np
-from pathlib import Path
+
 from dateutil.parser import parse
 import datetime as dt
 #import pandas as pd
 from matplotlib.colors import LogNorm
-#from reading_mfp import moonfploc
+
 #from scipy import stats
 import glob
 import imageio
 from astropy.io import fits
 from tqdm import tqdm 
 from const import fpath
-datapath = Path.cwd()
+
     
 #this is the funcion used for plotting the images
 def moind(aa, header, filename, prefix, dpi = 300, crop = 1, rlim = 30, fixed = 'lon',
@@ -450,15 +450,15 @@ def moind(aa, header, filename, prefix, dpi = 300, crop = 1, rlim = 30, fixed = 
         plt.savefig(fpath(f'pictures/polar/{prefix}{v}/fin/{tint}s/mo_{namesave}_fixlon.jpg'), dpi=dpi)
         
     elif fixed == 'lt':
-        if not os.path.exists(fpath(f'pictures/polar/{prefix}{v}/fin/')):
-            os.makedirs(fpath(f'pictures/polar/{prefix}{v}/fin/'))
-        if not os.path.exists(fpath(f'pictures/polar/{prefix}{v}/fin/{tint}s_fixedlt/')):
-            os.makedirs(fpath(f'pictures/polar/{prefix}{v}/fin/{tint}s_fixedlt/'))
-        print('Name of the saved image is mo_'+str(filename)+"_fixedlt.jpg")
-        plt.savefig(fpath(f'pictures/polar/{prefix}{v}/fin/{tint}s_fixedlt/mo_{visita}_fixedlt.jpg', dpi=300)) # save location
+        ensure_dir(fpath(f'pictures/polar/{prefix}{v}/fin/'))
+        ensure_dir(fpath(f'pictures/polar/{prefix}{v}/fin/{tint}s_fixedlt/'))
+    print('Name of the saved image is mo_'+str(filename)+"_fixedlt.jpg")
+    plt.savefig(fpath(f'pictures/polar/{prefix}{v}/fin/{tint}s_fixedlt/mo_{visita}_fixedlt.jpg', dpi=300)) # save location
 
     plt.close()
-    
+def ensure_dir(file_path):
+    if not os.path.exists(file_path):
+            os.makedirs(file_path)
 #and this chunk is to call the function:
 def multigif(lista, year, prefix, extra, time, radius, moonfp, full, fixed, mf, indf, polarf, secondf):
     for l in lista:

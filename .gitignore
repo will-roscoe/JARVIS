@@ -173,3 +173,4 @@ cython_debug/
 
 # FITS generations
 *.jpg
+.vscode/

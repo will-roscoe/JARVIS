@@ -517,6 +517,4 @@ def input_run():
     lista = ['01'] #for example, or lista = ['0v']
 
     multigif(lista, year, prefix, extra, time, radius, moonfp, full, fixed, mf=0, indf=0, polarf=True, secondf=0) # this is what I need to call
-
-
-
+    

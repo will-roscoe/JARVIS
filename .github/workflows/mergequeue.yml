@@ -1,0 +1,26 @@
+name: Merge Queue
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  merge-queue:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Fetch latest main
+        run: |
+          git fetch origin main
+          git checkout main
+          git pull origin main
+
+      - name: Merge PR if no conflicts
+        run: |
+          PR_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+          git merge --no-ff origin/main || echo "Conflict detected. Needs manual resolution."
+      
+      - name: Push merged branch
+        if: success()
+        run: git push origin HEAD:main

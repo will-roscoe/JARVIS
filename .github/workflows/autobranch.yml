@@ -26,7 +26,7 @@ jobs:
       - name: Create a new branch
         id: create_branch
         run: |
-          branch_name="auto-branch-$(date +%Y%m%d%H%M%S)"
+          branch_name="auto-branch-${{ github.actor }}-$(date +%Y%m%d%H%M%S)"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git checkout -b "$branch_name"
@@ -40,9 +40,23 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           branch: ${{ env.branch_name }}
           base: main
-          title: "Auto PR: Changes from direct commit to master"
+          title: "Auto PR: Changes from direct commit to main"
           body: |
-            This pull request was automatically created because a direct commit was made to the `master` branch.
+            This pull request was automatically created because a direct commit was made to the `main` branch.
             Please review and merge this PR to incorporate the changes properly.
+      
+  delete-branch:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    needs: auto-branch
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Delete branch
+        run: |
+          branch_name="${{ github.event.pull_request.head.ref }}"
+          git push origin --delete "$branch_name"
 
       

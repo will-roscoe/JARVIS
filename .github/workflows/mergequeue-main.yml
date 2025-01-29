@@ -1,4 +1,5 @@
 name: Merge Queue
+
 on:
   pull_request:
     types: [opened, synchronize]
@@ -9,6 +10,42 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'  # Change to your Python version
+
+      - name: Install dependencies
+        run: |
+          pip install ruff pytest pytest-cov codecov
+          pip install python/requirements.txt
+
+      # ✅ Only Run Linting & Tests if Python Files Changed
+      - name: Check for Python File Changes
+        id: check-python-changes
+        run: |
+          if git diff --name-only origin/main | grep -E '\.py$'; then
+            echo "PYTHON_CHANGED=true" >> $GITHUB_ENV
+          else
+            echo "PYTHON_CHANGED=false" >> $GITHUB_ENV
+        shell: bash
+
+      - name: Run Linter (ruff)
+        if: env.PYTHON_CHANGED == 'true'
+        run: ruff check .
+
+      - name: Run Tests & Generate Coverage
+        if: env.PYTHON_CHANGED == 'true'
+        run: -v --disable-warnings -l **/tests/test*.py  --cov=nbody --cov-report=xml --cov-report=html
+
+      - name: Upload Coverage to Codecov
+        if: env.PYTHON_CHANGED == 'true'
+        uses: codecov/codecov-action@v4
+        with:
+          fail_ci_if_error: false
+          files: ./coverage.xml
+          threshold: 0  # Define <0% coverage threshold for future change
 
       - name: Fetch latest main
         run: |
@@ -36,7 +73,7 @@ jobs:
         run: |
           git checkout main
           git merge --no-ff origin/$PR_BRANCH || echo "Conflict detected. Needs manual resolution."
-      
+
       - name: Push merged branch
         if: success()
         run: git push origin HEAD:main
@@ -60,3 +97,4 @@ jobs:
         if: success()
         run: |
           git push origin --delete $PR_BRANCH || echo "Branch deletion not needed."
+

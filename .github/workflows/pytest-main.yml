@@ -31,17 +31,19 @@ jobs:
         pip install -r python/requirements.txt
     - name: Pytest run
       run: |
-        pytest -v --disable-warnings -l **/tests/test*.py --doctest-modules --junitxml=junit/test-results.xml --cov=nbody --cov-report=xml --cov-report=html
+        pytest -v --disable-warnings -l **/tests/test*.py --junitxml=junit.xml --cov-report=xml --cov-report=html
     - name: Upload pytest results
       uses: actions/upload-artifact@v3
       with:
         name: pytest-results-${{ matrix.python-version }}-base
         path: junit/test-results-${{ matrix.python-version }}-base.xml
-      if: ${{ always() }}  
     - name: Upload coverage reports to Codecov
       uses: codecov/codecov-action@v5
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
- 
+    - name: Upload junitcoverage reports to Codecov
+      uses: codecov/test-results-action@v1
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
 
             

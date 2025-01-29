@@ -5,43 +5,67 @@ on:
     branches:
       - main
     paths-ignore:
-      - '.github/**'
+      - '.github/**'  # Optionally ignore specific paths (like workflows)
       - 'LaTeX/**'
       - '**.fits'
       - '**.git**'
+    types:
+      - modified  # Only trigger on modified files
+      - removed   # Only trigger on removed files
 
 jobs:
-  auto-create-pr:
+  auto-branch:
     runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Check out the repository
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # Step 2: Check for new commits
+      - name: Check for new commits
+        id: check_commits
+        run: |
+          git fetch origin main
+          NEW_COMMITS=$(git rev-list origin/main..HEAD)
+          if [ -z "$NEW_COMMITS" ]; then
+            echo "No new commits found. Exiting."
+            exit 0
+          fi
+
+      # Step 3: Create a new branch with unique name
+      - name: Create a new branch
+        id: create_branch
+        run: |
+          branch_name="auto-branch-${{ github.actor }}-$(date +%Y%m%d%H%M%S)"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$branch_name"
+          git push origin "$branch_name"
+          echo "branch_name=$branch_name" >> $GITHUB_ENV
+
+      # Step 4: Create a pull request
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: ${{ env.branch_name }}
+          base: main
+          title: "Auto PR: Changes from direct commit to main"
+          body: |
+            This pull request was automatically created because a direct commit was made to the `main` branch.
+            Please review and merge this PR to incorporate the changes properly.
+
+  delete-branch:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    needs: auto-branch
+
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
 
-      - name: Set up Git
+      - name: Delete branch
         run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-
-      - name: Move Commits to a New Branch
-        run: |
-          TIMESTAMP=$(date +%Y%m%d%H%M%S)
-          BRANCH="auto-${GITHUB_ACTOR}-${TIMESTAMP}"
-          git checkout -b $BRANCH
-          git push origin $BRANCH
-          echo "BRANCH_NAME=$BRANCH" >> $GITHUB_ENV
-
-      - name: Create Pull Request
-        uses: actions/github-script@v7
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const { owner, repo } = context.repo;
-            const branchName = process.env.BRANCH_NAME;
-            await github.rest.pulls.create({
-              owner,
-              repo,
-              title: `Auto PR from ${context.actor}`,
-              head: branchName,
-              base: "main",
-              body: "This PR was auto-generated to move commits from main."
-            });
+          branch_name="${{ github.event.pull_request.head.ref }}"
+          git push origin --delete "$branch_name"

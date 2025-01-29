@@ -34,7 +34,7 @@ jobs:
         
     - name: Run Tests and Generate Coverage
       run: |
-        pytest cov=python/**/* --cov-report=xml --cov-report=html
+        pytest -cov=python/**/* --cov-report=xml --cov-report=html
     - name: Upload results to Codecov
       uses: codecov/codecov-action@v5
       with:

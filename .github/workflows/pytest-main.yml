@@ -1,12 +1,6 @@
 
 name: 'pytest'
 on:
-  push:
-    branches: [ "main" ]
-    paths: 
-      - '!**dev/**'
-      - '!**.trash/**'
-      - '**.py'
   workflow_dispatch: 
   
 jobs:

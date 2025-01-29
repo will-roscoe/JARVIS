@@ -11,5 +11,5 @@ jobs:
         run: |
           BRANCH=$(jq -r '.pull_request.head.ref' $GITHUB_EVENT_PATH)
           if [[ $BRANCH == auto-* ]]; then
-            git push origin --delete $BRANCH
+            git push origin --delete $BRANCH || echo "Branch already deleted."
           fi

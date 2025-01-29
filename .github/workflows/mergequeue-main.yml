@@ -35,18 +35,26 @@ jobs:
         if: env.PYTHON_CHANGED == 'true'
         run: ruff check python/ --config .github/pyproject.toml
 
-      - name: Run Tests & Generate Coverage
+      - name: Run pytests & Generate Coverage
         if: env.PYTHON_CHANGED == 'true'
-        run: pytest -v --disable-warnings -l **/tests/test*.py  --cov-report=xml --cov-report=html --junitxml=junit.xml -o junit_family=legacy
+        run: |
+          pytest -l **/tests/test*.py --cov-report=xml --cov-report=html
+          pytest --cov --junitxml=junit.xml
 
       - name: Upload Coverage to Codecov
         if: env.PYTHON_CHANGED == 'true'
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           fail_ci_if_error: false
-          files: ./coverage.xml
           threshold: 0%  # Define <0% coverage threshold for future change
           token: ${{ secrets.CODECOV_TOKEN }}
+          slug: will-roscoe/JARVIS
+      - name: Upload test results to Codecov
+        if: ${{ !cancelled() }}
+        uses: codecov/test-results-action@v1
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+
       - name: Fetch latest main
         run: |
           git fetch origin main

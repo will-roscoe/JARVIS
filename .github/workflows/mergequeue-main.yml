@@ -1,0 +1,100 @@
+name: Merge Queue
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  merge-queue:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'  # Change to your Python version
+
+      - name: Install dependencies
+        run: |
+          pip install ruff pytest pytest-cov
+          pip install python/requirements.txt
+
+      # ✅ Only Run Linting & Tests if Python Files Changed
+      - name: Check for Python File Changes
+        id: check-python-changes
+        run: |
+          if git diff --name-only origin/main | grep -E '\.py$'; then
+            echo "PYTHON_CHANGED=true" >> $GITHUB_ENV
+          else
+            echo "PYTHON_CHANGED=false" >> $GITHUB_ENV
+        shell: bash
+
+      - name: Run Linter (ruff)
+        if: env.PYTHON_CHANGED == 'true'
+        run: ruff check python/ --config .github/pyproject.toml
+
+      - name: Run Tests & Generate Coverage
+        if: env.PYTHON_CHANGED == 'true'
+        run: pytest -v --disable-warnings -l **/tests/test*.py  --cov-report=xml --cov-report=html --junitxml=junit.xml -o junit_family=legacy
+
+      - name: Upload Coverage to Codecov
+        if: env.PYTHON_CHANGED == 'true'
+        uses: codecov/codecov-action@v4
+        with:
+          fail_ci_if_error: false
+          files: ./coverage.xml
+          threshold: 0%  # Define <0% coverage threshold for future change
+          token: ${{ secrets.CODECOV_TOKEN }}
+      - name: Fetch latest main
+        run: |
+          git fetch origin main
+          git checkout main
+          git pull origin main
+
+      - name: Rebase the PR onto latest main
+        run: |
+          PR_BRANCH=$(jq -r ".pull_request.head.ref" $GITHUB_EVENT_PATH)
+          git checkout $PR_BRANCH
+          git rebase origin/main || git rebase --abort
+
+      - name: Push rebased branch (if needed)
+        run: |
+          git push origin $PR_BRANCH --force-with-lease || echo "Rebase not needed"
+
+      - name: Squash commits before merge
+        run: |
+          git reset --soft origin/main
+          git commit -m "Squashed commit from PR #${{ github.event.pull_request.number }}"
+          git push origin $PR_BRANCH --force-with-lease
+
+      - name: Merge PR if no conflicts
+        run: |
+          git checkout main
+          git merge --no-ff origin/$PR_BRANCH || echo "Conflict detected. Needs manual resolution."
+
+      - name: Push merged branch
+        if: success()
+        run: git push origin HEAD:main
+
+      - name: Comment on Conflict
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const { owner, repo, number } = context.issue;
+            const author = context.payload.pull_request.user.login;
+            await github.rest.issues.createComment({
+              owner,
+              repo,
+              issue_number: number,
+              body: `@${author} Your PR has merge conflicts with main. Please resolve them manually and push an update.`
+            });
+
+      - name: Delete branch after merge
+        if: success()
+        run: |
+          git push origin --delete $PR_BRANCH || echo "Branch deletion not needed."
+

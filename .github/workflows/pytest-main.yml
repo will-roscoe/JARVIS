@@ -1,5 +1,5 @@
 
-name: 'pytest'
+name: 'CI Tests'
 on:
   workflow_dispatch: 
   
@@ -26,20 +26,19 @@ jobs:
         python -m pip install pytest pytest-cov
         pip install -r python/requirements.txt
         
-    - name: Run Tests and Generate Coverage
-      run: |
-        pytest -cov=python/**/* --cov-report=xml --cov-report=html
-    - name: Upload results to Codecov
-      uses: codecov/codecov-action@v5
-      with:
-        token: ${{ secrets.CODECOV_TOKEN }}
-        slug: will-roscoe/JARVIS
 
     - name: Test with pytest
       run: |
         pytest --cov --junitxml=junit.xml
-      # Copy and paste the codecov/test-results-action here
+    - name: Upload test results to Codecov
+      if: ${{ !cancelled() }}
+      uses: codecov/test-results-action@v1
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+
+      
     - name: Upload coverage to Codecov
+      if: ${{ !cancelled() }}
       uses: codecov/codecov-action@v5
       with:
         token: ${{ secrets.CODECOV_TOKEN }}

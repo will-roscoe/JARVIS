@@ -1,0 +1,62 @@
+name: Merge Queue
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  merge-queue:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Fetch latest main
+        run: |
+          git fetch origin main
+          git checkout main
+          git pull origin main
+
+      - name: Rebase the PR onto latest main
+        run: |
+          PR_BRANCH=$(jq -r ".pull_request.head.ref" $GITHUB_EVENT_PATH)
+          git checkout $PR_BRANCH
+          git rebase origin/main || git rebase --abort
+
+      - name: Push rebased branch (if needed)
+        run: |
+          git push origin $PR_BRANCH --force-with-lease || echo "Rebase not needed"
+
+      - name: Squash commits before merge
+        run: |
+          git reset --soft origin/main
+          git commit -m "Squashed commit from PR #${{ github.event.pull_request.number }}"
+          git push origin $PR_BRANCH --force-with-lease
+
+      - name: Merge PR if no conflicts
+        run: |
+          git checkout main
+          git merge --no-ff origin/$PR_BRANCH || echo "Conflict detected. Needs manual resolution."
+      
+      - name: Push merged branch
+        if: success()
+        run: git push origin HEAD:main
+
+      - name: Comment on Conflict
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const { owner, repo, number } = context.issue;
+            const author = context.payload.pull_request.user.login;
+            await github.rest.issues.createComment({
+              owner,
+              repo,
+              issue_number: number,
+              body: `@${author} Your PR has merge conflicts with main. Please resolve them manually and push an update.`
+            });
+
+      - name: Delete branch after merge
+        if: success()
+        run: |
+          git push origin --delete $PR_BRANCH || echo "Branch deletion not needed."

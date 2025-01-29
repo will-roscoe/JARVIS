@@ -4,11 +4,12 @@ on:
   push:
     branches:
       - main
-    paths-ignore:
-      - '.github/**'  # Optionally ignore specific paths (like workflows)
-      - 'LaTeX/**'
-      - '**.fits'
-      - '**.git**'
+    paths:
+      - 'python/**/*' )
+      - '!**.yml'
+      - '!**.md'
+      - '!**.toml'
+      - '!**.txt'
     types:
       - modified  # Only trigger on modified files
       - removed   # Only trigger on removed files

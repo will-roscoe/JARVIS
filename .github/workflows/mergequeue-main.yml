@@ -38,8 +38,7 @@ jobs:
       - name: Run pytests & Generate Coverage
         if: env.PYTHON_CHANGED == 'true'
         run: |
-          pytest -l **/tests/test*.py --cov-report=xml --cov-report=html
-          pytest --cov --junitxml=junit.xml
+          pytest -cov=python/**/* --cov-report=xml --cov-report=html
 
       - name: Upload Coverage to Codecov
         if: env.PYTHON_CHANGED == 'true'
@@ -49,11 +48,6 @@ jobs:
           threshold: 0%  # Define <0% coverage threshold for future change
           token: ${{ secrets.CODECOV_TOKEN }}
           slug: will-roscoe/JARVIS
-      - name: Upload test results to Codecov
-        if: ${{ !cancelled() }}
-        uses: codecov/test-results-action@v1
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
 
       - name: Fetch latest main
         run: |

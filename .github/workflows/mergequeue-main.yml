@@ -33,7 +33,7 @@ jobs:
 
       - name: Run Linter (ruff)
         if: env.PYTHON_CHANGED == 'true'
-        run: ruff check .
+        run: ruff check python/ --config .github/pyproject.toml
 
       - name: Run Tests & Generate Coverage
         if: env.PYTHON_CHANGED == 'true'
@@ -46,7 +46,7 @@ jobs:
           fail_ci_if_error: false
           files: ./coverage.xml
           threshold: 0  # Define <0% coverage threshold for future change
-
+          token: ${{ secrets.CODECOV_TOKEN }}
       - name: Fetch latest main
         run: |
           git fetch origin main

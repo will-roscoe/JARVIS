@@ -8,7 +8,7 @@ class TestFileStructure:
             assert True
         def test_fpath(self):
               assert os.path.exists(fpath('python/tests/test_base.py'))
-              assert os.path.exists(fpath(r'python\tests\test_base.py'))
+              assert os.path.exists(fpath('python\\tests\\test_base.py'))
 
 class Test_Image_Generation:
       pass

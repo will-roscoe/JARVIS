@@ -18,25 +18,24 @@ def __testpaths():
 class fileInfo():
     strOnly = False
     def __init__(self, rel_path:str,):
-        self._rel_path = rel_path
-        if not os.path.exists(fpath(rel_path)):
-            raise FileNotFoundError(f'File {rel_path} not found.')
-        self._filename = os.path.split(rel_path)[1]
+        self._rel_path = rel_path # define relative path
+        if not os.path.exists(fpath(rel_path)): # raise if file does not exist, to catch errors early
+            raise FileNotFoundError(f'File {rel_path} not found by fileInfo')
+        self._filename = os.path.split(rel_path)[1] # filename= basename.extension
         self._basename = os.path.basename(rel_path)
         split = self._basename.split('_')
         split = [split[0]] + split[1].split('-') + split[2:]
         keys = ['observation', 'year','days','hours','minutes','seconds', 'exposuretime','visit','instrument','filter','type']
         self._dict = {k:v for k,v in zip(keys, split)}
-        self._dict['year']= "20" + self._dict['year']
-        if not self.strOnly:
+        self._dict['year']= "20" + self._dict['year'] # contains only last two digits of year, so add 20
+        if not self.strOnly: # if not string only, convert numeric values to int
             for k,v in self._dict.items():
                 if v.isnumeric():
-                    self._dict[k] = int(v)
-            self._dict['visit'] = int(self._dict['visit'][1:])
+                    self._dict[k] = int(v) 
+            self._dict['visit'] = int(self._dict['visit'][1:]) # remove leading v
             
             
-
-    def __getattribute__(self, _name):
+    def __getattribute__(self, _name): # _dict items are accessible as self.xyz instead of self._dict['xyz']
         name = _name.lower()
         if name in self._dict.keys():
             return self._dict[name]
@@ -47,7 +46,7 @@ class fileInfo():
         return object.__getattribute__(self, _name)
 
     @property
-    def datetime(self):
+    def datetime(self): # returns a datetime object from the file name
         if self.strOnly:
             return datetime.datetime.strptime(self._dict['year'] + self._dict['days'] + self._dict['hours'] + self._dict['minutes'] + self._dict['seconds'], '%Y%j%H%M%S')
         return datetime.datetime(self.year, 1, 1, self.hours, self.minutes, self.seconds) + datetime.timedelta(days=self.days)

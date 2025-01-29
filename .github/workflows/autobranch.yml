@@ -12,51 +12,40 @@ on:
     types:
       - modified  # Only trigger on modified files
       - removed   # Only trigger on removed files
-
 jobs:
-  auto-branch:
+  auto-create-pr:
     runs-on: ubuntu-latest
-
     steps:
-      # Step 1: Check out the repository
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      # Step 2: Create a new branch
-      - name: Create a new branch
-        id: create_branch
+      - name: Set up Git
         run: |
-          branch_name="auto-branch-${{ github.actor }}-$(date +%Y%m%d%H%M%S)"
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git checkout -b "$branch_name"
-          git push origin "$branch_name"
-          echo "branch_name=$branch_name" >> $GITHUB_ENV
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
-      # Step 3: Create a pull request
-      - name: Create Pull Request
-        uses: peter-evans/create-pull-request@v5
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          branch: ${{ env.branch_name }}
-          base: main
-          title: "Auto PR: Changes from direct commit to main"
-          body: |
-            This pull request was automatically created because a direct commit was made to the `main` branch.
-            Please review and merge this PR to incorporate the changes properly.
+      - name: Move Commits to a New Branch
+        run: |
+          TIMESTAMP=$(date +%Y%m%d%H%M%S)
+          BRANCH="auto-${GITHUB_ACTOR}-${TIMESTAMP}"
+          git checkout -b $BRANCH
+          git push origin $BRANCH
+          echo "Created new branch: $BRANCH"
       
-  delete-branch:
-    if: github.event.pull_request.merged == true
-    runs-on: ubuntu-latest
-    needs: auto-branch
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-
-      - name: Delete branch
-        run: |
-          branch_name="${{ github.event.pull_request.head.ref }}"
-          git push origin --delete "$branch_name"
-
+      - name: Create Pull Request
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const { owner, repo } = context.repo;
+            const timestamp = new Date().toISOString().replace(/[-:.]/g, "");
+            const branchName = `auto-${context.actor}-${timestamp}`;
+            await github.rest.pulls.create({
+              owner,
+              repo,
+              title: `Auto PR from ${context.actor}`,
+              head: branchName,
+              base: "main",
+              body: "This PR was auto-generated to move commits from main."
+            });
       

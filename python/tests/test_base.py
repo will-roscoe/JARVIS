@@ -9,7 +9,10 @@ class TestFileStructure:
         def test_fpath(self):
               assert os.path.exists(fpath('python/tests/test_base.py'))
               #assert os.path.exists(fpath('python\\tests\\test_base.py'))
-
+        def test_numbers(self):
+              assert 1+2 == 3
+        def should_fail(self):
+              assert 1+2 == 4
 class Test_Image_Generation:
       pass
 

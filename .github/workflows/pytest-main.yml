@@ -16,7 +16,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.9", "3.11",]
+        python-version: ["3.11",]
     steps:
     - uses: actions/checkout@v4
     - name: Set up Python ${{ matrix.python-version }}
@@ -24,26 +24,34 @@ jobs:
       with:
         cache: pip
         python-version: ${{ matrix.python-version }}
+    
+    
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         python -m pip install pytest pytest-cov
         pip install -r python/requirements.txt
-    - name: Pytest run
+        
+    - name: Pytest run for codecov
       run: |
-        pytest -v --disable-warnings -l **/tests/test*.py --junitxml=junit.xml --cov-report=xml --cov-report=html
-    - name: Upload pytest results
-      uses: actions/upload-artifact@v3
-      with:
-        name: pytest-results-${{ matrix.python-version }}-base
-        path: junit/test-results-${{ matrix.python-version }}-base.xml
-    - name: Upload coverage reports to Codecov
+        pytest -l **/tests/test*.py --cov-report=xml --cov-report=html
+    - name: Upload results to Codecov
       uses: codecov/codecov-action@v5
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
-    - name: Upload junitcoverage reports to Codecov
+        slug: will-roscoe/JARVIS
+
+    - name: Test with pytest
+      run: |
+        pytest --cov --junitxml=junit.xml
+      # Copy and paste the codecov/test-results-action here
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v5
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+    - name: Upload test results to Codecov
+      if: ${{ !cancelled() }}
       uses: codecov/test-results-action@v1
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
-
-            
+      

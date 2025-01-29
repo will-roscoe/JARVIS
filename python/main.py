@@ -12,3 +12,5 @@ from jarvis import *
 # print(f'Image {n} created.')
 
 multigif(['v01'],'2016','', '', '100', '40', True, 'lon', )
+
+chr(0x1F600)

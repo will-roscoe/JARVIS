@@ -1,4 +1,4 @@
 from .const import *
 from .proj_images_og import *
 
-__all__ = ['moind', 'fpath', 'multigif', '_multigif']
+__all__ = ['moind', 'fpath', ]

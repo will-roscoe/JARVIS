@@ -23,9 +23,9 @@ import glob
 import imageio
 from astropy.io import fits
 from tqdm import tqdm 
-from .const import fpath
+from const import fpath
 
-    
+  
 #this is the funcion used for plotting the images
 def moind(image_data:np.ndarray, header, filename, prefix, crop = 1, rlim = 30, fixed = 'lon', hemis='North', full=True, regions=False,**kwargs):
     """
@@ -368,8 +368,8 @@ def moind(image_data:np.ndarray, header, filename, prefix, crop = 1, rlim = 30, 
         plt.savefig(fpath(mkpath), dpi=dpi)
 
     
-    savedataimg('HST', 'lon',dpi=300)
-    savedataimg('pictures','lt',dpi=300)
+    savedataimg('HST', 'lt',dpi=300)
+    savedataimg('pictures','lon',dpi=300)
 
 #ORGINAL CODE
     #if fixed == 'lon':
@@ -576,3 +576,5 @@ def input_run():
     lista = ['01'] #for example, or lista = ['0v']
 
     multigif(lista, year, prefix, ext, time, radius, moonfp, full, fixed, mf=0, indf=0, polarf=True, secondf=0) # this is what I need to call
+
+    

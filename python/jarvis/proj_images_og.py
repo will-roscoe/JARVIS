@@ -113,7 +113,7 @@ def moind(image_data:np.ndarray, header:np.ndarray, file_location:str,save_locat
     #aa[aa < KR_MIN] = cliplim
 ##########################################################################
     #plotting the polar projection of the image
-    plt.figure(figsize=(7,6))
+    fig =plt.figure(figsize=(7,6))
         
     ax = plt.subplot(projection='polar')
     radials = np.linspace(0,rlim,6,dtype='int')
@@ -129,13 +129,15 @@ def moind(image_data:np.ndarray, header:np.ndarray, file_location:str,save_locat
         if str(hemis).lower()[0] == "s":
             corte = np.roll(corte,180*4,axis=1)
             rot = 180
-        plt.plot(np.roll([np.radians(rot-cml),np.radians(rot-cml)],180*4),[0, 180], 'r--', lw=1.2) #cml
-        plt.text(np.radians(rot-cml), 3+rlim, 'CML', fontsize=11, color='r',
+            ax.plot(np.roll([np.radians(rot-cml),np.radians(rot-cml)],180*4),[0, 180], 'r--', lw=1.2) #cml
+            ax.text(np.radians(rot-cml), 3+rlim, 'CML', fontsize=11, color='r',
                      horizontalalignment='center', verticalalignment='center', fontweight='bold') 
            
         if full == True:
             ax.set_xticks(np.linspace(0,2*np.pi,36)) # set radial ticks
             poshem = np.radians(45) #position of the "N/S" marker
+            ax.xaxis.set_major_locator(ticker.MultipleLocator(base=np.pi/2))
+            ax.xaxis.set_minor_locator(ticker.MultipleLocator(base=np.pi/20))
             if str(hemis).lower()[0] == "s":
                 ax.xaxis.set_major_formatter(ticker.FuncFormatter(lambda x, _: '{:.0f}°'.format(np.degrees(x)%360)))
                 # should be 180°, 90°, 0°, 270°
@@ -201,7 +203,7 @@ def moind(image_data:np.ndarray, header:np.ndarray, file_location:str,save_locat
     ax.set_facecolor('k') #black background
     ax.set_rlim([0,rlim]) # max colat range
     ax.tick_params(axis='both',pad=2.)    # shift position of LT labels
-    plt.rgrids(radials)#, color='white')
+    ax.set_rgrids(radials)#, color='white')
     filename = filename[-51:]
     
 

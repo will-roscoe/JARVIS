@@ -171,9 +171,6 @@ cython_debug/
 .pypirc
 
 
-# FITS generations, it will automatically keep jpgs as long as they are in the imgs folder:
-**.jpg
-!/imgs/**.jpg
-
-# so we don't commit local settings/prefs to the repo
+# FITS generations
+*.jpg
 .vscode/

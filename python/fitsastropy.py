@@ -4,7 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from astropy.io import fits
-from const import fpath
+from jarvis import fpath
 jtest = fpath('datasets\HST\v01\jup_16-137-23-43-30_0100_v01_stis_f25srf2_proj.fits')
 
 #hdul = fits.open(jtest)

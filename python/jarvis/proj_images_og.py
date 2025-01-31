@@ -23,11 +23,11 @@ import glob
 import imageio
 from astropy.io import fits
 from tqdm import tqdm 
-from .const import fpath, fileInfo
+from .const import fpath
 
-    
+  
 #this is the funcion used for plotting the images
-def moind(image_data:np.ndarray, header:np.ndarray, file_location:str,save_location:str,filename='auto', crop = 1, rlim = 30, fixed = 'lon', hemis='North', full=True, regions=False,**kwargs):
+def moind(image_data:np.ndarray, header, filename, prefix, crop = 1, rlim = 30, fixed = 'lon', hemis='North', full=True, regions=False,**kwargs):
     """
             Generate a polar projection plot of an image with various customization options.
             Parameters:
@@ -36,8 +36,8 @@ def moind(image_data:np.ndarray, header:np.ndarray, file_location:str,save_locat
                 2D array representing the image data, typically astropy.io.fits data
             header : dict
                 Dictionary containing header information such as CML, DECE, EXPT, etc.
-            file_location : str
-                The path of the fits file 
+            filename : str
+                The name of the file to be saved.
             prefix : str
                 Prefix to be used in the saved file name.
             dpi : int, optional
@@ -65,10 +65,15 @@ def moind(image_data:np.ndarray, header:np.ndarray, file_location:str,save_locat
     cml = header['CML'] # store CML value
     dece = header['DECE']
     exp_time = header['EXPT']
-    lon = {'io':(header['IOLON'],header['IOLON1'],header['IOLON2']), # Unused
-           'eu':(header['EULON'],header['EULON1'],header['EULON2']),
-           'ga':(header['GALON'],header['GALON1'],header['GALON2'])}
-
+    iolon = header['IOLON']
+    iolon1 = header['IOLON1']
+    iolon2 = header['IOLON2']
+    eulon = header['EULON']
+    eulon1 = header['EULON1']
+    eulon2 = header['EULON2']
+    galon = header['GALON']
+    galon1 = header['GALON1']
+    galon2 = header['GALON2']
     
     #Jupiter times
     start_time = parse(header['UDATE'])     # create datetime object
@@ -114,7 +119,7 @@ def moind(image_data:np.ndarray, header:np.ndarray, file_location:str,save_locat
     #aa[aa < KR_MIN] = cliplim
 ##########################################################################
     #plotting the polar projection of the image
-    fig = plt.figure(figsize=(7,6))
+    plt.figure(figsize=(7,6))
         
     ax = plt.subplot(projection='polar')
     radials = np.linspace(0,rlim,6,dtype='int')
@@ -130,22 +135,20 @@ def moind(image_data:np.ndarray, header:np.ndarray, file_location:str,save_locat
         if str(hemis).lower()[0] == "s":
             corte = np.roll(corte,180*4,axis=1)
             rot = 180
-        ax.plot(np.roll([np.radians(rot-cml),np.radians(rot-cml)],180*4),[0, 180], 'r--', lw=1.2) #cml
-        ax.text(np.radians(rot-cml), 3+rlim, 'CML', fontsize=11, color='r',
+        plt.plot(np.roll([np.radians(rot-cml),np.radians(rot-cml)],180*4),[0, 180], 'r--', lw=1.2) #cml
+        plt.text(np.radians(rot-cml), 3+rlim, 'CML', fontsize=11, color='r',
                      horizontalalignment='center', verticalalignment='center', fontweight='bold') 
            
         if full == True:
-            ax.set_xticks(np.linspace(0,2*np.pi,37)) # set radial ticks #TODO currently minor grid is every 30deg, not 10.
+            ax.set_xticks(np.linspace(0,2*np.pi,36)) # set radial ticks
             poshem = np.radians(45) #position of the "N/S" marker
-            ax.xaxis.set_major_locator(ticker.MultipleLocator(base=np.pi/2))
-            ax.xaxis.set_minor_locator(ticker.MultipleLocator(base=np.pi/20))
-            # depending if north or south we flip the clock angle.
             if str(hemis).lower()[0] == "s":
-                ax.xaxis.set_major_formatter(ticker.FuncFormatter(lambda x, _: '{:.0f}°'.format(np.degrees(x)%360)))
-                # should be 180°, 90°, 0°, 270°
-            else:
-                ax.xaxis.set_major_formatter(ticker.FuncFormatter(lambda x, _: '{:.0f}°'.format(np.degrees(2*np.pi-x)%360)))
-                # should be 0°, 270°, 180°, 90° (counterclockwise)
+                ax.set_xticklabels(['180°','','','','','','','','','90°','','','','','','','','',
+                                    '0°','','','','','','','','','270°','','','','','','','',''], fontweight='bold')   
+                                    
+            else: # if North
+                ax.set_xticklabels(['0°','','','','','','','','','270°','','','','','','','','',
+                                    '180°','','','','','','','','','90°','','','','','','','',''], fontweight='bold')   
             ytickl = [str(i)+'°' for i in radials]
             ax.set_yticklabels(ytickl,color='w',fontsize=10)#, weight='bold') # turn off auto lat labels
             ax.set_rticks(np.arange(radials[1],rlim,10,dtype='int'))           
@@ -202,88 +205,156 @@ def moind(image_data:np.ndarray, header:np.ndarray, file_location:str,save_locat
     ax.set_facecolor('k') #black background
     ax.set_rlim([0,rlim]) # max colat range
     ax.tick_params(axis='both',pad=2.)    # shift position of LT labels
-    ax.set_rgrids(radials)#, color='white')
+    plt.rgrids(radials)#, color='white')
+    filename = filename[-51:]
+    
 
     #Naming variables
-    finfo = fileInfo(file_location)
+    v = filename[26:28] 
+    visita = filename[-51:-5] 
+    doy = filename[7:10]
+    tinti = int(filename[20:24])
+    tint = str(tinti)
+    hora = filename[11:19]
+    year = filename[4:6]
+    visit = 'v' + str(v) + '_20' + str(year)
+
+
     #one of the two titles for every plot
-    plt.suptitle(f'Visit {finfo.visit} (DOY: {finfo.day}/{finfo.year}, {finfo.datetime})', y=0.99, fontsize=14)
+    plt.suptitle(f'Visit {prefix}{v} (DOY: {doy}/20{year}, {hora[0:2]}:{hora[3:5]}:{hora[6:]})', y=0.99, fontsize=14)
     cmlround = np.round(cml, decimals=1)
     
 
     #the other title + the 0° longitudinal meridian for the LT fixed case
     if fixed == 'lon':
-        plt.title(f'Integration time={finfo.exp} seconds. CML: {cmlround}°', y=possub, fontsize=12)
+        plt.title(f'Integration time={tint} seconds. CML: {cmlround}°', y=possub, fontsize=12)
     elif fixed == 'lt':
-        plt.title(f'Fixed LT. Integration time={finfo.exp} s. CML: {cmlround}°', fontsize=12)
+        plt.title(f'Fixed LT. Integration time={tint} s. CML: {cmlround}°', fontsize=12)
         plt.text(np.radians(cml)+np.pi, 4+rlim, '0°', color='coral', fontsize=12,
                  horizontalalignment='center', verticalalignment='bottom', fontweight='bold')
-        plt.plot([np.radians(cml)+np.pi,np.radians(cml)+np.pi],[0, 180], color='coral',
-                  path_effects=[patheffects.withStroke(linewidth=1, foreground='black')],
+        plt.plot([np.radians(cml)+np.pi,np.radians(cml)+np.pi],[0, 180], color='coral', \
+                  path_effects=[patheffects.withStroke(linewidth=1, foreground='black')],\
                   linestyle='-.', lw=1) #prime meridian (longitude 0)
+
 
 
     #Actual plot and colorbar (change the vmin and vmax to play with the limits
     #of the colorbars, recommended to enhance/saturate certain features)
-    if int(finfo.exp) < 30:
-        ticks = [10.,40.,100.,200.,400.,800.,1500.]
+    if int(tint) < 30:
+        plt.pcolormesh(theta,rho[:(int((image_data.shape[0])/crop))],corte,norm=LogNorm(vmin=10., vmax=1500.), cmap='inferno')
+        cbar = plt.colorbar(ticks=[10.,40.,100.,200.,400.,800.,1500.], shrink=shrink, pad=0.06)
+        cbar.ax.set_yticklabels(['10','40','100','200','400','800','1500'])
     else:
-        ticks = [10.,40.,100.,200.,400.,1000.,3000.]
-    plt.pcolormesh(theta,rho[:(int((image_data.shape[0])/crop))],corte,norm=LogNorm(vmin=ticks[0], vmax=ticks[-1]), cmap='inferno')#!5 <- Color of the plot
-    cbar = plt.colorbar(ticks=ticks, shrink=shrink, pad=0.06)
-    cbar.ax.set_yticklabels([str(int(i)) for i in ticks])     
+        plt.pcolormesh(theta,rho[:(int((image_data.shape[0])/crop))],corte,norm=LogNorm(vmin=10., vmax=3000.))
+        cbar = plt.colorbar(ticks=[10.,40.,100.,200.,400.,1000.,3000.], shrink=shrink, pad=0.06)
+        cbar.ax.set_yticklabels(['10','40','100','200','400','1000','3000'])
+
+
+
 
 #####################################################
     #Title for the colorbar    
     cbar.ax.set_ylabel('Intensity [kR]', rotation=270.)
+    
     #Grids (major and minor)
     plt.grid(True, which='major', color='w', alpha=0.6, linestyle='-')
     plt.minorticks_on()
     plt.grid(True, which='minor', color='w', alpha=0.2, linestyle='--')
+    
     #stronger meridional lines for the 0, 90, 180, 270 degrees:
-    for i in range(0,4):
-        plt.plot([np.radians(i*90),np.radians(i*90)],[0, 180], 'w', lw=1.5)
+    plt.plot([np.radians(0),np.radians(0)],[0, 180], 'w', lw=0.9) 
+    plt.plot([np.radians(90),np.radians(90)],[0, 180], 'w', lw=0.9) 
+    plt.plot([np.radians(180),np.radians(180)],[0, 180], 'w', lw=0.9) 
+    plt.plot([np.radians(270),np.radians(270)],[0, 180], 'w', lw=0.9) 
+
     #deprecated variable (maybe useful for the South/LT fixed definition?)
     shift = 0# cml-180.
+
+    #regions delimitation (lat and lon)
+    updusk = np.linspace(np.radians(205+shift),np.radians(170+shift),200)
+    lon_dawn = np.linspace(np.radians(180+shift),np.radians(130+shift),200)
+    uplat_dawn = np.linspace(33, 15, 200)
+    downlat_dawn = np.linspace(39, 23, 200)
+
+    lon_noon_a = np.linspace(np.radians(205+shift),np.radians(190+shift),100)
+    lon_noon_b = np.linspace(np.radians(190+shift),np.radians(170+shift),100)
+    downlat_noon_a = np.linspace(28, 32, 100)
+    downlat_noon_b = np.linspace(32, 27, 100)
+    
     #print which hemisphere are we in:
     plt.text(poshem, 1.3*rlim, str(hemis).capitalize(), fontsize=21, color='k', 
              horizontalalignment='center', verticalalignment='center', fontweight='bold') 
-  
-
+    
     #drawing the regions (if marked; only available for the North so far)
     if regions == True:
-        if str(hemis).lower()[0] == "n":
-            #regions delimitation (lat and lon)
-            updusk = np.linspace(np.radians(205),np.radians(170),200) 
-            dawn = {k:np.linspace(v[0],v[2],200) for k,v in (('lon',(np.radians(180),np.radians(130))), ('uplat',(33, 15)), ('downlat',(39, 23)))}
-            noon = {k:np.linspace(v[0],v[1],100) for k,v in (('lon_a',(np.radians(205),np.radians(190))), ('lon_b',(np.radians(190),np.radians(170))), ('downlat_a',(28, 32)), ('downlat_b',(32, 27)))}
-            # lon_noon_a = noon['lon_a']
+        if fixed == 'lon':
+            if hemis == "North" or hemis == "north" or hemis == "N" or hemis == "n":  
+                #dusk boundary
+                plt.plot([np.radians(205+shift), np.radians(205+shift)], [20, 10], 'r-', lw=1.5)
+                plt.plot([np.radians(170+shift), np.radians(170+shift)], [10, 20], 'r-', lw=1.5)
+                plt.plot(updusk, 200*[10], 'r-', lw=1.5)
+                plt.plot(updusk, 200*[20], 'r-', lw=1.5)
+                #dawn boundary
+                plt.plot([np.radians(130+shift), np.radians(130+shift)], [23, 15], 'k-', lw=1)
+                plt.plot([np.radians(180+shift), np.radians(180+shift)], [33, 39], 'k-', lw=1)#changed from 54 to 39 to close the polygon
+                plt.plot(lon_dawn, uplat_dawn, 'k-', lw=1)
+                plt.plot(lon_dawn, downlat_dawn, 'k-', lw=1)
+                #noon boundary
+                plt.plot([np.radians(205+shift), np.radians(205+shift)], [22, 28], 'y-', lw=1.5)    
+                plt.plot([np.radians(170+shift), np.radians(170+shift)], [27, 22], 'y-', lw=1.5)
+                plt.plot(lon_noon_a, downlat_noon_a, 'y-', lw=1.5)
+                plt.plot(lon_noon_b, downlat_noon_b, 'y-', lw=1.5)
+                plt.plot(updusk, 200*[22], 'y-', lw=1.5)
+                #polar boundary
+                plt.plot([np.radians(205+shift), np.radians(205+shift)], [10, 28], 'w--', lw=1)
+                plt.plot(lon_noon_a, downlat_noon_a, 'w--', lw=1)
+                plt.plot(lon_noon_b, downlat_noon_b, 'w--', lw=1)
+                plt.plot([np.radians(170+shift), np.radians(170+shift)], [27, 10], 'w--', lw=1)
+                plt.plot(updusk, 200*[10], 'w--', lw=1)
+            elif hemis == "South" or hemis == "south" or hemis == "S" or hemis == "s":
+                pass    
 
-            #dusk boundary
-            plt.plot([np.radians(205), np.radians(205)], [20, 10], 'r-', lw=1.5) 
-            plt.plot([np.radians(170), np.radians(170)], [10, 20], 'r-', lw=1.5)  
-            plt.plot(updusk, 200*[10], 'r-', lw=1.5)
-            plt.plot(updusk, 200*[20], 'r-', lw=1.5) 
-            #dawn boundary
-            c = 'k-' if fixed == 'lon' else 'b-'
-            plt.plot([np.radians(130), np.radians(130)], [23, 15], c, lw=1) 
-            plt.plot([np.radians(180), np.radians(180)], [33, 39], c, lw=1)
-            plt.plot(dawn['lon'], dawn['uplat'], c, lw=1)
-            plt.plot(dawn['lon'], dawn['downlat'], c, lw=1)
-            #noon boundary
-            plt.plot([np.radians(205), np.radians(205)], [22, 28], 'y-', lw=1.5)   
-            plt.plot([np.radians(170), np.radians(170)], [27, 22], 'y-', lw=1.5)    
-            plt.plot(noon['lon_a'], noon['downlat_a'], 'y-', lw=1.5) 
-            plt.plot(noon['lon_b'], noon['downlat_b'], 'y-', lw=1.5) 
-            plt.plot(updusk, 200*[22], 'y-', lw=1.5) 
-            #polar boundary
-            plt.plot([np.radians(205), np.radians(205)], [10, 28], 'w--', lw=1)
-            plt.plot([np.radians(170), np.radians(170)], [27, 10], 'w--', lw=1)
-            plt.plot(noon['lon_a'], noon['downlat_a'], 'w--', lw=1) 
-            plt.plot(updusk, 200*[10], 'w--', lw=1) 
-
-        elif hemis == "South" or hemis == "south" or hemis == "S" or hemis == "s":
-            pass
+        #regions for the LT fixed case (only North so far)
+        elif fixed == 'lt':
+            #region delimitation
+            updusk = np.linspace(np.radians(205+shift),np.radians(170+shift),200)
+            lon_dawn = np.linspace(np.radians(180+shift),np.radians(130+shift),200)
+            uplat_dawn = np.linspace(33, 15, 200)
+            downlat_dawn = np.linspace(39, 23, 200)
+            
+            lon_noon_a = np.linspace(np.radians(205+shift),np.radians(190+shift),100)
+            lon_noon_b = np.linspace(np.radians(190+shift),np.radians(170+shift),100)
+            downlat_noon_a = np.linspace(28, 32, 100)
+            downlat_noon_b = np.linspace(32, 27, 100)
+            
+            if hemis == "North" or hemis == "north" or hemis == "N" or hemis == "n":
+                #dusk boundary
+                plt.plot([np.radians(205+shift), np.radians(205+shift)], [20, 10], 'r-', lw=1.5)
+                plt.plot([np.radians(170+shift), np.radians(170+shift)], [10, 20], 'r-', lw=1.5)
+                plt.plot(updusk, 200*[10], 'r-', lw=1.5)
+                plt.plot(updusk, 200*[20], 'r-', lw=1.5)
+                #dawn boundary
+                plt.plot([np.radians(130+shift), np.radians(130+shift)], [23, 15], 'b-', lw=1)
+                plt.plot([np.radians(180+shift), np.radians(180+shift)], [33, 39], 'b-', lw=1)#changed from 54 to 39 to close the polygon
+                plt.plot(lon_dawn, uplat_dawn, 'b-', lw=1)
+                plt.plot(lon_dawn, downlat_dawn, 'b-', lw=1)
+            
+                #noon boundary
+                plt.plot([np.radians(205+shift), np.radians(205+shift)], [22, 28], 'y-', lw=1.5)    
+                plt.plot([np.radians(170+shift), np.radians(170+shift)], [27, 22], 'y-', lw=1.5)
+                plt.plot(lon_noon_a, downlat_noon_a, 'y-', lw=1.5)
+                plt.plot(lon_noon_b, downlat_noon_b, 'y-', lw=1.5)
+                plt.plot(updusk, 200*[22], 'y-', lw=1.5)
+                #polar boundary
+                plt.plot([np.radians(205+shift), np.radians(205+shift)], [10, 28], 'w--', lw=1)
+                plt.plot(lon_noon_a, downlat_noon_a, 'w--', lw=1)
+                plt.plot(lon_noon_b, downlat_noon_b, 'w--', lw=1)
+                plt.plot([np.radians(170+shift), np.radians(170+shift)], [27, 10], 'w--', lw=1)
+                plt.plot(updusk, 200*[10], 'w--', lw=1)
+            
+            elif hemis == "South" or hemis == "south" or hemis == "S" or hemis == "s":
+                pass
+    plt.close()
     def ensure_dir(file_path):
         '''this function checks if the file path exists, if not it will create one'''
         if not os.path.exists(file_path):
@@ -293,17 +364,37 @@ def moind(image_data:np.ndarray, header:np.ndarray, file_location:str,save_locat
         '''this function creates the image type of lt, or lon, into the desired file path, and what what dpi resolution'''
         ensure_dir(file_path)
         ensure_dir(f'{file_path}/{fixed}')
-        mkpath = f'{file_path}/{fixed}/mo_{str(finfo._basename)}_fix{fixed}.jpg'
+        mkpath = f'{file_path}/{fixed}/mo_{str(filename)}_fix{fixed}.jpg'
         plt.savefig(fpath(mkpath), dpi=dpi)
 
     
-    savedataimg('HST', 'lon',dpi=300)
-    savedataimg('pictures','lt',dpi=300)
+    savedataimg('HST', 'lt',dpi=300)
+    savedataimg('pictures','lon',dpi=300)
+
+#ORGINAL CODE
+    #if fixed == 'lon':
+    #    if not os.path.exists(fpath(f'pictures/polar/{prefix}{v}/fin/')):
+    #        os.makedirs(fpath(f'pictures/polar/{prefix}{v}/fin/'))
+    #    if not os.path.exists(fpath(f'pictures/polar/{prefix}{v}/fin/{tint}s/')):
+    #        os.makedirs(fpath(f'pictures/polar/{prefix}{v}/fin/{tint}s/'))
+    #    print('Name of the saved image is mo_'+str(namesave)+"_fixlon.jpg")
+    #    plt.savefig(fpath(f'pictures/polar/{prefix}{v}/fin/{tint}s/mo_{namesave}_fixlon.jpg'), dpi=dpi)
+    
+
+    #elif fixed == 'lt':    
+    #    if not os.path.exists(fpath(f'pictures/polar/{prefix}{v}/fin/')):
+    #        os.makedirs(fpath(f'pictures/polar/{prefix}{v}/fin/'))
+    #    if not os.path.exists(fpath(f'pictures/polar/{prefix}{v}/fin/{tint}s_fixedlt/')):
+    #        os.makedirs(fpath(f'pictures/polar/{prefix}{v}/fin/{tint}s_fixedlt/'))
+    #    print('Name of the saved image is mo_'+str(filename)+"_fixedlt.jpg")
+    #    plt.savefig(fpath(f'pictures/polar/{prefix}{v}/fin/{tint}s_fixedlt/mo_{visita}_fixedlt.jpg', dpi=300)) # save location
+
+
     plt.close()
 
 #and this chunk is to call the function:
 def make_gif(fits_dir, **kwargs,):
-    fits_file_list = glob.glob(fits_dir)
+    fits_file_list = glob.glob(fits_dir+'*.fits')
     #ab = glob.glob(fpath(f'data/HST/Jupiter/{year}/extract/{extra}'+arch+'/nopolar'+time+ti))
     fits_file_list.sort()    
     print(fits_file_list)
@@ -315,57 +406,64 @@ def make_gif(fits_dir, **kwargs,):
     full = kwargs.get('full') if 'full' in kwargs else True
     radius = kwargs.get('radius') if 'radius' in kwargs else 30
     fps = kwargs.get('fps') if 'fps' in kwargs else 5
+    time = kwargs.get('time') if 'time' in kwargs else 100
+    polarf = kwargs.get('polarf') if 'polarf' in kwargs else True
+    moonfp = False
+    visita = 'v01'
+    imagesgif = []        
     for i,file in tqdm(enumerate(fits_file_list)):
         with fits.open(file) as hdulist:
             header = hdulist[1].header
             image = hdulist[1].data
-            moind(image, header, filename,  dpi = dpi, crop=1, rlim = radius, fixed = fixed,
+            filename = str(file)[-51:-5]
+            print(header['VISIT'])
+            moind(image, header, filename, prefix='ocx8', dpi = dpi, crop=1, rlim = radius, fixed = fixed,
                     hemis = header['HEMISPH'], full=full, photo=0, )#mf=mf, indf=indf, polarf=polarf, secondf=secondf
-        print(f'Image {i} of {str(file)[-51:-5]} created.')
-        
+        print(f'Image {i+1} of {str(file)[-51:-5]} created.')
+        #imagesgif.append(imageio.imread(fpath(#wherever the images are saved)))
         #and now we start creating the GIF
-        imagesgif = []        
-        print(f'On to the GIF ')
+    
+    print(f'On to the GIF ')
         
-        nam = str('*0'+time+'*')
+    nam = str('*0'+str(time)+'*')
 
         #optional suffixes to the GIF's name
         # + grabbing the correct images recently generated by moind
-        if polarf == True:
-            if fixed == 'lon':
-                gifname += '_flon'
-                gifphotos = glob.glob(fpath('pictures/polar/')+visita+'/fin/'+str(time)+'s/mopf'+nam)
-            elif fixed == 'lt':
-                gifname += '_flt'
-                gifphotos = glob.glob(fpath('pictures/polar/')+visita+'/fin/'+str(time)+'s_fixedlt/mopf'+nam)
+    if polarf == True:
+        if fixed == 'lon':
+            nam += '_flon'
+            gifphotos = glob.glob(fpath('pictures/polar/')+visita+'/fin/'+str(time)+'s/mopf'+nam)
+        elif fixed == 'lt':
+            nam += '_flt'
+            gifphotos = glob.glob(fpath('pictures/polar/')+visita+'/fin/'+str(time)+'s_fixedlt/mopf'+nam)
 
-        else:
-            if fixed == 'lon':
-                gifname += '_flon'
-                gifphotos = glob.glob(fpath('pictures/polar/')+visita+'/fin/'+str(time)+'s/mo_jup'+nam)
-            elif fixed == 'lt':
-                gifname += '_flt'
-                gifphotos = glob.glob(fpath('pictures/polar/')+visita+'/fin/'+str(time)+'s_fixedlt/'+nam)
+    else:
+        if fixed == 'lon':
+            nam += '_flon'
+            gifphotos = glob.glob(fpath('pictures/polar/')+visita+'/fin/'+str(time)+'s/mo_jup'+nam)
+        elif fixed == 'lt':
+            nam += '_flt'
+            gifphotos = glob.glob(fpath('pictures/polar/')+visita+'/fin/'+str(time)+'s_fixedlt/'+nam)
         
-        if moonfp == True:
-            gifname += '_mfp'
+    if moonfp == True:
+        nam += '_mfp'
         
-        if full == False:
-            gifname += '_half'
+    if full == False:
+        nam += '_half'
         
         #final suffix (termination)
-        gifname += '.gif'
+    nam += '.gif'
         
         #GIF creation:
-        gifphotos.sort()
-        for file in gifphotos:
-            imagesgif.append(imageio.imread(file))
+    gifphotos.sort()
+    for file in gifphotos:
+        imagesgif.append(imageio.imread(file))
 
         #saving the GIF
-        if not os.path.exists(fpath(f'pictures/gifs/')):
-            os.makedirs(fpath(f'pictures/gifs/'))
-        imageio.mimsave(fpath('pictures/gifs/') + gifname, imagesgif, fps=fps)
-    
+    if not os.path.exists(fpath(f'pictures/gifs/')):
+        os.makedirs(fpath(f'pictures/gifs/'))
+    imageio.mimsave(fpath('pictures/gifs/') + nam, imagesgif, fps=fps)
+        
 #and this last part is the one that must be run every time:
 def _multigif(lista, year, prefix, extra, time, radius, moonfp, full, fixed, mf, indf, polarf, secondf):
     for l in lista:
@@ -484,4 +582,6 @@ def input_run():
     #to plot. If you want only one that is perfectly fine but it must be IN a list
     lista = ['01'] #for example, or lista = ['0v']
 
-    multigif(lista, year, prefix, ext, time, radius, moonfp, full, fixed, mf=0, indf=0, polarf=True, secondf=0) # this is what I need to call
+    #multigif(lista, year, prefix, ext, time, radius, moonfp, full, fixed, mf=0, indf=0, polarf=True, secondf=0) # this is what I need to call
+
+    

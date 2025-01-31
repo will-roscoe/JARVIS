@@ -19,7 +19,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install ruff pytest pytest-cov
-          pip install -r python/requirements.txt
+          pip install python/requirements.txt
 
       # ✅ Only Run Linting & Tests if Python Files Changed
       - name: Check for Python File Changes

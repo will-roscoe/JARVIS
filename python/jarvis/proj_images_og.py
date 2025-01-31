@@ -137,12 +137,14 @@ def moind(image_data:np.ndarray, header:np.ndarray, file_location:str,save_locat
             ax.set_xticks(np.linspace(0,2*np.pi,36)) # set radial ticks
             poshem = np.radians(45) #position of the "N/S" marker
             if str(hemis).lower()[0] == "s":
-                ax.set_xticklabels(['180°','','','','','','','','','90°','','','','','','','','',
-                                    '0°','','','','','','','','','270°','','','','','','','',''], fontweight='bold')   
-                                    
-            else: # if North
-                ax.set_xticklabels(['0°','','','','','','','','','270°','','','','','','','','',
-                                    '180°','','','','','','','','','90°','','','','','','','',''], fontweight='bold')   
+                ax.xaxis.set_major_formatter(ticker.FuncFormatter(lambda x, _: '{:.0f}°'.format(np.degrees(x)%360)))
+                # should be 180°, 90°, 0°, 270°
+            else:
+                ax.xaxis.set_major_formatter(ticker.FuncFormatter(lambda x, _: '{:.0f}°'.format(np.degrees(2*np.pi-x)%360)))
+                # should be 0°, 270°, 180°, 90° (counterclockwise)
+            # depending if north or south we flip the clock angle.
+            
+                
             ytickl = [str(i)+'°' for i in radials]
             ax.set_yticklabels(ytickl,color='w',fontsize=10)#, weight='bold') # turn off auto lat labels
             ax.set_rticks(np.arange(radials[1],rlim,10,dtype='int'))           
@@ -220,8 +222,8 @@ def moind(image_data:np.ndarray, header:np.ndarray, file_location:str,save_locat
         plt.title(f'Fixed LT. Integration time={finfo.exp} s. CML: {cmlround}°', fontsize=12)
         plt.text(np.radians(cml)+np.pi, 4+rlim, '0°', color='coral', fontsize=12,
                  horizontalalignment='center', verticalalignment='bottom', fontweight='bold')
-        plt.plot([np.radians(cml)+np.pi,np.radians(cml)+np.pi],[0, 180], color='coral', \
-                  path_effects=[patheffects.withStroke(linewidth=1, foreground='black')],\
+        plt.plot([np.radians(cml)+np.pi,np.radians(cml)+np.pi],[0, 180], color='coral', 
+                  path_effects=[patheffects.withStroke(linewidth=1, foreground='black')],
                   linestyle='-.', lw=1) #prime meridian (longitude 0)
 
 
@@ -262,73 +264,39 @@ def moind(image_data:np.ndarray, header:np.ndarray, file_location:str,save_locat
     
     #drawing the regions (if marked; only available for the North so far)
     if regions == True:
-        if fixed == 'lon':
-            if hemis == "North" or hemis == "north" or hemis == "N" or hemis == "n":  
-                #dusk boundary
-                plt.plot([np.radians(205+shift), np.radians(205+shift)], [20, 10], 'r-', lw=1.5)
-                plt.plot([np.radians(170+shift), np.radians(170+shift)], [10, 20], 'r-', lw=1.5)
-                plt.plot(updusk, 200*[10], 'r-', lw=1.5)
-                plt.plot(updusk, 200*[20], 'r-', lw=1.5)
-                #dawn boundary
-                plt.plot([np.radians(130+shift), np.radians(130+shift)], [23, 15], 'k-', lw=1)
-                plt.plot([np.radians(180+shift), np.radians(180+shift)], [33, 39], 'k-', lw=1)#changed from 54 to 39 to close the polygon
-                plt.plot(lon_dawn, uplat_dawn, 'k-', lw=1)
-                plt.plot(lon_dawn, downlat_dawn, 'k-', lw=1)
-                #noon boundary
-                plt.plot([np.radians(205+shift), np.radians(205+shift)], [22, 28], 'y-', lw=1.5)    
-                plt.plot([np.radians(170+shift), np.radians(170+shift)], [27, 22], 'y-', lw=1.5)
-                plt.plot(lon_noon_a, downlat_noon_a, 'y-', lw=1.5)
-                plt.plot(lon_noon_b, downlat_noon_b, 'y-', lw=1.5)
-                plt.plot(updusk, 200*[22], 'y-', lw=1.5)
-                #polar boundary
-                plt.plot([np.radians(205+shift), np.radians(205+shift)], [10, 28], 'w--', lw=1)
-                plt.plot(lon_noon_a, downlat_noon_a, 'w--', lw=1)
-                plt.plot(lon_noon_b, downlat_noon_b, 'w--', lw=1)
-                plt.plot([np.radians(170+shift), np.radians(170+shift)], [27, 10], 'w--', lw=1)
-                plt.plot(updusk, 200*[10], 'w--', lw=1)
-            elif hemis == "South" or hemis == "south" or hemis == "S" or hemis == "s":
-                pass    
+        if str(hemis).lower()[0] == "n":
+            #regions delimitation (lat and lon)
+            updusk = np.linspace(np.radians(205),np.radians(170),200) 
+            dawn = {k:np.linspace(v[0],v[2],200) for k,v in (('lon',(np.radians(180),np.radians(130))), ('uplat',(33, 15)), ('downlat',(39, 23)))}
+            noon = {k:np.linspace(v[0],v[1],100) for k,v in (('lon_a',(np.radians(205),np.radians(190))), ('lon_b',(np.radians(190),np.radians(170))), ('downlat_a',(28, 32)), ('downlat_b',(32, 27)))}
+            # lon_noon_a = noon['lon_a']
 
-        #regions for the LT fixed case (only North so far)
-        elif fixed == 'lt':
-            #region delimitation
-            updusk = np.linspace(np.radians(205+shift),np.radians(170+shift),200)
-            lon_dawn = np.linspace(np.radians(180+shift),np.radians(130+shift),200)
-            uplat_dawn = np.linspace(33, 15, 200)
-            downlat_dawn = np.linspace(39, 23, 200)
-            
-            lon_noon_a = np.linspace(np.radians(205+shift),np.radians(190+shift),100)
-            lon_noon_b = np.linspace(np.radians(190+shift),np.radians(170+shift),100)
-            downlat_noon_a = np.linspace(28, 32, 100)
-            downlat_noon_b = np.linspace(32, 27, 100)
-            
-            if hemis == "North" or hemis == "north" or hemis == "N" or hemis == "n":
-                #dusk boundary
-                plt.plot([np.radians(205+shift), np.radians(205+shift)], [20, 10], 'r-', lw=1.5)
-                plt.plot([np.radians(170+shift), np.radians(170+shift)], [10, 20], 'r-', lw=1.5)
-                plt.plot(updusk, 200*[10], 'r-', lw=1.5)
-                plt.plot(updusk, 200*[20], 'r-', lw=1.5)
-                #dawn boundary
-                plt.plot([np.radians(130+shift), np.radians(130+shift)], [23, 15], 'b-', lw=1)
-                plt.plot([np.radians(180+shift), np.radians(180+shift)], [33, 39], 'b-', lw=1)#changed from 54 to 39 to close the polygon
-                plt.plot(lon_dawn, uplat_dawn, 'b-', lw=1)
-                plt.plot(lon_dawn, downlat_dawn, 'b-', lw=1)
-            
-                #noon boundary
-                plt.plot([np.radians(205+shift), np.radians(205+shift)], [22, 28], 'y-', lw=1.5)    
-                plt.plot([np.radians(170+shift), np.radians(170+shift)], [27, 22], 'y-', lw=1.5)
-                plt.plot(lon_noon_a, downlat_noon_a, 'y-', lw=1.5)
-                plt.plot(lon_noon_b, downlat_noon_b, 'y-', lw=1.5)
-                plt.plot(updusk, 200*[22], 'y-', lw=1.5)
-                #polar boundary
-                plt.plot([np.radians(205+shift), np.radians(205+shift)], [10, 28], 'w--', lw=1)
-                plt.plot(lon_noon_a, downlat_noon_a, 'w--', lw=1)
-                plt.plot(lon_noon_b, downlat_noon_b, 'w--', lw=1)
-                plt.plot([np.radians(170+shift), np.radians(170+shift)], [27, 10], 'w--', lw=1)
-                plt.plot(updusk, 200*[10], 'w--', lw=1)
-            
-            elif hemis == "South" or hemis == "south" or hemis == "S" or hemis == "s":
-                pass
+            #dusk boundary
+            plt.plot([np.radians(205), np.radians(205)], [20, 10], 'r-', lw=1.5) 
+            plt.plot([np.radians(170), np.radians(170)], [10, 20], 'r-', lw=1.5)  
+            plt.plot(updusk, 200*[10], 'r-', lw=1.5)
+            plt.plot(updusk, 200*[20], 'r-', lw=1.5) 
+            #dawn boundary
+            c = 'k-' if fixed == 'lon' else 'b-'
+            plt.plot([np.radians(130), np.radians(130)], [23, 15], c, lw=1) 
+            plt.plot([np.radians(180), np.radians(180)], [33, 39], c, lw=1)
+            plt.plot(dawn['lon'], dawn['uplat'], c, lw=1)
+            plt.plot(dawn['lon'], dawn['downlat'], c, lw=1)
+            #noon boundary
+            plt.plot([np.radians(205), np.radians(205)], [22, 28], 'y-', lw=1.5)   
+            plt.plot([np.radians(170), np.radians(170)], [27, 22], 'y-', lw=1.5)    
+            plt.plot(noon['lon_a'], noon['downlat_a'], 'y-', lw=1.5) 
+            plt.plot(noon['lon_b'], noon['downlat_b'], 'y-', lw=1.5) 
+            plt.plot(updusk, 200*[22], 'y-', lw=1.5) 
+            #polar boundary
+            plt.plot([np.radians(205), np.radians(205)], [10, 28], 'w--', lw=1)
+            plt.plot([np.radians(170), np.radians(170)], [27, 10], 'w--', lw=1)
+            plt.plot(noon['lon_a'], noon['downlat_a'], 'w--', lw=1) 
+            plt.plot(updusk, 200*[10], 'w--', lw=1) 
+
+        elif hemis == "South" or hemis == "south" or hemis == "S" or hemis == "s":
+            pass
+        
     plt.close()
     def ensure_dir(file_path):
         '''this function checks if the file path exists, if not it will create one'''

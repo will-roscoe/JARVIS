@@ -35,7 +35,7 @@ class fileInfo():
             self._dict['visit'] = int(self._dict['visit'][1:]) # remove leading v
             
             
-    def __getattribute__(self, _name): # _dict items are accessible as self.xyz instead of self._dict['xyz']
+    def __getattr__(self, _name): # _dict items are accessible as self.xyz instead of self._dict['xyz']
         name = _name.lower()
         if name in self._dict.keys():
             return self._dict[name]
@@ -43,7 +43,7 @@ class fileInfo():
             for k,v in self._dict.items():
                 if k.startswith(name):
                     return v
-        return object.__getattribute__(self, _name)
+        return object.__getattr__(self, _name)
 
     @property
     def datetime(self): # returns a datetime object from the file name

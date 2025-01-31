@@ -23,12 +23,12 @@ import glob
 import imageio
 from astropy.io import fits
 from tqdm import tqdm 
-from .const import fpath
+from .const import fpath, fileInfo
 
   
 #this is the funcion used for plotting the images
-def moind(image_data:np.ndarray, header, filename, prefix, crop = 1, rlim = 30, fixed = 'lon', hemis='North', full=True, regions=False,**kwargs):
-    """
+def moind(image_data:np.ndarray, header:np.ndarray, file_location:str,save_location:str,filename='auto', crop = 1, rlim = 30, fixed = 'lon', hemis='North', full=True, regions=False,**kwargs):  
+    """      
             Generate a polar projection plot of an image with various customization options.
             Parameters:
             -----------
@@ -65,15 +65,9 @@ def moind(image_data:np.ndarray, header, filename, prefix, crop = 1, rlim = 30, 
     cml = header['CML'] # store CML value
     dece = header['DECE']
     exp_time = header['EXPT']
-    iolon = header['IOLON']
-    iolon1 = header['IOLON1']
-    iolon2 = header['IOLON2']
-    eulon = header['EULON']
-    eulon1 = header['EULON1']
-    eulon2 = header['EULON2']
-    galon = header['GALON']
-    galon1 = header['GALON1']
-    galon2 = header['GALON2']
+    lon = {'io':(header['IOLON'],header['IOLON1'],header['IOLON2']), # Unused
+           'eu':(header['EULON'],header['EULON1'],header['EULON2']),
+           'ga':(header['GALON'],header['GALON1'],header['GALON2'])}
     
     #Jupiter times
     start_time = parse(header['UDATE'])     # create datetime object
@@ -210,26 +204,20 @@ def moind(image_data:np.ndarray, header, filename, prefix, crop = 1, rlim = 30, 
     
 
     #Naming variables
-    v = filename[26:28] 
-    visita = filename[-51:-5] 
-    doy = filename[7:10]
-    tinti = int(filename[20:24])
-    tint = str(tinti)
-    hora = filename[11:19]
-    year = filename[4:6]
-    visit = 'v' + str(v) + '_20' + str(year)
+    finfo = fileInfo(file_location)
+
 
 
     #one of the two titles for every plot
-    plt.suptitle(f'Visit {prefix}{v} (DOY: {doy}/20{year}, {hora[0:2]}:{hora[3:5]}:{hora[6:]})', y=0.99, fontsize=14)
+    plt.suptitle(f'Visit {finfo.visit} (DOY: {finfo.day}/{finfo.year}, {finfo.datetime})', y=0.99, fontsize=14)
     cmlround = np.round(cml, decimals=1)
     
 
     #the other title + the 0° longitudinal meridian for the LT fixed case
     if fixed == 'lon':
-        plt.title(f'Integration time={tint} seconds. CML: {cmlround}°', y=possub, fontsize=12)
+        plt.title(f'Integration time={finfo.exp} seconds. CML: {cmlround}°', y=possub, fontsize=12)
     elif fixed == 'lt':
-        plt.title(f'Fixed LT. Integration time={tint} s. CML: {cmlround}°', fontsize=12)
+        plt.title(f'Fixed LT. Integration time={finfo.exp} s. CML: {cmlround}°', fontsize=12)
         plt.text(np.radians(cml)+np.pi, 4+rlim, '0°', color='coral', fontsize=12,
                  horizontalalignment='center', verticalalignment='bottom', fontweight='bold')
         plt.plot([np.radians(cml)+np.pi,np.radians(cml)+np.pi],[0, 180], color='coral', \
@@ -240,15 +228,15 @@ def moind(image_data:np.ndarray, header, filename, prefix, crop = 1, rlim = 30, 
 
     #Actual plot and colorbar (change the vmin and vmax to play with the limits
     #of the colorbars, recommended to enhance/saturate certain features)
-    if int(tint) < 30:
-        plt.pcolormesh(theta,rho[:(int((image_data.shape[0])/crop))],corte,norm=LogNorm(vmin=10., vmax=1500.), cmap='inferno')
-        cbar = plt.colorbar(ticks=[10.,40.,100.,200.,400.,800.,1500.], shrink=shrink, pad=0.06)
-        cbar.ax.set_yticklabels(['10','40','100','200','400','800','1500'])
-    else:
-        plt.pcolormesh(theta,rho[:(int((image_data.shape[0])/crop))],corte,norm=LogNorm(vmin=10., vmax=3000.))
-        cbar = plt.colorbar(ticks=[10.,40.,100.,200.,400.,1000.,3000.], shrink=shrink, pad=0.06)
-        cbar.ax.set_yticklabels(['10','40','100','200','400','1000','3000'])
+    if int(finfo.exp) < 30:
+        ticks = [10.,40.,100.,200.,400.,800.,1500.]
 
+
+    else:
+        ticks = [10.,40.,100.,200.,400.,1000.,3000.]
+    plt.pcolormesh(theta,rho[:(int((image_data.shape[0])/crop))],corte,norm=LogNorm(vmin=ticks[0], vmax=ticks[-1]), cmap='inferno')#!5 <- Color of the plot
+    cbar = plt.colorbar(ticks=ticks, shrink=shrink, pad=0.06)
+    cbar.ax.set_yticklabels([str(int(i)) for i in ticks])
 
 
 
@@ -262,24 +250,11 @@ def moind(image_data:np.ndarray, header, filename, prefix, crop = 1, rlim = 30, 
     plt.grid(True, which='minor', color='w', alpha=0.2, linestyle='--')
     
     #stronger meridional lines for the 0, 90, 180, 270 degrees:
-    plt.plot([np.radians(0),np.radians(0)],[0, 180], 'w', lw=0.9) 
-    plt.plot([np.radians(90),np.radians(90)],[0, 180], 'w', lw=0.9) 
-    plt.plot([np.radians(180),np.radians(180)],[0, 180], 'w', lw=0.9) 
-    plt.plot([np.radians(270),np.radians(270)],[0, 180], 'w', lw=0.9) 
+    for i in range(0,4):
+        plt.plot([np.radians(i*90),np.radians(i*90)],[0, 180], 'w', lw=0.9)
 
     #deprecated variable (maybe useful for the South/LT fixed definition?)
     shift = 0# cml-180.
-
-    #regions delimitation (lat and lon)
-    updusk = np.linspace(np.radians(205+shift),np.radians(170+shift),200)
-    lon_dawn = np.linspace(np.radians(180+shift),np.radians(130+shift),200)
-    uplat_dawn = np.linspace(33, 15, 200)
-    downlat_dawn = np.linspace(39, 23, 200)
-
-    lon_noon_a = np.linspace(np.radians(205+shift),np.radians(190+shift),100)
-    lon_noon_b = np.linspace(np.radians(190+shift),np.radians(170+shift),100)
-    downlat_noon_a = np.linspace(28, 32, 100)
-    downlat_noon_b = np.linspace(32, 27, 100)
     
     #print which hemisphere are we in:
     plt.text(poshem, 1.3*rlim, str(hemis).capitalize(), fontsize=21, color='k', 
@@ -364,31 +339,12 @@ def moind(image_data:np.ndarray, header, filename, prefix, crop = 1, rlim = 30, 
         '''this function creates the image type of lt, or lon, into the desired file path, and what what dpi resolution'''
         ensure_dir(file_path)
         ensure_dir(f'{file_path}/{fixed}')
-        mkpath = f'{file_path}/{fixed}/mo_{str(filename)}_fix{fixed}.jpg'
+        mkpath = f'{file_path}/{fixed}/mo_{str(finfo._basename)}_fix{fixed}.jpg'
         plt.savefig(fpath(mkpath), dpi=dpi)
 
     
     savedataimg('HST', 'lt',dpi=300)
     savedataimg('pictures','lon',dpi=300)
-
-#ORGINAL CODE
-    #if fixed == 'lon':
-    #    if not os.path.exists(fpath(f'pictures/polar/{prefix}{v}/fin/')):
-    #        os.makedirs(fpath(f'pictures/polar/{prefix}{v}/fin/'))
-    #    if not os.path.exists(fpath(f'pictures/polar/{prefix}{v}/fin/{tint}s/')):
-    #        os.makedirs(fpath(f'pictures/polar/{prefix}{v}/fin/{tint}s/'))
-    #    print('Name of the saved image is mo_'+str(namesave)+"_fixlon.jpg")
-    #    plt.savefig(fpath(f'pictures/polar/{prefix}{v}/fin/{tint}s/mo_{namesave}_fixlon.jpg'), dpi=dpi)
-    
-
-    #elif fixed == 'lt':    
-    #    if not os.path.exists(fpath(f'pictures/polar/{prefix}{v}/fin/')):
-    #        os.makedirs(fpath(f'pictures/polar/{prefix}{v}/fin/'))
-    #    if not os.path.exists(fpath(f'pictures/polar/{prefix}{v}/fin/{tint}s_fixedlt/')):
-    #        os.makedirs(fpath(f'pictures/polar/{prefix}{v}/fin/{tint}s_fixedlt/'))
-    #    print('Name of the saved image is mo_'+str(filename)+"_fixedlt.jpg")
-    #    plt.savefig(fpath(f'pictures/polar/{prefix}{v}/fin/{tint}s_fixedlt/mo_{visita}_fixedlt.jpg', dpi=300)) # save location
-
 
     plt.close()
 

@@ -118,7 +118,7 @@ def moind(image_data:np.ndarray, header:np.ndarray, file_location:str,save_locat
         
     ax = plt.subplot(projection='polar')
     radials = np.linspace(0,rlim,6,dtype='int')
-    radials = np.arange(0,rlim,10,dtype='int')
+    radials = np.arange(0,rlim,10,dtype='int') #TODO Double definition of radials
 
     #shifting the image to have CML pointing southwards in the image
     if fixed == 'lon':

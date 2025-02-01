@@ -279,8 +279,8 @@ def moind(file_location:str=None,save_location:str=None,filename='auto', crop = 
                 'S' if is_south else 'N',
                 'full' if full else '',
                 'regions' if regions else ''] if i != ''])
-        filename += '-'+extras 
-    fig.savefig(f'{sloc}/{filename}.jpg', **kwargs) # kwargs are passed to savefig, (dpi, quality, bbox, etc.)
+        filename += '-'+extras + '.jpg'
+    fig.savefig(f'{sloc}/{filename}', **kwargs) # kwargs are passed to savefig, (dpi, quality, bbox, etc.)
     if 'return' in kwargs:
         return fig
     plt.close()
@@ -302,7 +302,7 @@ def make_gif(fits_dir,fps=5,remove_temp=True,savelocation='auto',filename='auto'
     imagesgif = []
     with tqdm(total=ln) as pbar:        
         for i,file in enumerate(infolist):
-            moind(fileinfo=file,save_location='temp/',filename=f'gifpart_{i}', **kwargs)
+            moind(fileinfo=file,save_location='temp/',filename=f'gifpart_{i}.jpg', **kwargs)
             tqdm.write(f'Image {i+1} of {ln} created: {file._basename}')
             pbar.update(1)
             imagesgif.append(imageio.imread(fpath('temp/')+f'gifpart_{i}.jpg'))

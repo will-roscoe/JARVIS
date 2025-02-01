@@ -1,6 +1,7 @@
 import pytest
-from jarvis import fpath
+from jarvis import fpath, moind, make_gif
 import os
+import itertools
 class TestFileStructure:
         '''Testing class independent functions
         '''
@@ -11,10 +12,23 @@ class TestFileStructure:
             #assert os.path.exists(fpath('python\\tests\\test_base.py'))
         def test_should_pass(self):
             assert 1+2 == 3
-        def test_should_fail(self):
-            assert 1+2 == 4
-class Test_Image_Generation:
-      pass
+
+
+file = 'datasets/HST/v09-may22/jup_16-143-18-41-06_0100_v09_stis_f25srf2_proj.fits'
+temp = 'temp/tests'
+class TestImageGen:
+    def test_default_img(self):
+        moind(file, temp,'test.jpg')
+        assert os.path.exists(fpath(f'{temp}/test.jpg'))
+    def test_img_param_matrix(self):
+        testp_ = ['crop','rlim','fixed','hemis','full','regions']
+        testvals = [(1,0.7),(30,90), ('lon','lt'),('n',),(True,False),(False,False)] 
+        test_params = [dict(zip(testp_, x)) for x in itertools.product(*testvals)]
+        for i,x in enumerate(test_params):
+            moind(file, temp, f'matrixtest{i}.jpg', **x)
+            assert os.path.exists(fpath(f'{temp}/matrixtest{i}.jpg'))
 
 class Test_GIF_Generation:
-    pass
+    def test_gif_gen(self):
+        make_gif('datasets\\HST\\v01-may16\\', dpi=300)
+        assert os.path.exists(fpath('datasets\\HST\\v01-may16\\jup_16-137-23-43-30_0100_v01_stis_f25srf2_proj.gif'))

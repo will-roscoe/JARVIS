@@ -7,7 +7,7 @@ GHROOT = Path(__file__).parents[2]
 #! index matches the number of folders to go up from where THIS file is located: /[2] python/[1] jarvis/[0] const.py
 # takes a relative path within repo and returns an absolute path.
 fpath = lambda x: os.path.join(GHROOT, x)
-
+rpath = lambda x: os.path.relpath(x, GHROOT)
 
 
 # test, prints the README at the root of the project
@@ -18,11 +18,18 @@ def __testpaths():
 class fileInfo():
     strOnly = False
     def __init__(self, rel_path:str,):
-        self._rel_path = rel_path # define relative path
+         # define relative path
         if not os.path.exists(fpath(rel_path)): # raise if file does not exist, to catch errors early
-            raise FileNotFoundError(f'File {rel_path} not found by fileInfo')
+            if os.path.exists(rel_path):
+                # treat as absolute, remove the GHROOT from the beginning
+                rel_path = rpath(rel_path)
+            else:
+                raise FileNotFoundError(f'File: {rel_path} not found by fileInfo. Check the path and try again.')
+        self._rel_path = rel_path
+            
         self._filename = os.path.split(rel_path)[1] # filename= basename.extension
-        self._basename = os.path.basename(rel_path)
+        self._basename = os.path.basename(rel_path).split('.')[0]
+        
         split = self._basename.split('_')
         split = [split[0]] + split[1].split('-') + split[2:]
         keys = ['observation', 'year','days','hours','minutes','seconds', 'exposuretime','visit','instrument','filter','type']
@@ -56,7 +63,12 @@ class fileInfo():
                 return list(self._dict.values())[args[0]]
             return self.__getattribute__(args[0])
         return [self.__getattribute__(x) for x in args]
-
+    @property
+    def relative_path(self):
+        return self._rel_path
+    @property
+    def absolute_path(self):
+        return fpath(self._rel_path)
 
 #test = fileInfo(r'datasets\HST\v02\jup_16-138-18-48-16_0100_v02_stis_f25srf2_proj.fits')
 #print(test.split)

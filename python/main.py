@@ -11,6 +11,6 @@ from jarvis import make_gif
 # hdulist.close()
 # print(f'Image {n} created.')
 
-make_gif('datasets\\HST\\v01-may16\\')
+make_gif('datasets\\HST\\v01-may16\\', dpi=300)
 
 chr(0x1F600)

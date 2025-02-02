@@ -70,6 +70,6 @@ class fileInfo():
     def absolute_path(self):
         return fpath(self._rel_path)
 
-#test = fileInfo(r'datasets\HST\v02-may17\jup_16-138-18-48-16_0100_v02_stis_f25srf2_proj.fits')
+#test = fileInfo(r'datasets\HST\v02\jup_16-138-18-48-16_0100_v02_stis_f25srf2_proj.fits')
 #print(test.split)
-#datasets\HST\v01-may16\jup_16-137-23-43-30_0100_v01_stis_f25srf2_proj.fits
+#datasets\HST\v01\jup_16-137-23-43-30_0100_v01_stis_f25srf2_proj.fits

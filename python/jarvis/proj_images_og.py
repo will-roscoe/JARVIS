@@ -35,7 +35,7 @@ def clock_format(x_rads, pos):
 
 
 #this is the funcion used for plotting the images
-def moind(file_location:str=None,save_location:str=None,filename='auto', crop = 1, rlim = 30, fixed = 'lon', hemis='North', full=True, regions=False,fileinfo:fileInfo=None,**kwargs):  
+def moind(file_location:str=None,save_location:str=None,filename='auto', crop = 1, rlim = 40, fixed = 'lon', hemis='North', full=True, regions=False,fileinfo:fileInfo=None,**kwargs):  
     """      
             Generate a polar projection plot of an image with various customization options.
             Parameters:
@@ -53,7 +53,7 @@ def moind(file_location:str=None,save_location:str=None,filename='auto', crop = 
             crop : int, optional
                 Factor to crop the image (default is 1, no cropping).
             rlim : int, optional
-                Radial limit for the plot (default is 30).
+                Radial limit for the plot (default is 40).
             fixed : str, optional
                 Fixed parameter for the plot, either 'lon' or 'lt' (default is 'lon').
             hemis : str, optional

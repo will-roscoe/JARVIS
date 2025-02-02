@@ -1,32 +1,35 @@
-"""
-Created on Tue May 23 13:01:48 2023
-Version of prof_final_comparer cropped to show only images without the results
-of the fitting algorithm
-@author: dmoral
+__doc__="""
+This module contains functions to generate polar projection plots of Jupiter's image data from FITS files. 
+The main function, moind(), generates a polar projection plot of Jupiter's image data from a FITS file. 
+The make_gif() function creates a GIF from a directory of FITS files.
+
+adapted from dmoral's original code by the JAR:VIS team.
 """
 #import all the necessary modules
+#python standard libraries
 import os
-import matplotlib.pyplot as plt
-import matplotlib.patheffects as patheffects
-import matplotlib.ticker as ticker
-import numpy as np
-
 from dateutil.parser import parse
 import datetime as dt
-#import pandas as pd
-from matplotlib.colors import LogNorm
-
-#from scipy import stats
 import glob
-import imageio
+from typing import List, Tuple, Dict, Any, Union, Optional, Callable
+
+#third party libraries
 from astropy.io import fits
+import imageio
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+#import matplotlib.patheffects as patheffects
+#import matplotlib.ticker as ticker
+#from matplotlib.colors import LogNorm
+import numpy as np
 from tqdm import tqdm 
+# local modules
 from .const import fpath, fileInfo
 
 def ensure_dir(file_path):
-        '''this function checks if the file path exists, if not it will create one'''
-        if not os.path.exists(file_path):
-                os.makedirs(file_path)
+    '''this function checks if the file path exists, if not it will create one'''
+    if not os.path.exists(file_path):
+            os.makedirs(file_path)
 def clock_format(x_rads, pos):
     # x_rads => 0, pi/4, pi/2, 3pi/4, pi, 5pi/4, 3pi/2, 7pi/4, ...
     # returns=> 00, 03, 06, 09, 12, 15, 18, 21,..., 00,03,06,09,12,15,18,21,
@@ -34,39 +37,50 @@ def clock_format(x_rads, pos):
     return f'{cnum:02d}' if cnum%24 != 0 else '00'
 
 
-#this is the funcion used for plotting the images
-def moind(file_location:str=None,save_location:str=None,filename='auto', crop = 1, rlim = 40, fixed = 'lon', hemis='North', full=True, regions=False,fileinfo:fileInfo=None,**kwargs):  
-    """      
-            Generate a polar projection plot of an image with various customization options.
-            Parameters:
-            -----------
-            image_data : numpy.ndarray
-                2D array representing the image data, typically astropy.io.fits data
-            header : dict
-                Dictionary containing header information such as CML, DECE, EXPT, etc.
-            filename : str
-                The name of the file to be saved.
-            prefix : str
-                Prefix to be used in the saved file name.
-            dpi : int, optional
-                Dots per inch for the saved image (default is 300).
-            crop : int, optional
-                Factor to crop the image (default is 1, no cropping).
-            rlim : int, optional
-                Radial limit for the plot (default is 40).
-            fixed : str, optional
-                Fixed parameter for the plot, either 'lon' or 'lt' (default is 'lon').
-            hemis : str, optional
-                Hemisphere to be plotted, either 'North' or 'South' (default is 'North').
-            full : bool, optional
-                Whether to plot the full circle or half circle (default is True).
-            regions : bool, optional
-                Whether to plot specific regions (default is False).
-            photo : int, optional
-                Placeholder parameter (default is 0).
-            Returns:
-            --------
-            None
+
+def moind(file_location:str=None,save_location:str=None,filename:str='auto', crop:float = 1, rlim:float = 40, fixed:str= 'lon', hemis:str='North', full:bool=True, regions:bool=False,fileinfo:fileInfo=None,fitsdataheader:Tuple[np.ndarray,Dict]=None,**kwargs)->Union[None,mpl.figure.Figure]:  
+    """
+        Generate a polar projection plot of Jupiter's image data.
+        
+        Args:
+            file_location (str, optional): Path to the FITS file. Defaults to None.
+            save_location (str, optional): Directory to save the generated plot. Defaults to None.
+            filename (str, optional): Name of the output file. Defaults to 'auto'.
+            crop (float, optional): Factor to crop the image. Defaults to 1.
+            rlim (float, optional): latitudinal limit for the plot (in degrees). Defaults to 40.
+            fixed (str, optional): Fixed parameter, either 'lon' or 'lt'. Defaults to 'lon'.
+            hemis (str, optional): Hemisphere, either 'North' or 'South'. Defaults to 'North'.
+            full (bool, optional): Whether to display the full plot. Defaults to True.
+            regions (bool, optional): Whether to mark regions on the plot. Defaults to False.
+            fileinfo (fileInfo, optional): File information object. Defaults to None.
+            fitsdataheader (Tuple[np.ndarray, Dict], optional): FITS data and header if user wants to provide their own. Defaults to None.
+            **kwargs: Additional keyword arguments passed to plt.savefig()..
+        
+        Returns:
+            matplotlib.figure.Figure: The generated plot figure if 'return' is in kwargs.
+
+        Keyword Args:
+            cmap (str,mpl.colors.Colormap, optional): Colormap. Defaults to 'viridis'.
+            norm (mpl.colors.Normalize, optional): Normalize object. Defaults to mpl.colors.LogNorm(vmin=ticks[0], vmax=ticks[-1]).
+            ticks (List[float], optional): Colorbar ticks. Defaults to [10.,40.,100.,200.,400.,800.,1500.].
+            shrink (float, optional): Colorbar shrink factor. Defaults to 1.
+            pad (float, optional): Colorbar pad. Defaults to 0.06.
+            other kwargs: Additional keyword arguments passed to plt.savefig().
+       
+        Notes:
+            the function must be called with at least ONE of the following:
+            
+            - file_location (relative preffered)
+            - fileinfo (fileInfo object pointing to the file)
+            
+            where fileinfo takes precedence over file_location.
+
+            `hemis = 'South'` has not been fully implemented.
+        
+        Examples:
+            >>> moind('datasets/HST/v09-may22/jup_16-143-18-41-06_0100_v09_stis_f25srf2_proj.fits', 'pictures/', 'jupiter.jpg')
+
+            >>> moind(fileinfo=fileInfo('datasets/HST/v09-may22/jup_16-143-18-41-06_0100_v09_stis_f25srf2_proj.fits'), save_location='pictures/', filename='jupiter.jpg', cmap='inferno')
     """
     if fileinfo is None:
         f_abs = fpath(file_location)
@@ -82,7 +96,7 @@ def moind(file_location:str=None,save_location:str=None,filename='auto', crop = 
     cml = header['CML'] # store CML value
     dece = header['DECE']
     exp_time = header['EXPT']
-    lon = {'io':(header['IOLON'],header['IOLON1'],header['IOLON2']), # Unused
+    lon = {'io':(header['IOLON'],header['IOLON1'],header['IOLON2']), #! UNUSED
            'eu':(header['EULON'],header['EULON1'],header['EULON2']),
            'ga':(header['GALON'],header['GALON1'],header['GALON2'])}
     is_south = True if hemis.lower()[0] == 's' else False if hemis.lower()[0] == 'n' else 'Err'
@@ -103,8 +117,8 @@ def moind(file_location:str=None,save_location:str=None,filename='auto', crop = 
     exposure = dt.timedelta(seconds=exp_time)
     
     start_time_jup = start_time - lighttime       # correct for light travel time
-    end_time_jup = start_time_jup + exposure      # end of exposure time
-    mid_ex_jup = start_time_jup + (exposure/2.)   # mid-exposure
+    end_time_jup = start_time_jup + exposure      # end of exposure time #! UNUSED
+    mid_ex_jup = start_time_jup + (exposure/2.)   # mid-exposure #! UNUSED
     
     #plot
     latbins = np.radians(np.linspace(-90, 90, num=image_data.shape[0]))
@@ -151,25 +165,25 @@ def moind(file_location:str=None,save_location:str=None,filename='auto', crop = 
     # set xticks/thetaticks
     # set radial ticks/ yticks
     ax.set_theta_zero_location("N")   
-    ax.yaxis.set_major_locator(ticker.MultipleLocator(base=10))
-    ax.yaxis.set_major_formatter(ticker.FuncFormatter(lambda x, _: '{:.0f}°'.format(x))) # set radial labels
+    ax.yaxis.set_major_locator(mpl.ticker.MultipleLocator(base=10))
+    ax.yaxis.set_major_formatter(mpl.ticker.FuncFormatter(lambda x, _: '{:.0f}°'.format(x))) # set radial labels
     ax.yaxis.set_tick_params(labelcolor='white', ) # set radial labels color
     if is_lon:
         if full:
-            ax.xaxis.set_major_locator(ticker.MultipleLocator(base=np.pi/2))
+            ax.xaxis.set_major_locator(mpl.ticker.MultipleLocator(base=np.pi/2))
             if is_south:    shift_t = lambda x: x # should be 180°, 90°, 0°, 270°
             else:           shift_t = lambda x: 2*np.pi-x # should be 0°, 90°, 180°, 270°
-            ax.xaxis.set_major_formatter(ticker.FuncFormatter(lambda x, _: '{:.0f}°'.format(np.degrees(shift_t(x))%360)))
+            ax.xaxis.set_major_formatter(mpl.ticker.FuncFormatter(lambda x, _: '{:.0f}°'.format(np.degrees(shift_t(x))%360)))
         else:
-            ax.xaxis.set_major_locator(ticker.MultipleLocator(base=np.pi/4))
+            ax.xaxis.set_major_locator(mpl.ticker.MultipleLocator(base=np.pi/4))
             #if is_south:    ax.set_xticklabels(['90°','45°','0°','315°','270°'], fontweight='bold') #not sure how to chnge or test this
             #else:           ax.set_xticklabels(['270°','225°','180°','135°','90°'], fontweight='bold')# if NortH
-        ax.xaxis.set_minor_locator(ticker.MultipleLocator(base=2*np.pi/36)) # 
+        ax.xaxis.set_minor_locator(mpl.ticker.MultipleLocator(base=2*np.pi/36)) # 
     else:
         # clockticks
-        ax.xaxis.set_major_locator(ticker.MultipleLocator(base=2*np.pi/8))
-        ax.xaxis.set_minor_locator(ticker.MultipleLocator(base=2*np.pi/24))
-        ax.xaxis.set_major_formatter(ticker.FuncFormatter(clock_format))    
+        ax.xaxis.set_major_locator(mpl.ticker.MultipleLocator(base=2*np.pi/8))
+        ax.xaxis.set_minor_locator(mpl.ticker.MultipleLocator(base=2*np.pi/24))
+        ax.xaxis.set_major_formatter(mpl.ticker.FuncFormatter(clock_format))    
         #if full:            ax.set_xticklabels(['00','03','06','09','12','15','18','21'], fontweight='bold')
         #else:               ax.set_xticklabels(['06','09','12','15','18'], fontweight='bold')
     if full:   
@@ -192,7 +206,7 @@ def moind(file_location:str=None,save_location:str=None,filename='auto', crop = 
         
     if not is_lon and full: # meridian line (0°)  
         plt.text(np.radians(cml)+np.pi, 4+rlim, '0°', color='coral', fontsize=12,horizontalalignment='center', verticalalignment='bottom', fontweight='bold')
-        ax.plot([np.radians(cml)+np.pi,np.radians(cml)+np.pi],[0, 180], color='coral', path_effects=[patheffects.withStroke(linewidth=1, foreground='black')], linestyle='-.', lw=1) #prime meridian (longitude 0)
+        ax.plot([np.radians(cml)+np.pi,np.radians(cml)+np.pi],[0, 180], color='coral', path_effects=[mpl.patheffects.withStroke(linewidth=1, foreground='black')], linestyle='-.', lw=1) #prime meridian (longitude 0)
 
     #Actual plot and colorbar (change the vmin and vmax to play with the limits
     #of the colorbars, recommended to enhance/saturate certain features)
@@ -203,7 +217,7 @@ def moind(file_location:str=None,save_location:str=None,filename='auto', crop = 
     else:
         ticks = [10.,40.,100.,200.,400.,1000.,3000.]
     cmap = kwargs.pop('cmap') if 'cmap' in kwargs else 'viridis'
-    norm = kwargs.pop('norm') if 'norm' in kwargs else LogNorm(vmin=ticks[0], vmax=ticks[-1])
+    norm = kwargs.pop('norm') if 'norm' in kwargs else mpl.colors.LogNorm(vmin=ticks[0], vmax=ticks[-1])
     shrink = kwargs.pop('shrink') if 'shrink' in kwargs else shrink
     pad = kwargs.pop('pad') if 'pad' in kwargs else 0.06
     plt.pcolormesh(theta,rho[:(int((image_data.shape[0])/crop))],corte,norm=norm, cmap=cmap)#!5 <- Color of the plot
@@ -240,9 +254,7 @@ def moind(file_location:str=None,save_location:str=None,filename='auto', crop = 
             dawn = {k:np.linspace(v[0],v[1],200) for k,v in (('lon',(np.radians(180),np.radians(130))), ('uplat',(33, 15)), ('downlat',(39, 23)))}
             noon_a = {k:np.linspace(v[0],v[1],100) for k,v in (('lon',(np.radians(205),np.radians(190))),('downlat',(28, 32)))} 
             noon_b = {k:np.linspace(v[0],v[1],100) for k,v in (('lon',(np.radians(190),np.radians(170))),('downlat',(32, 27)))}
-
             # lon_noon_a = noon_a['lon']
-
             #dusk boundary
             ax.plot([np.radians(205), np.radians(205)], [20, 10], 'r-', lw=1.5) 
             ax.plot([np.radians(170), np.radians(170)], [10, 20], 'r-', lw=1.5)  
@@ -265,7 +277,6 @@ def moind(file_location:str=None,save_location:str=None,filename='auto', crop = 
             ax.plot([np.radians(170), np.radians(170)], [27, 10], 'w--', lw=1)
             ax.plot(noon_a['lon'], noon_a['downlat'], 'w--', lw=1) 
             ax.plot(updusk, 200*[10], 'w--', lw=1) 
-    
     sloc = fpath(save_location)
     ensure_dir(sloc)
     if filename == 'auto': # if a filename is not specified, it will be generated.
@@ -285,8 +296,32 @@ def moind(file_location:str=None,save_location:str=None,filename='auto', crop = 
         return fig
     plt.close()
 
-#and this chunk is to call the function:
-def make_gif(fits_dir,fps=5,remove_temp=True,savelocation='auto',filename='auto',**kwargs):
+
+def make_gif(fits_dir,fps=5,remove_temp=True,savelocation='auto',filename='auto',**kwargs)->None:
+    """
+        Create a GIF from a directory of FITS files.
+
+        This function takes a directory of FITS files, processes each file to create
+        images, and compiles these images into a GIF. The GIF can be saved to a specified
+        location with a specified filename.
+
+        Args:
+            fits_dir (str or list): Directory or list of directories containing FITS files.
+            fps (int, optional): Frames per second for the GIF. Defaults to 5.
+            remove_temp (bool, optional): Whether to remove temporary files after creating the GIF. Defaults to True.
+            savelocation (str, optional): Directory to save the GIF. Defaults to 'auto', which saves to 'pictures/gifs/'
+            filename (str, optional): Filename for the GIF. Defaults to 'auto', which generates a filename based on the FITS files.
+            **kwargs: Additional keyword arguments to pass to the plotting function.
+
+        Returns:
+            None
+
+        Keyword Args:
+            all keyword arguments are passed to the plotting function, moind().
+            
+        Example:
+            >>> make_gif('/path/to/fits/files', fps=10, savelocation='/path/to/save/', filename='my_gif')
+    """
     if isinstance(fits_dir,str):
           fits_dir = [fits_dir,]
     fits_file_list = []
@@ -296,8 +331,6 @@ def make_gif(fits_dir,fps=5,remove_temp=True,savelocation='auto',filename='auto'
     fits_file_list.sort()    
     ln = len(fits_file_list)
     print(f'Found {ln} files in the directory.')
-    #and now we loop to apply the plotting function (moind) to every image in the visit
-    fps = kwargs.get('fps') if 'fps' in kwargs else 5
     infolist = [fileInfo(f) for f in fits_file_list]
     imagesgif = []
     with tqdm(total=ln) as pbar:        
@@ -318,8 +351,8 @@ def make_gif(fits_dir,fps=5,remove_temp=True,savelocation='auto',filename='auto'
             os.remove(file)
         os.rmdir(fpath('temp/'))
 
-#you have to input the year of the visits you are plotting (so cannot mix visits
-#from different years in the same "run" of the code, for filepathing reasons)
+
+
 def input_run():
     year = input("Year of the visit:  \n")
     if year == '2016':

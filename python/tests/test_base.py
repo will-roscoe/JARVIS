@@ -2,6 +2,8 @@ import pytest
 from jarvis import fpath, moind, make_gif
 import os
 import itertools
+file = 
+
 class TestFileStructure:
         '''Testing class independent functions
         '''
@@ -14,7 +16,7 @@ class TestFileStructure:
             assert 1+2 == 3
 
 
-file = 'datasets/HST/v09-may22/jup_16-143-18-41-06_0100_v09_stis_f25srf2_proj.fits'
+file = 'datasets/HST/v03/jup_16-139-23-27-06_0100_v05_stis_f25srf2_proj.fits'
 temp = 'temp/tests'
 class TestImageGen:
     def test_default_img(self):
@@ -30,5 +32,5 @@ class TestImageGen:
 
 class Test_GIF_Generation:
     def test_gif_gen(self):
-        make_gif('datasets\\HST\\v01-may16\\', dpi=300)
-        assert os.path.exists(fpath('datasets\\HST\\v01-may16\\jup_16-137-23-43-30_0100_v01_stis_f25srf2_proj.gif'))
+        make_gif('datasets\\HST\\v01\\',savelocation=temp,filename='test', dpi=300)
+        assert os.path.exists(fpath(f'{temp}/test.gif'))

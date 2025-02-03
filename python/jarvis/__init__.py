@@ -4,12 +4,16 @@ This package contains modules for image processing and analysis of jupiter datas
 
 Available submodules
 ---------------------
-1. const
-2. proj_images_og
+- polar: Module for processing HST FITS data and generating polar projections.
+- const: package-wide constants and directory management.
 
-
-
-
+Contributors
+--------------
+- Will Roscoe
+- Samuel Courthold
+- Yifan Chen
+- Ronan Szeto
+- polar module functions adapted from dmoral's original code.
 '''
 
 

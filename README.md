@@ -2,7 +2,8 @@
 > ***J**ovian **A**urora **R**esearch: **V**isualizing **I**onospheric **S**cience*
 # Discrepancy in Jovian Polar Aurorae: Investigating Cause and Impact from magnetospheric Influences
 ## Roles:
-[![codecov](https://codecov.io/gh/will-roscoe/JARVIS/graph/badge.svg?token=1QPDJ1U88U)](https://codecov.io/gh/will-roscoe/JARVIS)
+[![codecov](https://codecov.io/gh/will-roscoe/JARVIS/graph/badge.svg?token=1QPDJ1U88U)](https://codecov.io/gh/will-roscoe/JARVIS) [![CI Tests](https://github.com/will-roscoe/JARVIS/actions/workflows/pytest-main.yml/badge.svg)](https://github.com/will-roscoe/JARVIS/actions/workflows/pytest-main.yml)
+
 - Project Coordinator: Yifan Chen
 - Administrator: Sam Courthold
 - Theory Lead: Ronan Szeto

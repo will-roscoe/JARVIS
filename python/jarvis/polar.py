@@ -39,7 +39,7 @@ def clock_format(x_rads, pos):
 
 
 
-def moind(file_location:str=None,save_location:str=None,filename:str='auto', crop:float = 1, rlim:float = 40, fixed:str= 'lon', hemis:str='North', full:bool=True, regions:bool=False,fileinfo:fileInfo=None,fitsdataheader:Tuple[np.ndarray,Dict]=None,**kwargs)->Union[None,mpl.figure.Figure]:  
+def moind(file_location:str=None,save_location:str=None,filename:str='auto', crop:float = 1, rlim:float = 40, fixed:str= 'lon', hemis:str='North', full:bool=True, regions:bool=False,fileinfo:fileInfo=None,fitsdataheader:Tuple[np.ndarray,Dict]=None,preproj_func:Callable=None,**kwargs)->Union[None,mpl.figure.Figure]:  
     """
         Generate a polar projection plot of Jupiter's image data.
         
@@ -90,7 +90,8 @@ def moind(file_location:str=None,save_location:str=None,filename:str='auto', cro
     with fits.open(f_abs) as hdulist:
             image_data = hdulist[1].data
             header = hdulist[1].header    
-        
+    if preproj_func is not None:
+        image_data = preproj_func(image_data)
 
 
     # Scatter plot:

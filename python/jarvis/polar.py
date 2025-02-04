@@ -295,6 +295,7 @@ def moind(file_location:str=None,save_location:str=None,filename:str='auto', cro
     fig.savefig(f'{sloc}/{filename}', **kwargs) # kwargs are passed to savefig, (dpi, quality, bbox, etc.)
     if 'return' in kwargs:
         return fig
+    #plt.show()
     plt.close()
 
 

@@ -38,7 +38,7 @@ class fileInfo():
         if not self.strOnly: # if not string only, convert numeric values to int
             for k,v in self._dict.items():
                 if v.isnumeric():
-                    self._dict[k] = int(v) 
+                    self._dict[k] = int(v)
             self._dict['visit'] = int(self._dict['visit'][1:]) # remove leading v
             
             
@@ -56,7 +56,7 @@ class fileInfo():
     def datetime(self): # returns a datetime object from the file name
         if self.strOnly:
             return datetime.datetime.strptime(self._dict['year'] + self._dict['days'] + self._dict['hours'] + self._dict['minutes'] + self._dict['seconds'], '%Y%j%H%M%S')
-        return datetime.datetime(self.year, 1, 1, self.hours, self.minutes, self.seconds) + datetime.timedelta(days=self.days)
+        return datetime.datetime(self.year, 1, 1, self.hours, self.minutes, self.seconds) + datetime.timedelta(days=self.days-1)
     def __getitem__(self, *args):
         if len(args) == 1:
             if isinstance(args[0], (int, slice)):

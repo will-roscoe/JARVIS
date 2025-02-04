@@ -1,28 +1,10 @@
 from astropy.io import fits
-<<<<<<< Updated upstream
-from jarvis import make_gif, moind, fpath
-from matplotlib.colors import LinearSegmentedColormap
-import matplotlib as mpl
-=======
 from jarvis import make_gif, moind, fpath, gradmap
 import glob
->>>>>>> Stashed changes
-
-#norm = mpl.colors.Normalize(vmin=0, vmax=1000)
-
-cmap = (mpl.colors.ListedColormap(['red', 'green', 'blue', 'cyan'])
-        .with_extremes(under='black', over='white'))
-bounds = [150, 300, 450, 600, 750]
-norm = mpl.colors.BoundaryNorm(bounds, cmap.N)
-            
+         
 # makes an image
-n = fpath(r'datasets\HST\v04\jup_16-140-20-48-59_0103_v04_stis_f25srf2_proj.fits')
-<<<<<<< Updated upstream
-#n = fpath(r'datasets\HST\v07\jup_16-143-18-02-46_0100_v09_stis_f25srf2_proj.fits')
-moind(n, 'temp',fixed='lt', full=False, regions=False, cmap=cmap,norm=norm)
-=======
+n = fpath(r'datasets\HST\v11\jup_16-146-16-00-57_2703_v11_stis_f25srf2_proj.fits.longexposure')
 moind(n, 'temp', preproj_func=gradmap)
->>>>>>> Stashed changes
 # makes a gif
 #make_gif('datasets/HST/v06', dpi=300)
 

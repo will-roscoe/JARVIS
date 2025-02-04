@@ -1,6 +1,7 @@
 from pathlib import Path
 import os
 import datetime
+from astropy.io import fits
 #! defines the project root directory (as the root of the gh repo) 
 GHROOT = Path(__file__).parents[2]
 #! if you move this file/folder, you need to change this line to match the new location. 
@@ -69,7 +70,15 @@ class fileInfo():
     @property
     def absolute_path(self):
         return fpath(self._rel_path)
-
+class Dataset:
+    def __init__(self, path:str, fits_index=1, ):
+        self.info = fileInfo(path)
+        self.fits_index = fits_index
+        self.hdu = fits.open(path)
+        self.data = self.hdu[fits_index].data
+        raise NotImplementedError('Dataset class not implemented yet')
+    def __str__(self):
+        return f'{self.info._basename} ({self.info.visit})'
 #test = fileInfo(r'datasets\HST\v02\jup_16-138-18-48-16_0100_v02_stis_f25srf2_proj.fits')
 #print(test.split)
 #datasets\HST\v01\jup_16-137-23-43-30_0100_v01_stis_f25srf2_proj.fits

@@ -1,14 +1,14 @@
 import os
 from dateutil.parser import parse
 import datetime as dt
-import glob
+
 from typing import List, Tuple, Dict, Any, Union, Optional, Callable
 
 #third party libraries
 from astropy.io import fits
-import imageio
+
 import matplotlib as mpl
-from matplotlib import patheffects as mpl_patheffects
+
 import matplotlib.pyplot as plt
 #import matplotlib.patheffects as patheffects
 #import matplotlib.ticker as ticker

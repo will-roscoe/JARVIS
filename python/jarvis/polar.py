@@ -295,8 +295,8 @@ def moind(file_location:str=None,save_location:str=None,filename:str='auto', cro
     fig.savefig(f'{sloc}/{filename}', **kwargs) # kwargs are passed to savefig, (dpi, quality, bbox, etc.)
     if 'return' in kwargs:
         return fig
-    #plt.show()
-    plt.close()
+    plt.show()
+    #plt.close()
 
 
 def make_gif(fits_dir,fps=5,remove_temp=True,savelocation='auto',filename='auto',**kwargs)->None:

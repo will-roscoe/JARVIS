@@ -7,7 +7,8 @@ import glob
 #n = fpath(r'datasets\HST\v20\jup_16-159-15-41-30_0100_v29_stis_f25srf2_proj.fits')
 #moind(n, 'temp')
 # makes a gif
-make_gif('datasets/HST/v10', dpi=300)
+make_gif('datasets/HST/v05',rlim=60, dpi=300)
+
 #hdu = fits.open(n)
 #d = hdu[1].data
 #print(d)

@@ -293,133 +293,133 @@ def moind(file_location:str=None,save_location:str=None,filename:str='auto', cro
         #plot a colored mark in their expected location, together with their name
         
         
-        if fixed == 'lon':
-            if hemis == "North" or hemis == "north" or hemis == "N" or hemis == "n":
-                #we define some intervals for plotting the moon footprints because if they
-                #are supposed to be way inside the "night" hemisphere (only within +-120degrees
-                #from CML), if not, we do not plot them
+        # if fixed == 'lon':
+        #     if hemis == "North" or hemis == "north" or hemis == "N" or hemis == "n":
+        #         #we define some intervals for plotting the moon footprints because if they
+        #         #are supposed to be way inside the "night" hemisphere (only within +-120degrees
+        #         #from CML), if not, we do not plot them
             
                 
-                if abs(cml-nlonio1) < 120 or abs(cml-nlonio1) > 240:
-                    plt.plot([2*np.pi-(np.radians(nlonio1)),2*np.pi-(np.radians(nlonio2))],[ncolatio, ncolatio], 'k-', lw=4)
-                    plt.plot([2*np.pi-(np.radians(nlonio1)),2*np.pi-(np.radians(nlonio2))],[ncolatio, ncolatio], color='gold', linestyle='-', lw=2.5)
-                    plt.text(2*np.pi-(np.radians(nlonio)), 3.5+ncolatio, 'IO', color='gold', fontsize=10,  fontweight='bold',alpha=0.5,\
-                            path_effects=[mpl_patheffects.withStroke(linewidth=1, foreground='black')], horizontalalignment='center', verticalalignment='center')
+        #         if abs(cml-nlonio1) < 120 or abs(cml-nlonio1) > 240:
+        #             plt.plot([2*np.pi-(np.radians(nlonio1)),2*np.pi-(np.radians(nlonio2))],[ncolatio, ncolatio], 'k-', lw=4)
+        #             plt.plot([2*np.pi-(np.radians(nlonio1)),2*np.pi-(np.radians(nlonio2))],[ncolatio, ncolatio], color='gold', linestyle='-', lw=2.5)
+        #             plt.text(2*np.pi-(np.radians(nlonio)), 3.5+ncolatio, 'IO', color='gold', fontsize=10,  fontweight='bold',alpha=0.5,\
+        #                     path_effects=[mpl_patheffects.withStroke(linewidth=1, foreground='black')], horizontalalignment='center', verticalalignment='center')
 
-                if abs(cml-nloneu1) < 120 or abs(cml-nloneu1) > 240:
-                    plt.plot([2*np.pi-(np.radians(nloneu1)),2*np.pi-(np.radians(nloneu2))],[ncolateu, ncolateu], 'k-', lw=4)
-                    plt.plot([2*np.pi-(np.radians(nloneu1)),2*np.pi-(np.radians(nloneu2))],[ncolateu, ncolateu], color='aquamarine', linestyle='-', lw=2.5)
-                    plt.text(2*np.pi-(np.radians(nloneu)), 3.5+ncolateu, 'EUR', color='aquamarine', fontsize=10, fontweight='bold',alpha=0.5,
-                            path_effects=[mpl_patheffects.withStroke(linewidth=1, foreground='black')],\
-                            horizontalalignment='center', verticalalignment='center')
+        #         if abs(cml-nloneu1) < 120 or abs(cml-nloneu1) > 240:
+        #             plt.plot([2*np.pi-(np.radians(nloneu1)),2*np.pi-(np.radians(nloneu2))],[ncolateu, ncolateu], 'k-', lw=4)
+        #             plt.plot([2*np.pi-(np.radians(nloneu1)),2*np.pi-(np.radians(nloneu2))],[ncolateu, ncolateu], color='aquamarine', linestyle='-', lw=2.5)
+        #             plt.text(2*np.pi-(np.radians(nloneu)), 3.5+ncolateu, 'EUR', color='aquamarine', fontsize=10, fontweight='bold',alpha=0.5,
+        #                     path_effects=[mpl_patheffects.withStroke(linewidth=1, foreground='black')],\
+        #                     horizontalalignment='center', verticalalignment='center')
 
-                if abs(cml-nlonga1) < 120 or abs(cml-nlonga1) > 250:
-                    plt.plot([2*np.pi-(np.radians(nlonga1)),2*np.pi-(np.radians(nlonga2))],[ncolatga, ncolatga], 'k-', lw=4)
-                    plt.plot([2*np.pi-(np.radians(nlonga1)),2*np.pi-(np.radians(nlonga2))],[ncolatga, ncolatga], 'w-', lw=2.5)
-                    plt.text(2*np.pi-(np.radians(nlonga)), 3.5+ncolatga, 'GAN', color='w', fontsize=10, fontweight='bold',alpha=0.5,
-                            path_effects=[mpl_patheffects.withStroke(linewidth=1, foreground='black')],\
-                            horizontalalignment='center', verticalalignment='center')
-            else: #if we are in the Southern hemisphere
-                if abs(cml-slonio1) < 120 or abs(cml-slonio1) > 240:
-                    plt.plot([(np.radians(180-slonio1)),(np.radians(180-slonio2))],[scolatio, scolatio], 'k-', lw=4)
-                    plt.plot([(np.radians(180-slonio1)),(np.radians(180-slonio2))],[scolatio, scolatio], color='gold', linestyle='-', lw=2.5)
-                    plt.text((np.radians(180-slonio)), 3.5+scolatio, 'IO', color='gold', fontsize=10, alpha=0.5,
-                            path_effects=[mpl_patheffects.withStroke(linewidth=1, foreground='black')],\
-                            horizontalalignment='center', verticalalignment='center', fontweight='bold')
-
-                if abs(cml-sloneu1) < 120 or abs(cml-sloneu1) > 240:
-                    plt.plot([(np.radians(180-sloneu1)),(np.radians(180-sloneu2))],[scolateu, scolateu], 'k-', lw=4)
-                    plt.plot([(np.radians(180-sloneu1)),(np.radians(180-sloneu2))],[scolateu, scolateu], color='aquamarine', linestyle='-', lw=2.5)
-                    plt.text((np.radians(180-sloneu)), 3.5+scolateu, 'EUR', color='aquamarine', fontsize=10, alpha=0.5,
-                            path_effects=[mpl_patheffects.withStroke(linewidth=1, foreground='black')],\
-                            horizontalalignment='center', verticalalignment='center', fontweight='bold')
-
-                if abs(cml-slonga1) < 120 or abs(cml-slonga1) > 240:
-                    plt.plot([(np.radians(180-slonga1)),(np.radians(180-slonga2))],[scolatga, scolatga], 'k-', lw=4)
-                    plt.plot([(np.radians(180-slonga1)),(np.radians(180-slonga2))],[scolatga, scolatga], 'w-', lw=2.5)
-                    plt.text((np.radians(180-slonga)), 3.5+scolatga, 'GAN', color='w', fontsize=10, alpha=0.5,
-                            path_effects=[mpl_patheffects.withStroke(linewidth=1, foreground='black')],\
-                            horizontalalignment='center', verticalalignment='center', fontweight='bold')
-
-        elif fixed == 'lt':
-            if hemis == "North" or hemis == "north" or hemis == "N" or hemis == "n":
-                if abs(cml-nlonio1) < 120 or abs(cml-nlonio1) > 240:
-                    plt.plot([(np.radians(180+cml-nlonio1)),(np.radians(180+cml-nlonio2))],[ncolatio, ncolatio], 'k-', lw=4)
-                    plt.plot([(np.radians(180+cml-nlonio1)),(np.radians(180+cml-nlonio2))],[ncolatio, ncolatio], color='gold', linestyle='-', lw=2.5)
-                    plt.text((np.radians(180+cml-nlonio)), 3.5+ncolatio, 'IO ', color='gold', fontsize=10,  fontweight='bold',alpha=0.5,
-                            path_effects=[mpl_patheffects.withStroke(linewidth=1, foreground='black')],\
-                            horizontalalignment='center', verticalalignment='center')
-
-                if abs(cml-nloneu1) < 120 or abs(cml-nloneu1) > 240:
-                    plt.plot([2*np.pi-(np.radians(180+cml-nloneu1)),2*np.pi-(np.radians(180+cml-nloneu2))],[ncolateu, ncolateu], 'k-', lw=4)
-                    plt.plot([2*np.pi-(np.radians(180+cml-nloneu1)),2*np.pi-(np.radians(180+cml-nloneu2))],[ncolateu, ncolateu], color='aquamarine', linestyle='-', lw=2.5)
-                    plt.text((np.radians(180+cml-nloneu)), 3.5+ncolateu, 'EUR', color='aquamarine', fontsize=10, fontweight='bold',alpha=0.5,
-                            path_effects=[mpl_patheffects.withStroke(linewidth=1, foreground='black')],\
-                            horizontalalignment='center', verticalalignment='center')
-
-                if abs(cml-nlonga1) < 120 or abs(cml-nlonga1) > 240:
-                    plt.plot([(np.radians(180+cml-nlonga1)),(np.radians(180+cml-nlonga2))],[ncolatga, ncolatga], 'k-', lw=4)
-                    plt.plot([(np.radians(180+cml-nlonga1)),(np.radians(180+cml-nlonga2))],[ncolatga, ncolatga], 'w-', lw=2.5)
-                    plt.text((np.radians(180+cml-nlonga)), 3.5+ncolatga, 'GAN', color='w', fontsize=10, fontweight='bold',alpha=0.5,
-                            path_effects=[mpl_patheffects.withStroke(linewidth=1, foreground='black')],\
-                            horizontalalignment='center', verticalalignment='center')
-
-            else: # South hemisphere
-                if abs(cml-slonio1) < 120 or abs(cml-slonio1) > 240:
-                    plt.plot([(np.radians(180+cml-slonio1)),(np.radians(180+cml-slonio2))],[scolatio, scolatio], 'k-', lw=4)
-                    plt.plot([(np.radians(180+cml-slonio1)),(np.radians(180+cml-slonio2))],[scolatio, scolatio], color='gold', linestyle='-', lw=2.5)
-                    plt.text((np.radians(180+cml-slonio)), 3.5+scolatio, 'IO ', color='gold', fontsize=10, alpha=0.5,
-                            path_effects=[mpl_patheffects.withStroke(linewidth=1, foreground='black')],\
-                            horizontalalignment='center', verticalalignment='center', fontweight='bold')
-
-                if abs(cml-sloneu1) < 120 or abs(cml-sloneu1) > 240:
-                    plt.plot([(np.radians(180+cml-sloneu1)),(np.radians(180+cml-sloneu2))],[scolateu, scolateu], 'k-', lw=4)
-                    plt.plot([(np.radians(180+cml-sloneu1)),(np.radians(180+cml-sloneu2))],[scolateu, scolateu], color='aquamarine', linestyle='-', lw=2.5)
-                    plt.text((np.radians(180+cml-sloneu)), 3.5+scolateu, 'EUR', color='aquamarine', fontsize=10,alpha=0.5,
-                            path_effects=[mpl_patheffects.withStroke(linewidth=1, foreground='black')],\
-                            horizontalalignment='center', verticalalignment='center', fontweight='bold')
-
-                if abs(cml-slonga1) < 120 or abs(cml-slonga1) > 240:
-                    plt.plot([(np.radians(180+cml-slonga1)),(np.radians(180+cml-slonga2))],[scolatga, scolatga], 'k-', lw=4)
-                    plt.plot([(np.radians(180+cml-slonga1)),(np.radians(180+cml-slonga2))],[scolatga, scolatga], 'w-', lw=2.5)
-                    plt.text((np.radians(180+cml-slonga)), 3.5+scolatga, 'GAN', color='w', fontsize=10,alpha=0.5,
-                            path_effects=[mpl_patheffects.withStroke(linewidth=1, foreground='black')],\
-                            horizontalalignment='center', verticalalignment='center', fontweight='bold')
-        
-        
-        # IOdat=[[nlonio,nlonio1,nlonio2,ncolatio],[slonio,slonio1,slonio2,scolatio],]
-        # EURdat=[[nloneu,nloneu1,nloneu2,ncolateu],[sloneu,sloneu1,sloneu2,scolateu],]
-        # GANdat=[[nlonga,nlonga1,nlonga2,ncolatga],[slonga,slonga1,slonga2,scolatga],]
-        # Moontogether=[IOdat,EURdat,GANdat]
-        # #LT:
-        # moonrange=[]
-        # if fixed == 'lt':
-        #     for x in Moontogether:
-        #         if hemis == "North" or hemis == "north" or hemis == "N" or hemis == "n": 
-        #             moonrange.append(x[0])
-        #         else:
-        #             moonrange.append(x[1])
-        #     #moonrange has all north or all south now, lists of moon lists
-        #     for i in moonrange:
-        #         x=np.radians(180+cml-moonrange[i][1])
-        #         y=np.radians(180+cml-moonrange[i][2])
-        #         w=np.radians(180+cml-moonrange[i][0])
-        #         v=moonrange[i][3]
-        #         if abs(cml-moonrange[i][1]) < 120 or abs(cml-moonrange[i][1]) > 240:
-        #             plt.plot([x,y],[v,v],'k-', lw=4)
-        #             if i==0:#IO color
-        #                 color='gold'
-        #                 key='IO'
-        #             elif i==1:#EUR color
-        #                 color='aquamarine'   
-        #                 key='EUR' 
-        #             elif i==2:#GAN color    
-        #                 color='w'
-        #                 key='GAN'
-        #             plt.plot([x,y],[v,v],color=color, linestyle='-', lw=2.5)
-        #             plt.text(w, 3.5+v, key, color=color, fontsize=10,alpha=0.5,
+        #         if abs(cml-nlonga1) < 120 or abs(cml-nlonga1) > 250:
+        #             plt.plot([2*np.pi-(np.radians(nlonga1)),2*np.pi-(np.radians(nlonga2))],[ncolatga, ncolatga], 'k-', lw=4)
+        #             plt.plot([2*np.pi-(np.radians(nlonga1)),2*np.pi-(np.radians(nlonga2))],[ncolatga, ncolatga], 'w-', lw=2.5)
+        #             plt.text(2*np.pi-(np.radians(nlonga)), 3.5+ncolatga, 'GAN', color='w', fontsize=10, fontweight='bold',alpha=0.5,
+        #                     path_effects=[mpl_patheffects.withStroke(linewidth=1, foreground='black')],\
+        #                     horizontalalignment='center', verticalalignment='center')
+        #     else: #if we are in the Southern hemisphere
+        #         if abs(cml-slonio1) < 120 or abs(cml-slonio1) > 240:
+        #             plt.plot([(np.radians(180-slonio1)),(np.radians(180-slonio2))],[scolatio, scolatio], 'k-', lw=4)
+        #             plt.plot([(np.radians(180-slonio1)),(np.radians(180-slonio2))],[scolatio, scolatio], color='gold', linestyle='-', lw=2.5)
+        #             plt.text((np.radians(180-slonio)), 3.5+scolatio, 'IO', color='gold', fontsize=10, alpha=0.5,
         #                     path_effects=[mpl_patheffects.withStroke(linewidth=1, foreground='black')],\
         #                     horizontalalignment='center', verticalalignment='center', fontweight='bold')
+
+        #         if abs(cml-sloneu1) < 120 or abs(cml-sloneu1) > 240:
+        #             plt.plot([(np.radians(180-sloneu1)),(np.radians(180-sloneu2))],[scolateu, scolateu], 'k-', lw=4)
+        #             plt.plot([(np.radians(180-sloneu1)),(np.radians(180-sloneu2))],[scolateu, scolateu], color='aquamarine', linestyle='-', lw=2.5)
+        #             plt.text((np.radians(180-sloneu)), 3.5+scolateu, 'EUR', color='aquamarine', fontsize=10, alpha=0.5,
+        #                     path_effects=[mpl_patheffects.withStroke(linewidth=1, foreground='black')],\
+        #                     horizontalalignment='center', verticalalignment='center', fontweight='bold')
+
+        #         if abs(cml-slonga1) < 120 or abs(cml-slonga1) > 240:
+        #             plt.plot([(np.radians(180-slonga1)),(np.radians(180-slonga2))],[scolatga, scolatga], 'k-', lw=4)
+        #             plt.plot([(np.radians(180-slonga1)),(np.radians(180-slonga2))],[scolatga, scolatga], 'w-', lw=2.5)
+        #             plt.text((np.radians(180-slonga)), 3.5+scolatga, 'GAN', color='w', fontsize=10, alpha=0.5,
+        #                     path_effects=[mpl_patheffects.withStroke(linewidth=1, foreground='black')],\
+        #                     horizontalalignment='center', verticalalignment='center', fontweight='bold')
+
+        # elif fixed == 'lt':
+        #     if hemis == "North" or hemis == "north" or hemis == "N" or hemis == "n":
+        #         if abs(cml-nlonio1) < 120 or abs(cml-nlonio1) > 240:
+        #             plt.plot([(np.radians(180+cml-nlonio1)),(np.radians(180+cml-nlonio2))],[ncolatio, ncolatio], 'k-', lw=4)
+        #             plt.plot([(np.radians(180+cml-nlonio1)),(np.radians(180+cml-nlonio2))],[ncolatio, ncolatio], color='gold', linestyle='-', lw=2.5)
+        #             plt.text((np.radians(180+cml-nlonio)), 3.5+ncolatio, 'IO ', color='gold', fontsize=10,  fontweight='bold',alpha=0.5,
+        #                     path_effects=[mpl_patheffects.withStroke(linewidth=1, foreground='black')],\
+        #                     horizontalalignment='center', verticalalignment='center')
+
+        #         if abs(cml-nloneu1) < 120 or abs(cml-nloneu1) > 240:
+        #             plt.plot([2*np.pi-(np.radians(180+cml-nloneu1)),2*np.pi-(np.radians(180+cml-nloneu2))],[ncolateu, ncolateu], 'k-', lw=4)
+        #             plt.plot([2*np.pi-(np.radians(180+cml-nloneu1)),2*np.pi-(np.radians(180+cml-nloneu2))],[ncolateu, ncolateu], color='aquamarine', linestyle='-', lw=2.5)
+        #             plt.text((np.radians(180+cml-nloneu)), 3.5+ncolateu, 'EUR', color='aquamarine', fontsize=10, fontweight='bold',alpha=0.5,
+        #                     path_effects=[mpl_patheffects.withStroke(linewidth=1, foreground='black')],\
+        #                     horizontalalignment='center', verticalalignment='center')
+
+        #         if abs(cml-nlonga1) < 120 or abs(cml-nlonga1) > 240:
+        #             plt.plot([(np.radians(180+cml-nlonga1)),(np.radians(180+cml-nlonga2))],[ncolatga, ncolatga], 'k-', lw=4)
+        #             plt.plot([(np.radians(180+cml-nlonga1)),(np.radians(180+cml-nlonga2))],[ncolatga, ncolatga], 'w-', lw=2.5)
+        #             plt.text((np.radians(180+cml-nlonga)), 3.5+ncolatga, 'GAN', color='w', fontsize=10, fontweight='bold',alpha=0.5,
+        #                     path_effects=[mpl_patheffects.withStroke(linewidth=1, foreground='black')],\
+        #                     horizontalalignment='center', verticalalignment='center')
+
+        #     else: # South hemisphere
+        #         if abs(cml-slonio1) < 120 or abs(cml-slonio1) > 240:
+        #             plt.plot([(np.radians(180+cml-slonio1)),(np.radians(180+cml-slonio2))],[scolatio, scolatio], 'k-', lw=4)
+        #             plt.plot([(np.radians(180+cml-slonio1)),(np.radians(180+cml-slonio2))],[scolatio, scolatio], color='gold', linestyle='-', lw=2.5)
+        #             plt.text((np.radians(180+cml-slonio)), 3.5+scolatio, 'IO ', color='gold', fontsize=10, alpha=0.5,
+        #                     path_effects=[mpl_patheffects.withStroke(linewidth=1, foreground='black')],\
+        #                     horizontalalignment='center', verticalalignment='center', fontweight='bold')
+
+        #         if abs(cml-sloneu1) < 120 or abs(cml-sloneu1) > 240:
+        #             plt.plot([(np.radians(180+cml-sloneu1)),(np.radians(180+cml-sloneu2))],[scolateu, scolateu], 'k-', lw=4)
+        #             plt.plot([(np.radians(180+cml-sloneu1)),(np.radians(180+cml-sloneu2))],[scolateu, scolateu], color='aquamarine', linestyle='-', lw=2.5)
+        #             plt.text((np.radians(180+cml-sloneu)), 3.5+scolateu, 'EUR', color='aquamarine', fontsize=10,alpha=0.5,
+        #                     path_effects=[mpl_patheffects.withStroke(linewidth=1, foreground='black')],\
+        #                     horizontalalignment='center', verticalalignment='center', fontweight='bold')
+
+        #         if abs(cml-slonga1) < 120 or abs(cml-slonga1) > 240:
+        #             plt.plot([(np.radians(180+cml-slonga1)),(np.radians(180+cml-slonga2))],[scolatga, scolatga], 'k-', lw=4)
+        #             plt.plot([(np.radians(180+cml-slonga1)),(np.radians(180+cml-slonga2))],[scolatga, scolatga], 'w-', lw=2.5)
+        #             plt.text((np.radians(180+cml-slonga)), 3.5+scolatga, 'GAN', color='w', fontsize=10,alpha=0.5,
+        #                     path_effects=[mpl_patheffects.withStroke(linewidth=1, foreground='black')],\
+        #                     horizontalalignment='center', verticalalignment='center', fontweight='bold')
+        
+        
+        IOdat=[[nlonio,nlonio1,nlonio2,ncolatio],[slonio,slonio1,slonio2,scolatio],] #data lists of all the coordinates, list of either N or S, then coordinates from hess2011 table
+        EURdat=[[nloneu,nloneu1,nloneu2,ncolateu],[sloneu,sloneu1,sloneu2,scolateu],]
+        GANdat=[[nlonga,nlonga1,nlonga2,ncolatga],[slonga,slonga1,slonga2,scolatga],]
+        Moontogether=[IOdat,EURdat,GANdat] #list of the moon data
+        #LT:
+        moonrange=[] #empty list, see if the coordinates of the moons are in range
+        if fixed == 'lt':
+            for x in Moontogether:
+                if hemis == "North" or hemis == "north" or hemis == "N" or hemis == "n": 
+                    moonrange.append(x[0]) #appends north hemisphere data to moon range, only use north hemis: list of northern hemisphere data of moons to the list
+                else:
+                    moonrange.append(x[1]) #only using south hemisphere
+            #moonrange has all north or all south now
+            for i in range(3): #for IO first index, EUR second index, GAN third index
+                x=np.radians(180+cml-moonrange[i][1]) #calculate the coordinates values, the second file
+                y=np.radians(180+cml-moonrange[i][2]) #third file
+                w=np.radians(180+cml-moonrange[i][0]) #first file
+                v=moonrange[i][3] #last file
+                if abs(cml-moonrange[i][1]) < 120 or abs(cml-moonrange[i][1]) > 240: #if the coordinates are in range of HST viewing, of each moon
+                    plt.plot([x,y],[v,v],'k-', lw=4)
+                    if i==0:#IO color
+                        color='gold' #color plot and key for the text
+                        key='IO'
+                    elif i==1:#EUR color
+                        color='aquamarine'   
+                        key='EUR' 
+                    elif i==2:#GAN color    
+                        color='w'
+                        key='GAN'
+                    plt.plot([x,y],[v,v],color=color, linestyle='-', lw=2.5)
+                    plt.text(w, 3.5+v, key, color=color, fontsize=10,alpha=0.5,
+                            path_effects=[mpl_patheffects.withStroke(linewidth=1, foreground='black')],\
+                            horizontalalignment='center', verticalalignment='center', fontweight='bold')
                     
         
         

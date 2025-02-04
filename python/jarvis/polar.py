@@ -327,7 +327,7 @@ def make_gif(fits_dir,fps=5,remove_temp=True,savelocation='auto',filename='auto'
           fits_dir = [fits_dir,]
     fits_file_list = []
     for f in fits_dir:
-        for g in glob.glob(f + '**.fits', recursive=True):
+        for g in glob.glob(f + '/*.fits', recursive=True):
             fits_file_list.append(g)
     fits_file_list.sort()    
     ln = len(fits_file_list)

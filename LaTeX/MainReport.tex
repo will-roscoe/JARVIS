@@ -33,6 +33,11 @@
     \acro{FFT}{Fast Fourier Transform}
     \acro{WSO}{Wilcox Solar Observatory}
     \acro{ACE}{Advanced Composition Explorer}
+    \acro{STIS}{Space Telescope Imaging Spectrograph}
+    \acro{HST}{Hubble Space Telescope}
+    \acro{FUV}{Far Ultraviolet}
+    \acro{CML}{Central Meridial Longitude}
+    \acro{DOY}{days of year}
 \end{acronym}
 
 %%%% then use \ac{IMF} to use an acronym, and will automatically define the acronym on first use.
@@ -86,63 +91,93 @@ PHYS390 project report
 \section{Introduction}
 \label{sec:intro}
 
-The introduction should motivate the work that is described, set it in a wider context and explain why it is important or interesting. The introduction should be relatively accessible and inspire the reader to read on. The main result may be mentioned as part of this process, but repeating the results of the investigation is not the main function of the introduction.
+%The introduction should motivate the work that is described, set it in a wider context and explain why it is important or interesting. The introduction should be relatively accessible and inspire the reader to read on. The main result may be mentioned as part of this process, but repeating the results of the investigation is not the main function of the introduction.
 
-\TODO -- no added text: \verb|\TODO|
+Jupiter's aurora has been a mystery ever since 1979, when voyager 1 made a fly-by through the Jovian system. Ever since then the features of the bright auroras of Jupiter invigorated curiosity on such similar yet bizarre aurora patterns its poles. 
 
-\TODO[add something here] -- \verb|\TODO[add something here]|
+We are able to observe the aurora oval of Jupiter to be significantly large as well as having periodic variations of brighter UV intensity within dark areas of Jupiter's aurora oval. There are also other features absent on earth, particularly the satellite footprint of the aurora, where the moons of jupiter creates the phenomenon from it's effect on jupiter's mangetic field. 
 
 
-
+INTRO GUIDE
 \begin{itemize}
-   \item{why Jupiter aurora interesting, bizzareness of the shape of the aurora}
+   \item{what are auroras \TODO[LIT aurora background，(textbooks)]}
+   \item{brief history of discovery of auroras on jupiter\TODO[LIT voyager data of jupiter?]}
+   \item{general mechanism of aurora\TODO[LIT how dod auroras work (textbooks?) ]}
+   \item{investigation topic/matter at hand\TODO[WHAT IS OUR INVESTIGATION|??!!]}
+   \item{including motivation: investgating features and cause of aurora} 
 \end{itemize}
+
 
 
 \section{\TODO[Background]}
 \label{sec:background}
 
+Jupiter's aurora observed as particular features, notably four distinct patterns: the aurora oval, satellite tail, dark region of the aurora and .....
+
+Jupiter's aurora can be divided into four distinct emission regions; the main oval emissions, satellite-induced footprint emissions, high-latitude poleward (polar) emissions, and the low-latitude emissions. The main oval houses the polar emissions, orbited by the satellite footprint emissions. Low-latitude emissions are positioned between the main oval and the orbital path traced out by satellite emissions. 
 
 
+background guide:
 \begin{itemize}
-   \item{what are Auroras (their features properties characteristics on earth)}
-   \item{jupiter Aurora features and characteristics}
-   \item{possible causes of auroras on jupiter}
+    \item{what are jupiter's aurora patterns: aurora oval, satellite tail, glow and dimming of dark region, \TODO[LIT aurora features of jupiter]}
+   \item{mechanisms known to cause these auroras so far: magnetic fields etc.\TODO[LIT what we know about auroras on jupiter right now]}
+   \item{what and how are we going to investigate (HST) \TODO[HST sources]}
+   \item{possible causes of auroras on jupiter\TODO[LIT reviews of causes so far]}
+   \item{why is this particularly interesting} 
 \end{itemize}
 
 
+
+\section{Data}
+\label{sec:data}
+We captured 20 sets of $100$s exposures from the \ac{STIS} onboard the \ac{HST}. The data was captured through the F25SRF2 filter, which allows \ac{FUV} wavelengths in the range of 700-1800\AA. Observations were made over the course of 22 days from \ac{DOYs} 137-159 in 2016. The exposures focus on the northern aurora of Jupiter taking the intensity from counts and converting to kR using the method developed by \cite{Counts-kR-GUSTIN}.
 
 
 \section{\TODO[Methodology]}
 \label{sec:method}
 
+For modeling the aurora, we will take \ac{HST} data that contain several fit files, which contain the aurora data for a snap shot of the jupiter. Using python we will be able to create code and functions to take raw data from \ac{HST} into a timelapse of the aurora. 
 
+in far UV, and with intensity over the spectrum, it will be a polar graph of the aurora oval, on the dayside where it is the most visible.
+
+We will be importing multiple Python packages and library in order to utilize the.fit files from the Hubble space telescope of Jupiter's auroras. We will create our own programming file to retrieve the \ac{HST} data and project it, which can be found in the files. 
+
+We will be creating a looping function in order to take the fit files for each Hubble space telescope dataset to compile them into a gif to present the variation of the aurora. The polar coordinates of the graph will be with \ac{CML} akin to the prime median on earth. 
+
+METHOD GUIDE:
 \begin{itemize}
-   \item{data sourcing which raw data sourcing from}
-   \item{what program utilising}
-   \item{equations and theoretical models/ programming models}
+   \item{What raw data from where? :HST 2016.....\TODO[HST SOURCE]}
+   \item{what program: python, how to use: programming functions: which files do what/ what inputs needed an outputs\TODO[ref the libraries???]}
+   \item{equations and theoretical models/ excitation models, magnetospheric features\TODO[textbook ref or reference to mechanisms]}
    \item{what to measure, what to expect and calculate}
 \end{itemize}
 
 
+
+
 \section{\TODO[Results]}
+\label{sec:results}
+
+RESULTS GUIDE: (WIP)
+
 \begin{itemize}
-    \item {variation in polar aurorae: boundaries, frequency, intensity}
-    \item {variation of Io volcanic activity and orbit, solar wind, Jupiter magnetic field at that time}
+    \item {variation in polar aurorae: boundaries, frequency, intensity, GIF and images}
+    \item {variation over large time span, with respect to IO moon etc?}
+    \item {Figures, plots}
 \end{itemize}
 
 \section{\TODO[Analysis]}
-\begin{itemize}
-    \item {compare polar aurorae variation with possible sources}
-\end{itemize}
+\label{sec:analysis}
 
 \section{\TODO[Discussion]}
+\label{sec:discussion}
 
+DISCUSSION GUIDE: (WIP)
 \begin{itemize}
-   \item {Figures, plots}
-   \item {data analysis, trends graphs}
-   \item {possible faults}
-   \item {graphics if need and diagrams}
+    \item {compare polar aurorae variation with possible sources}
+    \item {compare the intensity variation and determine the souces of these effect}
+   \item {data analysis, trends graphs, VOISE program}
+   \item {possible faults improvements}
 \end{itemize}
 
 
@@ -153,13 +188,16 @@ The introduction should motivate the work that is described, set it in a wider c
 % 		Conclusions				%
 %%%%%%%%%%%%%%%%%%%%%%%%
 \section{\TODO[Conclusions]}
+\label{sec:conclusion}
+
+WIP
 %%%%%%%%%%%%%%%%%%%%%%%%
 % 		References				%
 %%%%%%%%%%%%%%%%%%%%%%%%
 
 
-\bibliographystyle{unsrt} % Uncomment to use numerical reference list (& comment all other bibliographystyle commands)
-% \bibliographystyle{achemso} % Uncomment to use authorname/year reference list (& comment all other bibliographystyle commands)
+%\bibliographystyle{unsrt} % Uncomment to use numerical reference list (& comment all other bibliographystyle commands)
+ \bibliographystyle{achemso} % Uncomment to use authorname/year reference list (& comment all other bibliographystyle commands)
 \bibliography{LaTeX/Ref}
 
 
@@ -169,6 +207,7 @@ The introduction should motivate the work that is described, set it in a wider c
 % 		Appendices				%
 %%%%%%%%%%%%%%%%%%%%%%%%
 
-\appendix
+System-3 coordinates is the coordinate system used by the HST and the JUNO missions to parametrise a full rotation of Jupiter. System-1 and system-2 coordinates classifies one rotation of Jupiter by atmospheric motion near the equator and polewards respectively. This is not a true representation of the planet's rotation as the atmosphere rotates faster than the planet, with 
+
 
 \end{document}  

@@ -17,6 +17,7 @@ from typing import List, Tuple, Dict, Any, Union, Optional, Callable
 from astropy.io import fits
 import imageio
 import matplotlib as mpl
+from matplotlib import patheffects as mpl_patheffects
 import matplotlib.pyplot as plt
 #import matplotlib.patheffects as patheffects
 #import matplotlib.ticker as ticker
@@ -206,7 +207,7 @@ def moind(file_location:str=None,save_location:str=None,filename:str='auto', cro
         
     if not is_lon and full: # meridian line (0°)  
         plt.text(np.radians(cml)+np.pi, 4+rlim, '0°', color='coral', fontsize=12,horizontalalignment='center', verticalalignment='bottom', fontweight='bold')
-        ax.plot([np.radians(cml)+np.pi,np.radians(cml)+np.pi],[0, 180], color='coral', path_effects=[mpl.patheffects.withStroke(linewidth=1, foreground='black')], linestyle='-.', lw=1) #prime meridian (longitude 0)
+        ax.plot([np.radians(cml)+np.pi,np.radians(cml)+np.pi],[0, 180], color='coral', path_effects=[mpl_patheffects.withStroke(linewidth=1, foreground='black')], linestyle='-.', lw=1) #prime meridian (longitude 0)
 
     #Actual plot and colorbar (change the vmin and vmax to play with the limits
     #of the colorbars, recommended to enhance/saturate certain features)
@@ -326,7 +327,7 @@ def make_gif(fits_dir,fps=5,remove_temp=True,savelocation='auto',filename='auto'
           fits_dir = [fits_dir,]
     fits_file_list = []
     for f in fits_dir:
-        for g in glob.glob(f + '**.fits', recursive=True):
+        for g in glob.glob(f + '/*.fits', recursive=True):
             fits_file_list.append(g)
     fits_file_list.sort()    
     ln = len(fits_file_list)
@@ -350,40 +351,3 @@ def make_gif(fits_dir,fps=5,remove_temp=True,savelocation='auto',filename='auto'
         for file in glob.glob(fpath('temp/')+'*'):
             os.remove(file)
         os.rmdir(fpath('temp/'))
-
-
-
-def input_run():
-    year = input("Year of the visit:  \n")
-    if year == '2016':
-        pre = input('Campaign from Jonny or Denis? (1/2)  ')
-        if pre == '1' or pre == 'jonny' or pre == 'j' or pre == 'J' or pre == 'Jonny':
-            prefix,ext = 'ocx8','nichols/'
-        else:
-            prefix,ext = 'od8k','grodent/' 
-    elif year == '2019':
-        prefix,ext = 'odxc',''
-    elif year == '2021':
-        prefix,ext = 'oef4',''
-        
-    elif year == '2017' or  year == '2018':
-        prefix,ext = 'od8k',''
-  
-    time = str(input('Exposure time (in seconds: 10, 30, 100...): \n')) #usually 100
-    radius = int(input('Max. radius (in degrees of colatitude): \n'))   #usually 40
-    moonfp = not bool(input('Moon footprints printed? (Default: Enter for YES)\n')) #usually yes
-    full = not bool(input('Show the whole hemisphere? (Default: Enter for YES)\n')) #usually yes
-    fixed = str(input('Fix longitude (lon) or Local Time (lt):\n')) 
-
-    #the only part you have to add manually is the particular set of visit numbers you want
-    #to plot. If you want only one that is perfectly fine but it must be IN a list
-    lista = ['01'] #for example, or lista = ['0v']
-
-    #multigif(lista, year, prefix, ext, time, radius, moonfp, full, fixed, mf=0, indf=0, polarf=True, secondf=0) # this is what I need to call
-
-
-
-
-
-
-

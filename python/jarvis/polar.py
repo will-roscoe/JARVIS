@@ -393,13 +393,13 @@ def moind(file_location:str=None,save_location:str=None,filename:str='auto', cro
         Moontogether=[IOdat,EURdat,GANdat] #list of the moon data
         #LT:
         moonrange=[] #empty list, see if the coordinates of the moons are in range
-        if fixed == 'lt':
-            for x in Moontogether:
-                if hemis == "North" or hemis == "north" or hemis == "N" or hemis == "n": 
-                    moonrange.append(x[0]) #appends north hemisphere data to moon range, only use north hemis: list of northern hemisphere data of moons to the list
-                else:
-                    moonrange.append(x[1]) #only using south hemisphere
-            #moonrange has all north or all south now
+        for x in Moontogether:
+            if hemis == "North" or hemis == "north" or hemis == "N" or hemis == "n": 
+                moonrange.append(x[0]) #appends north hemisphere data to moon range, only use north hemis: list of northern hemisphere data of moons to the list
+            else:
+                moonrange.append(x[1]) #only using south hemisphere
+        #moonrange has all north or all south now
+        if fixed == 'lt':  
             for i in range(3): #for IO first index, EUR second index, GAN third index
                 x=np.radians(180+cml-moonrange[i][1]) #calculate the coordinates values, the second file
                 y=np.radians(180+cml-moonrange[i][2]) #third file

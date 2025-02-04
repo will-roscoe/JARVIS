@@ -13,7 +13,7 @@ import matplotlib as mpl
 # makes an image
 n = fpath(r'datasets\HST\v04\jup_16-140-20-48-59_0103_v04_stis_f25srf2_proj.fits')
 #n = fpath(r'datasets\HST\v07\jup_16-143-18-02-46_0100_v09_stis_f25srf2_proj.fits')
-moind(n, 'temp',fixed='lt', full=False, regions=False,moonfp=True)#cmap=cmap,norm=norm
+moind(n, 'temp',fixed='lon', full=False, regions=False,moonfp=True)#cmap=cmap,norm=norm
 # makes a gif
 #make_gif('datasets/HST/v06', dpi=300)
 

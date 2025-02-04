@@ -80,7 +80,7 @@ def moonfploc(iolon, eulon, galon):
                     
                     ncolatga = 90.-abs(nlatga)
                     scolatga = 90.-abs(slatga)
-    print(nlonio, ncolatio, slonio, scolatio, nloneu, ncolateu, sloneu, scolateu, nlonga, ncolatga, slonga, scolatga)                        
+                    
     return nlonio, ncolatio, slonio, scolatio, nloneu, ncolateu, sloneu, scolateu, nlonga, ncolatga, slonga, scolatga
                                 
                        

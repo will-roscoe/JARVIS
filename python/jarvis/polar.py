@@ -465,13 +465,7 @@ def moind(file_location:str=None,save_location:str=None,filename:str='auto', cro
                                 horizontalalignment='center', verticalalignment='center', fontweight='bold')            
         
         
-            
-        
-        
-        
-        
-        
-        #LON N, range is 250 idk why :abs(cml-nlonga1) < 120 or abs(cml-nlonga1) > 250:
+        #ORGINALLY LON N, range is 250 idk why :abs(cml-nlonga1) < 120 or abs(cml-nlonga1) > 250:
         #LT, S/N: (np.radians(180+cml-X1)),(np.radians(180+cml-X2)), TEXT np.radians(180+cml-X0)
         #LT N EUR: (2*np.pi-(np.radians(180+cml-X1)) (weird)
         #LON N: 2*np.pi-(np.radians(X1)),2*np.pi-(np.radians(X2) TEXT 2*np.pi-(np.radians(X0))
@@ -495,8 +489,8 @@ def moind(file_location:str=None,save_location:str=None,filename:str='auto', cro
     fig.savefig(f'{sloc}/{filename}', **kwargs) # kwargs are passed to savefig, (dpi, quality, bbox, etc.)
     if 'return' in kwargs:
         return fig
-    plt.show()
-    #plt.close()
+    #plt.show()
+    plt.close()
 
 
 def make_gif(fits_dir,fps=5,remove_temp=True,savelocation='auto',filename='auto',**kwargs)->None:

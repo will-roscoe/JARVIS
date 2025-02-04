@@ -11,12 +11,11 @@ import matplotlib as mpl
 #norm = mpl.colors.BoundaryNorm(bounds, cmap.N)
             
 # makes an image
-n = fpath(r'datasets\HST\v04\jup_16-140-20-48-59_0103_v04_stis_f25srf2_proj.fits')
-#n = fpath(r'datasets\HST\v07\jup_16-143-18-02-46_0100_v09_stis_f25srf2_proj.fits')
-moind(n, 'temp',fixed='lon', full=True, regions=False,moonfp=True)#cmap=cmap,norm=norm
+#n = fpath(r'datasets\HST\v04\jup_16-140-20-48-59_0103_v04_stis_f25srf2_proj.fits')
+#moind(n, 'temp',fixed='lon', full=True, regions=False,moonfp=True)#cmap=cmap,norm=norm
 
 # makes a gif
-#make_gif('datasets/HST/v06', dpi=300)
+make_gif('datasets/HST/v04', dpi=300)
 
 #hdu = fits.open(n)
 #d = hdu[1].data

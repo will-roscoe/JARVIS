@@ -19,6 +19,12 @@ def gradmap(input_arr:np.ndarray, kernel2d:np.array=np.array([[-1-1j,-2j,1-1j],[
 
 
 def coadd(input_arrs:List[np.ndarray], weights:Optional[List[float]]=None)->np.ndarray:
-    '''Coadd a list of arrays with optional weights.
-    '''
-    raise NotImplementedError('coadd not implemented yet')
+      '''Coadd a list of arrays with optional weights.
+      input arrs N arrays of x*y shape
+      '''
+      if weights is None:
+            weights = [1 for i in range(len(input_arrs))]
+      combined = np.stack(input_arrs, axis=0)
+      return np.average(combined, axis=0, weights=weights)
+
+    

@@ -43,7 +43,7 @@ def clock_format(x_rads, pos):
 
 
 def moind(file_location:str=None,save_location:str=None,filename:str='auto', crop:float = 1, rlim:float = 40, fixed:str= 'lon', hemis:str='North', full:bool=True, regions:bool=False,moonfp:bool=False,fileinfo:fileInfo=None,fitsdataheader:Tuple[np.ndarray,Dict]=None,preproj_func:Callable=None,**kwargs)->Union[None,mpl.figure.Figure]:  
-   """
+    """
         Generate a polar projection plot of Jupiter's image data.
         
         Args:

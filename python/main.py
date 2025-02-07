@@ -15,7 +15,7 @@ import matplotlib as mpl
 #moind(n, 'temp',fixed='lon', full=True, regions=False,moonfp=True)#cmap=cmap,norm=norm
 
 # makes a gif
-make_gif('datasets/HST/v04', dpi=300)
+make_gif('datasets/HST/v04', dpi=300, moonfp=True, remove_temp=False)
 
 #hdu = fits.open(n)
 #d = hdu[1].data

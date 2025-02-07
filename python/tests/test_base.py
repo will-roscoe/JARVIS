@@ -20,8 +20,8 @@ class TestImageGen:
         moind(file, temp,'test.jpg')
         assert os.path.exists(fpath(f'{temp}/test.jpg'))
     def test_img_param_matrix(self):
-        testp_ = ['crop','rlim','fixed','hemis','full','regions']
-        testvals = [(1,0.7),(30,90), ('lon','lt'),('n',),(True,False),(False,False)] 
+        testp_ = ['crop','rlim','fixed','hemis','full','regions','moonfp']
+        testvals = [(1,0.7),(30,90), ('lon','lt'),('n',),(True,False),(True,False),(True,False)] 
         test_params = [dict(zip(testp_, x)) for x in itertools.product(*testvals)]
         for i,x in enumerate(test_params):
             moind(file, temp, f'matrixtest{i}.jpg', **x)
@@ -29,5 +29,8 @@ class TestImageGen:
 
 class Test_GIF_Generation:
     def test_gif_gen(self):
-        make_gif('datasets/HST/v01/',savelocation=temp,filename='test', dpi=300)
-        assert os.path.exists(fpath(f'{temp}/test.gif'))
+        make_gif('datasets/HST/v01/',savelocation=temp,filename='test_norm', dpi=300)
+        assert os.path.exists(fpath(f'{temp}/test_norm.gif'))
+    def test_gif_moonfp(self):
+        make_gif('datasets/HST/v01/',savelocation=temp,filename='test_mfp', dpi=300, moonfp=True)
+        assert os.path.exists(fpath(f'{temp}/test_mfp.gif'))

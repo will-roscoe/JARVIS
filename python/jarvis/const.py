@@ -2,6 +2,9 @@ from pathlib import Path
 import os
 import datetime
 from astropy.io import fits
+import numpy as np
+from typing import List, Union
+import glob
 #! defines the project root directory (as the root of the gh repo) 
 GHROOT = Path(__file__).parents[2]
 #! if you move this file/folder, you need to change this line to match the new location. 
@@ -18,6 +21,7 @@ def __testpaths():
         
 class fileInfo():
     strOnly = False
+    fits_index = 1
     def __init__(self, rel_path:str,):
          # define relative path
         if not os.path.exists(fpath(rel_path)): # raise if file does not exist, to catch errors early
@@ -62,23 +66,86 @@ class fileInfo():
         if len(args) == 1:
             if isinstance(args[0], (int, slice)):
                 return list(self._dict.values())[args[0]]
-            return self.__getattribute__(args[0])
-        return [self.__getattribute__(x) for x in args]
+            return self.__getattr__(args[0])
+        return [self.__getattr__(x) for x in args]
     @property
     def relative_path(self):
         return self._rel_path
     @property
     def absolute_path(self):
         return fpath(self._rel_path)
-class Dataset:
-    def __init__(self, path:str, fits_index=1, ):
-        self.info = fileInfo(path)
-        self.fits_index = fits_index
-        self.hdu = fits.open(path)
-        self.data = self.hdu[fits_index].data
-        raise NotImplementedError('Dataset class not implemented yet')
+    @property
+    def data(self):
+        return fits.open(self.absolute_path)[fileInfo.fits_index].data
+    @property
+    def headers(self):
+        return fits.open(self.absolute_path)[fileInfo.fits_index].header
+    @property
+    def fits(self):
+        return fits.open(self.absolute_path)
     def __str__(self):
-        return f'{self.info._basename} ({self.info.visit})'
+        return f"{self._filename}"
+    def __repr__(self):
+        return f"fileInfo({self._rel_path})"
+    def __eq__(self, other):
+        return self._rel_path == other._rel_path
+    def __hash__(self):
+        return hash(self._rel_path)
+    
+class fileSeries():
+    def __init__(self, filepaths:List[str]=None, filedir:str=None, glob_pattern:str=None, expect:int=None, homogenous:Union[List[str],str]=False, timesort:bool=True):
+        if filepaths is not None:
+            self.filepaths = filepaths
+        elif filedir is not None:
+            self.filepaths = [fpath(x) for x in os.listdir(fpath(filedir))]
+        elif glob_pattern is not None:
+            self.filepaths = glob.glob(fpath(glob_pattern))
+        if expect is not None:
+            assert len(self.filepaths) == expect, f'Expected {expect} files, found {len(self.filepaths)}'
+        self._infos = [fileInfo(x) for x in self.filepaths]
+        if timesort:
+            self._infos.sort(key=lambda x: x.datetime)
+        if homogenous:
+            if isinstance(homogenous, str):
+                homogenous = [homogenous]
+            for x in homogenous:
+                vals = ([y[x] for y in self._infos])
+                assert all([vals[0] == i for i in vals]), f'Values for {x} are not homogenous: {vals}' 
+    @property
+    def infos(self):
+        return self._infos
+    @property
+    def data_arrays(self):
+        return [x.data for x in self._infos]
+    @property
+    def data_array(self):
+        return np.stack(self.data_arrays, axis=0)
+    def __len__(self):
+        return len(self._infos)
+    def __getitem__(self, x):
+        return self._infos[x]
+    def __iter__(self):
+        return iter(self._infos)
+    def __repr__(self):
+        return f"fileSeries({self._infos})"
+    def __str__(self):
+        return f"fileSeries({self._infos})"
+    def __eq__(self, other):
+        return self._infos == other._infos
+    def __hash__(self):
+        return hash(self._infos)
+    
+
+    
+    
+
+
+
+
+
+
+
+
 #test = fileInfo(r'datasets\HST\v02\jup_16-138-18-48-16_0100_v02_stis_f25srf2_proj.fits')
 #print(test.split)
 #datasets\HST\v01\jup_16-137-23-43-30_0100_v01_stis_f25srf2_proj.fits

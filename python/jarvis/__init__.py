@@ -19,5 +19,6 @@ Contributors
 
 from .const import *
 from .polar import *
+from .transforms import *
 
-__all__ = ['moind', 'make_gif', 'fpath','rpath', 'fileInfo', 'const', 'polar']
+__all__ = ['moind', 'make_gif', 'fpath','rpath', 'fileInfo', 'const', 'polar', 'transforms', 'gradmap']

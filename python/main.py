@@ -1,7 +1,9 @@
 from astropy.io import fits
-from jarvis import make_gif, moind, fpath
+
+from jarvis import make_gif, moind, fpath, gradmap
 from matplotlib.colors import LinearSegmentedColormap
 import matplotlib as mpl
+import glob
 
 #norm = mpl.colors.Normalize(vmin=0, vmax=1000)
 
@@ -14,9 +16,16 @@ import matplotlib as mpl
 #n = fpath(r'datasets\HST\v04\jup_16-140-20-48-59_0103_v04_stis_f25srf2_proj.fits')
 #moind(n, 'temp',fixed='lon', full=True, regions=False,moonfp=True)#cmap=cmap,norm=norm
 
+         
+# makes an image
+n = fpath(r'datasets\HST\v11\jup_16-146-16-00-57_2703_v11_stis_f25srf2_proj.fits.longexposure')
+moind(n, 'temp', preproj_func=gradmap)
+
 # makes a gif
-make_gif('datasets/HST/v04', dpi=300, moonfp=True, remove_temp=False)
+#make_gif('datasets/HST/v04', dpi=300, moonfp=True, remove_temp=False)
 
 #hdu = fits.open(n)
 #d = hdu[1].data
 #print(d)
+
+

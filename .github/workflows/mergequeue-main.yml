@@ -30,6 +30,7 @@ jobs:
             echo "PYTHON_CHANGED=true" >> $GITHUB_ENV
           else
             echo "PYTHON_CHANGED=false" >> $GITHUB_ENV
+          fi
         shell: bash
 
       - name: Run Linter (ruff)

@@ -38,6 +38,7 @@ jobs:
         run: ruff check python/ --config .github/pyproject.toml
 
       - name: Test with pytest
+        if: ${{ !cancelled() }}
         run: |
           pytest --cov --junitxml=junit.xml
       - name: Upload test results to Codecov
@@ -51,8 +52,6 @@ jobs:
         if: ${{ !cancelled() }}
         uses: codecov/codecov-action@v5
         with:
-          fail_ci_if_error: false
-          threshold: 0%  # Define <0% coverage threshold for future change
           token: ${{ secrets.CODECOV_TOKEN }}
           slug: will-roscoe/JARVIS
       - name: Upload test results to Codecov

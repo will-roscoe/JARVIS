@@ -174,3 +174,9 @@ cython_debug/
 # FITS generations
 *.jpg
 .vscode/
+
+de430.bsp
+jup365.bsp
+mk00062a.tsc
+naif0012.tls
+pck00011.tpc

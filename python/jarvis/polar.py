@@ -354,9 +354,7 @@ def plot_polar(fitsobj:fits.HDUList, ax,crop, full, rlim,**kwargs):
     return ax
 
 
-def make_gif(fits_dir,fps=5,remove_temp=True,savelocation='auto',filename='auto',**kwargs)->None:
-    if isinstance(fits_dir,str):
-          fits_dir = [fits_dir,]
+def fits_list(fits_dir):
     fits_file_list = []
     for f in fits_dir:
         for g in glob.glob(f + '/*.fits', recursive=True):
@@ -364,8 +362,16 @@ def make_gif(fits_dir,fps=5,remove_temp=True,savelocation='auto',filename='auto'
     fits_file_list.sort()    
     ln = len(fits_file_list)
     print(f'Found {ln} files in the directory.')
+    return fits_file_list
+
+def make_gif(fits_dir,fps=5,remove_temp=True,savelocation='auto',filename='auto',**kwargs)->None:
+    if isinstance(fits_dir,str):
+          fits_dir = [fits_dir,]
+    fits_file_list = fits_list(fits_dir)
+    ln = len(fits_file_list)
     infolist = [fits.open(f) for f in fits_file_list]
     imagesgif=[]
+    ensure_dir(fpath('temp/'))
     with tqdm(total=ln) as pbar:        
         for i,file in enumerate(infolist):
             fig,ax = moind(file, **kwargs)

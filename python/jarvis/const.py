@@ -72,18 +72,30 @@ class fileInfo():
 
 
 
-def fitsheader(fits_object, ind=1,cust=True, *args):
+def fitsheader(fits_object, *args, ind=1,cust=True):
     ret = []
+    # sanity checks:
+    if isinstance(fits_object, str):
+        raise TypeError('fits_object must be an astropy.io.fits.HDUList object, not a string.')
+    if not isinstance(fits_object, fits.hdu.hdulist.HDUList):
+        raise TypeError('fits_object must be an astropy.io.fits.HDUList object.')
+    if not all([isinstance(x, str) for x in args]):
+        raise TypeError('All arguments must be strings.')
+    if not isinstance(ind, int):
+        raise TypeError('ind must be an integer.')
+    
     for arg in args:
-        if arg.lower() =='south':
-            obj=fits_object[ind].header['HEMIS']
+        if not isinstance(arg, str):
+            raise TypeError('All arguments must be strings.')
+        if arg.lower() =='south': # returns if_south as bool
+            obj=fits_object[ind].header['HEMISPH']
             if obj.lower()[0] == 'n':
                 obj=False
             elif obj.lower()[0] == 's':
                 obj=True
             else:
                 obj=''   
-        if arg.lower()=='fixed_lon':
+        elif arg.lower()=='fixed_lon': # returns if fixed_lon as bool
             obj=fits_object[ind].header['FIXED']
             if obj == 'LON':
                 obj=True
@@ -91,11 +103,12 @@ def fitsheader(fits_object, ind=1,cust=True, *args):
                 obj=False
             else:
                 obj = ''  
-        elif arg.lower() in ['fixed',]:
+        elif arg.lower() in ['fixed',]: # returns fixed as so
             obj=''
         else:
             obj=fits_object[ind].header[arg.upper()]
         ret.append(obj)
+    return ret
 def fits_from_parent(original_fits, new_data=None, **kwargs):
     fits_new = original_fits.copy()
     if new_data is not None:

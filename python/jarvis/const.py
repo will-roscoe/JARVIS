@@ -26,11 +26,6 @@ def clock_format(x_rads, pos):
 def __testpaths():
     for x in os.listdir(GHROOT):
         print(x)
-        
-
-    
-
-
 
 def fitsheader(fits_object, *args, ind=1,cust=True):
     ret = []
@@ -66,8 +61,7 @@ def fits_from_parent(original_fits, new_data=None, **kwargs):
         fits_new[1].data = new_data
     for k,v in kwargs.items():
         fits_new[1].header[k] = v
-    return fits_new
-        
+    return fits_new   
            
 def get_datetime(fits_object): # returns a datetime object from the fits header ##TODO: not implemented
     udate = fitsheader(fits_object, 'UDATE')         

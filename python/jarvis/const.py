@@ -1,88 +1,39 @@
 from pathlib import Path
 import os
 import datetime
-from astropy.io import fits
 import numpy as np
-from typing import List, Union
-import glob
 #! defines the project root directory (as the root of the gh repo) 
 GHROOT = Path(__file__).parents[2]
 #! if you move this file/folder, you need to change this line to match the new location. 
 #! index matches the number of folders to go up from where THIS file is located: /[2] python/[1] jarvis/[0] const.py
 # takes a relative path within repo and returns an absolute path.
-fpath = lambda x: os.path.join(GHROOT, x)
-rpath = lambda x: os.path.relpath(x, GHROOT)
+def fpath(x):
+    return os.path.join(GHROOT, x)
+def rpath(x):
+    return os.path.relpath(x, GHROOT)
 
+def ensure_dir(file_path):
+    '''this function checks if the file path exists, if not it will create one'''
+    if not os.path.exists(file_path):
+            os.makedirs(file_path)
+def clock_format(x_rads, pos):
+    # x_rads => 0, pi/4, pi/2, 3pi/4, pi, 5pi/4, 3pi/2, 7pi/4, ...
+    # returns=> 00, 03, 06, 09, 12, 15, 18, 21,..., 00,03,06,09,12,15,18,21,
+    cnum= int(np.degrees(x_rads)/15)
+    return f'{cnum:02d}' if cnum%24 != 0 else '00'
 
 # test, prints the README at the root of the project
 def __testpaths():
     for x in os.listdir(GHROOT):
         print(x)
         
-class fileInfo():
-    strOnly = False
-    fits_index = 1
-    def __init__(self, rel_path:str,):
-         # define relative path
-        if not os.path.exists(fpath(rel_path)): # raise if file does not exist, to catch errors early
-            if os.path.exists(rel_path):
-                # treat as absolute, remove the GHROOT from the beginning
-                rel_path = rpath(rel_path)
-            else:
-                raise FileNotFoundError(f'File: {rel_path} not found by fileInfo. Check the path and try again.')
-        self._rel_path = rel_path
-            
-        self._filename = os.path.split(rel_path)[1] # filename= basename.extension
-        self._basename = os.path.basename(rel_path).split('.')[0]
-        
-        split = self._basename.split('_')
-        split = [split[0]] + split[1].split('-') + split[2:]
-        keys = ['observation', 'year','days','hours','minutes','seconds', 'exposuretime','visit','instrument','filter','type']
-        self._dict = {k:v for k,v in zip(keys, split)}
-        self._dict['year']= "20" + self._dict['year'] # contains only last two digits of year, so add 20
-        if not self.strOnly: # if not string only, convert numeric values to int
-            for k,v in self._dict.items():
-                if v.isnumeric():
-                    self._dict[k] = int(v)
-            self._dict['visit'] = int(self._dict['visit'][1:]) # remove leading v
-            
-            
-    def __getattr__(self, _name): # _dict items are accessible as self.xyz instead of self._dict['xyz']
-        name = _name.lower()
-        if name in self._dict.keys():
-            return self._dict[name]
-        else:
-            for k,v in self._dict.items():
-                if k.startswith(name):
-                    return v
-        return object.__getattr__(self, _name)
 
-    @property
-    def datetime(self): # returns a datetime object from the file name
-        if self.strOnly:
-            return datetime.datetime.strptime(self._dict['year'] + self._dict['days'] + self._dict['hours'] + self._dict['minutes'] + self._dict['seconds'], '%Y%j%H%M%S')
-        return datetime.datetime(self.year, 1, 1, self.hours, self.minutes, self.seconds) + datetime.timedelta(days=self.days-1)
-    def __getitem__(self, *args):
-        if len(args) == 1:
-            if isinstance(args[0], (int, slice)):
-                return list(self._dict.values())[args[0]]
-            return self.__getattr__(args[0])
-        return [self.__getattr__(x) for x in args]
     
 
 
 
 def fitsheader(fits_object, *args, ind=1,cust=True):
     ret = []
-    # sanity checks:
-    if isinstance(fits_object, str):
-        raise TypeError('fits_object must be an astropy.io.fits.HDUList object, not a string.')
-    if not isinstance(fits_object, fits.hdu.hdulist.HDUList):
-        raise TypeError('fits_object must be an astropy.io.fits.HDUList object.')
-    if not all([isinstance(x, str) for x in args]):
-        raise TypeError('All arguments must be strings.')
-    if not isinstance(ind, int):
-        raise TypeError('ind must be an integer.')
     
     for arg in args:
         if not isinstance(arg, str):

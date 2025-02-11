@@ -68,78 +68,47 @@ class fileInfo():
                 return list(self._dict.values())[args[0]]
             return self.__getattr__(args[0])
         return [self.__getattr__(x) for x in args]
-    @property
-    def relative_path(self):
-        return self._rel_path
-    @property
-    def absolute_path(self):
-        return fpath(self._rel_path)
-    @property
-    def data(self):
-        return fits.open(self.absolute_path)[fileInfo.fits_index].data
-    @property
-    def headers(self):
-        return fits.open(self.absolute_path)[fileInfo.fits_index].header
-    @property
-    def fits(self):
-        return fits.open(self.absolute_path)
-    def __str__(self):
-        return f"{self._filename}"
-    def __repr__(self):
-        return f"fileInfo({self._rel_path})"
-    def __eq__(self, other):
-        return self._rel_path == other._rel_path
-    def __hash__(self):
-        return hash(self._rel_path)
-    
-class fileSeries():
-    def __init__(self, filepaths:List[str]=None, filedir:str=None, glob_pattern:str=None, expect:int=None, homogenous:Union[List[str],str]=False, timesort:bool=True):
-        if filepaths is not None:
-            self.filepaths = filepaths
-        elif filedir is not None:
-            self.filepaths = [fpath(x) for x in os.listdir(fpath(filedir))]
-        elif glob_pattern is not None:
-            self.filepaths = glob.glob(fpath(glob_pattern))
-        if expect is not None:
-            assert len(self.filepaths) == expect, f'Expected {expect} files, found {len(self.filepaths)}'
-        self._infos = [fileInfo(x) for x in self.filepaths]
-        if timesort:
-            self._infos.sort(key=lambda x: x.datetime)
-        if homogenous:
-            if isinstance(homogenous, str):
-                homogenous = [homogenous]
-            for x in homogenous:
-                vals = ([y[x] for y in self._infos])
-                assert all([vals[0] == i for i in vals]), f'Values for {x} are not homogenous: {vals}' 
-    @property
-    def infos(self):
-        return self._infos
-    @property
-    def data_arrays(self):
-        return [x.data for x in self._infos]
-    @property
-    def data_array(self):
-        return np.stack(self.data_arrays, axis=0)
-    def __len__(self):
-        return len(self._infos)
-    def __getitem__(self, x):
-        return self._infos[x]
-    def __iter__(self):
-        return iter(self._infos)
-    def __repr__(self):
-        return f"fileSeries({self._infos})"
-    def __str__(self):
-        return f"fileSeries({self._infos})"
-    def __eq__(self, other):
-        return self._infos == other._infos
-    def __hash__(self):
-        return hash(self._infos)
-    
-
-    
     
 
 
+def get_datetime(fits_object): # returns a datetime object from the fits header ##TODO: not implemented
+        if self.strOnly:
+            return datetime.datetime.strptime(self._dict['year'] + self._dict['days'] + self._dict['hours'] + self._dict['minutes'] + self._dict['seconds'], '%Y%j%H%M%S')
+        return datetime.datetime(self.year, 1, 1, self.hours, self.minutes, self.seconds) + datetime.timedelta(days=self.days-1)
+def fitsheader(fits_object, ind=1,cust=True, *args):
+    ret = []
+    for arg in args:
+        if arg.lower() =='south':
+            obj=fits_object[int].header['HEMIS']
+            if obj.lower()[0] == 'n':
+                obj=False
+            elif obj.lower()[0] == 's':
+                obj=True
+            else:
+                obj=''   
+        if arg.lower()=='fixed_lon':
+            obj=fits_object[int].header['FIXED']
+            if obj == 'LON':
+                obj=True
+            elif obj == 'LT':
+                obj=False
+            else:
+                obj = ''  
+        elif arg.lower() in['fixed',]:
+            obj=''
+        else:
+            obj=fits_object[int].header[arg.upper()]
+        ret.append(obj)
+def fits_from_parent(original_fits, new_data=None, **kwargs):
+    fits_new = original_fits.copy()
+    if new_data is not None:
+        fits_new[1].data = new_data
+    for k,v in kwargs.items():
+        fits_new[1].header[k] = v
+    return fits_new
+        
+           
+                
 
 
 

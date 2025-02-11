@@ -1,12 +1,7 @@
-import os
-from dateutil.parser import parse
-import datetime as dt
-import glob
-from typing import List, Tuple, Dict, Any, Union, Optional, Callable
+from typing import List, Optional
 import numpy as np
 import scipy
 #third party libraries
-from astropy.io import fits
 '''
 convolution kernels used are from Swithenbank-Harris, B.G., Nichols, J.D., Bunce, E.J. 2019 
 Gx = [[-1  0  1]    Gy = [[-1 -2 -1]                      G= [[-1-1j 0-2j 1-1j]
@@ -27,4 +22,9 @@ def coadd(input_arrs:List[np.ndarray], weights:Optional[List[float]]=None)->np.n
       combined = np.stack(input_arrs, axis=0)
       return np.average(combined, axis=0, weights=weights)
 
-    
+def normalize(input_arr: np.ndarray) -> np.ndarray:
+    '''Normalize the input array to the range [0, 1].'''
+    min_val = np.min(input_arr)
+    max_val = np.max(input_arr)
+    return (input_arr - min_val) / (max_val - min_val)
+

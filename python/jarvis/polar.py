@@ -26,7 +26,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from tqdm import tqdm 
 # local modules
-from .const import fpath, fileInfo
+from .const import fpath, fileInfo, fitsheader, fits_from_parent
 from .reading_mfp import moonfploc
 
 
@@ -88,14 +88,12 @@ def moind(fitsobj:fits.HDUList, crop:float = 1, rlim:float = 40, fixed:str= 'lon
 
             >>> moind(fileinfo=fileInfo('datasets/HST/v09-may22/jup_16-143-18-41-06_0100_v09_stis_f25srf2_proj.fits'), save_location='pictures/', filename='jupiter.jpg', cmap='inferno')
     """
-    
     fits_obj = process_fits_file(fitsobj, hemis, fixed)
 ##########################################################################
     #plotting the polar projection of the image
     fig =plt.figure(figsize=(7,6))
     ax = plt.subplot(projection='polar')
-    
-    
+
     #drawing the regions (if marked; only available for the North so far)
     if regions == True:
         if is_south:
@@ -118,13 +116,8 @@ def moind(fitsobj:fits.HDUList, crop:float = 1, rlim:float = 40, fixed:str= 'lon
         return fig
     #plt.show()
     plt.close()
-def process_fits_file(fitsobj, hemis: str, fixed: str) -> Tuple[np.ndarray, Dict, float, Dict[str, Tuple[float, float, float]], bool, bool]:
-        cml = fitsobj[1].header['CML']
-        dece = fitsobj[1].header['DECE']
-        exp_time = fitsobj[1].header['EXPT']
-        is_south = hemis.lower()[0] == 's'
-        if not is_south and hemis.lower()[0] != 'n':
-            raise ValueError('Hemisphere not recognized. Please input "North" or "South"')
+def process_fits_file(fitsobj: fits.HDUList, fixed: str) -> fits.HDUList:
+        cml, dece, exp_time, is_south = fitsheader(fitsobj, 'CML', 'DECE', 'EXPT', 'south')
         is_lon = fixed == 'lon'
         if not is_lon and fixed != 'lt':
             raise ValueError('Fixed parameter not recognized. Please input "lon" or "lt"')
@@ -144,11 +137,6 @@ def process_fits_file(fitsobj, hemis: str, fixed: str) -> Tuple[np.ndarray, Dict
         image_data = fitsobj[1].data
         latbins = np.radians(np.linspace(-90, 90, num=image_data.shape[0]))
         lonbins = np.radians(np.linspace(0, 360, num=image_data.shape[1]))
-        rho = np.linspace(0, 180, num=int(image_data.shape[0]))
-        theta = np.linspace(0, 2 * np.pi, num=image_data.shape[1])
-        if is_south:
-            rho = rho[::-1]
-
         mask = np.zeros((int(image_data.shape[0]), image_data.shape[1]))
         cmlr = np.radians(cml)
         dec = np.radians(dece)
@@ -158,11 +146,8 @@ def process_fits_file(fitsobj, hemis: str, fixed: str) -> Tuple[np.ndarray, Dict
         cliplim = np.cos(np.radians(89))
         clipind = np.squeeze([mask >= cliplim])
         image_data[clipind == False] = np.nan
-
         # make new fits object, which is a copy of old, but with new data.
-        new_fits = fitsobj.copy()
-        new_fits[1].data = image_data
-        return new_fits
+        return fits_from_parent(fitsobj, new_data=image_data, FIXED='LT' if not is_lon else 'LON')
         
 def make_filename(fits, fixed,crop,full,regions,moonfp,rlim):
     # might be better to alter the filename each time we process or plot something.
@@ -180,14 +165,14 @@ def make_filename(fits, fixed,crop,full,regions,moonfp,rlim):
     filename += '-'+extras
     return filename
     
-def plot_moonfp(fits:astropy.io.fits.HDUList, ax,fixed:str):
-    cml = fits.header[1]['CML']
+def plot_moonfp(fitsobj:fits.HDUList, ax,fixed:str):
+    cml, is_south, fixed_lon = fitsheader(fitsobj, 'CML', 'south', 'fixed_lon')
     lon = {
-        'io': (fits.header[1]['IOLON'], fits.header[1]['IOLON1'], fits.header[1]['IOLON2']),
-        'eu': (fits.header[1]['EULON'], fits.header[1]['EULON1'], fits.header[1]['EULON2']),
-        'ga': (fits.header[1]['GALON'], fits.header[1]['GALON1'], fits.header[1]['GALON2'])
+        'io': (fitsobj.header[1]['IOLON'], fitsobj.header[1]['IOLON1'], fitsobj.header[1]['IOLON2']),
+        'eu': (fitsobj.header[1]['EULON'], fitsobj.header[1]['EULON1'], fitsobj.header[1]['EULON2']),
+        'ga': (fitsobj.header[1]['GALON'], fitsobj.header[1]['GALON1'], fitsobj.header[1]['GALON2'])
     }
-    is_south = fits.header[1]['HEMIS'].lower()[0] == 's'
+    
     #retrieve their expected longitude and latitude (from Hess et al., 2011)
     nlonio, ncolatio, slonio, scolatio, nloneu, ncolateu, sloneu, scolateu, nlonga, ncolatga, slonga, scolatga = moonfploc(lon['io'][0],lon['eu'][0],lon['ga'][0])
     nlonio1, ncolatio1, slonio1, scolatio1, nloneu1, ncolateu1, sloneu1, scolateu1, nlonga1, ncolatga1, slonga1, scolatga1 = moonfploc(lon['io'][1],lon['eu'][1],lon['ga'][1])
@@ -208,7 +193,7 @@ def plot_moonfp(fits:astropy.io.fits.HDUList, ax,fixed:str):
         else:
             moonrange.append(x[1]) #only using south hemisphere
     #moonrange has all north or all south now
-    if fixed == 'lt':  
+    if not fixed_lon:  
         for i in range(3): #for IO first index, EUR second index, GAN third index
             x=np.radians(180+cml-moonrange[i][1]) #calculate the coordinates values, the second file
             y=np.radians(180+cml-moonrange[i][2]) #third file
@@ -229,7 +214,7 @@ def plot_moonfp(fits:astropy.io.fits.HDUList, ax,fixed:str):
                 plt.text(w, 3.5+v, key, color=color, fontsize=10,alpha=0.5,
                         path_effects=[mpl_patheffects.withStroke(linewidth=1, foreground='black')],\
                         horizontalalignment='center', verticalalignment='center', fontweight='bold')
-    if fixed == 'lon':
+    if fixed_lon:
         if not is_south: #process coordinates for north hemis of lon
             for i in range(3): #for IO first index, EUR second index, GAN third index
                 x=2*np.pi-(np.radians(moonrange[i][1])) #calculate the coordinates values, the second file
@@ -279,7 +264,7 @@ def plot_moonfp(fits:astropy.io.fits.HDUList, ax,fixed:str):
         #LT N EUR: (2*np.pi-(np.radians(180+cml-X1)) (weird)
         #LON N: 2*np.pi-(np.radians(X1)),2*np.pi-(np.radians(X2) TEXT 2*np.pi-(np.radians(X0))
         #LON S: (np.radians(180-X1)),(np.radians(180-X2)), TEXT np.radians(180-X0)
-def plot_regions(ax):
+def plot_regions(lon_fixed,ax):
     updusk = np.linspace(np.radians(205), np.radians(170), 200)
     dawn = {
                 k: np.linspace(v[0], v[1], 200)
@@ -300,7 +285,7 @@ def plot_regions(ax):
     ax.plot(updusk, 200 * [10], "r-", lw=1.5)
     ax.plot(updusk, 200 * [20], "r-", lw=1.5)
             # dawn boundary
-    c = "k-" if is_lon else "b-"
+    c = "k-" if lon_fixed else "b-"
     ax.plot([np.radians(130), np.radians(130)], [23, 15], c, lw=1)
     ax.plot([np.radians(180), np.radians(180)], [33, 39], c, lw=1)
     ax.plot(dawn["lon"], dawn["uplat"], c, lw=1)
@@ -317,17 +302,22 @@ def plot_regions(ax):
     ax.plot(noon_a["lon"], noon_a["downlat"], "w--", lw=1)
     ax.plot(updusk, 200 * [10], "w--", lw=1)
 
-def plot_polar(fits:astropy.io.fits.HDUList, ax,crop, full, is_lon,rlim,**kwargs):
-    image_data=fits.data[1]
-    cml = fits.header[1]['CML']
+def plot_polar(fitsobj:fits.HDUList, ax,crop, full, rlim,**kwargs):
+    image_data=fitsobj.data[1]
+    cml, is_south, fixed_lon = fitsheader(fitsobj, 'CML', 'south', 'fixed_lon')
     radials = np.arange(0,rlim,10,dtype='int')
-    is_south = fits.header[1]['HEMIS'].lower()[0] == 's'
-    if is_lon: image_centred = image_data
-    else: image_centred = np.roll(image_data,int(cml-180.)*4,axis=1) #shifting the image to have CML pointing southwards in the image
+    rho = np.linspace(0, 180, num=int(image_data.shape[0]))
+    theta = np.linspace(0, 2 * np.pi, num=image_data.shape[1])
+    if is_south:
+        rho = rho[::-1]
+    if fixed_lon: 
+        image_centred = image_data
+    else: 
+        image_centred = np.roll(image_data,int(cml-180.)*4,axis=1) #shifting the image to have CML pointing southwards in the image
     im_flip = np.flip(image_centred,0) # reverse the image along the longitudinal (x, theta) axis
     corte = im_flip[:(int((image_data.shape[0])/crop)),:] # cropping image, if crop=1, nothing changes
     # plotting cml, only for lon
-    if is_lon:
+    if fixed_lon:
         if is_south:
             corte = np.roll(corte,180*4,axis=1)
             rot = 180
@@ -336,19 +326,21 @@ def plot_polar(fits:astropy.io.fits.HDUList, ax,crop, full, is_lon,rlim,**kwargs
         ax.plot(np.roll([np.radians(rot-cml),np.radians(rot-cml)],180*4),[0, 180], 'r--', lw=1.2) #cml
         ax.text(np.radians(rot-cml), 3+rlim, 'CML', fontsize=11, color='r', horizontalalignment='center', verticalalignment='center', fontweight='bold') 
     shrink = 1 if full else 0.75 # size of the colorbar
-    possub = 1.05 if full else 1.03 if not is_lon else 1.02 # position in the y axis of the subtitle
-    poshem = 45 if full else 135 if any([not is_south, not is_lon]) else -135 #position of the "N/S" marker
+    possub = 1.05 if full else 1.03 if not fixed_lon else 1.02 # position in the y axis of the subtitle
+    poshem = 45 if full else 135 if any([not is_south, not fixed_lon]) else -135 #position of the "N/S" marker
     # set xticks/thetaticks
     # set radial ticks/ yticks
     ax.set_theta_zero_location("N")   
     ax.yaxis.set_major_locator(mpl.ticker.MultipleLocator(base=10))
     ax.yaxis.set_major_formatter(mpl.ticker.FuncFormatter(lambda x, _: '{:.0f}°'.format(x))) # set radial labels
     ax.yaxis.set_tick_params(labelcolor='white', ) # set radial labels color
-    if is_lon:
+    if fixed_lon:
         if full:
             ax.xaxis.set_major_locator(mpl.ticker.MultipleLocator(base=np.pi/2))
-            if is_south:    shift_t = lambda x: x # should be 180°, 90°, 0°, 270°
-            else:           shift_t = lambda x: 2*np.pi-x # should be 0°, 90°, 180°, 270°
+            if is_south:    
+                shift_t = lambda x: x # should be 180°, 90°, 0°, 270°
+            else:           
+                shift_t = lambda x: 2*np.pi-x # should be 0°, 90°, 180°, 270°
             ax.xaxis.set_major_formatter(mpl.ticker.FuncFormatter(lambda x, _: '{:.0f}°'.format(np.degrees(shift_t(x))%360)))
         else:
             ax.xaxis.set_major_locator(mpl.ticker.MultipleLocator(base=np.pi/4))
@@ -373,14 +365,14 @@ def plot_polar(fits:astropy.io.fits.HDUList, ax,crop, full, is_lon,rlim,**kwargs
     ax.set_rgrids(radials)#, color='white')
 
     #Naming variables
-    finfo = fileInfo(file_location) if fileinfo is None else fileinfo
+    
 
     # Titles
-    plt.suptitle(f'Visit {finfo.visit} (DOY: {finfo.day}/{finfo.year}, {finfo.datetime})', y=0.99, fontsize=14)#one of the two titles for every plot
-    plt.title(f'{"Fixed LT. " if not is_lon else ""}Integration time={finfo.exp} s. CML: {np.round(cml, decimals=1)}°',y=possub, fontsize=12)
+    plt.suptitle(f'Visit {fitsobj[1].header['VISIT']} (DOY: {fitsobj[1].header['DAY']}/{fitsobj[1].header['year']}, {get_datetime(fitsobj)})', y=0.99, fontsize=14)#one of the two titles for every plot
+    plt.title(f'{"Fixed LT. " if not fixed_lon else ""}Integration time={fitsobj[1].header['EXP']} s. CML: {np.round(cml, decimals=1)}°',y=possub, fontsize=12)
         
         
-    if not is_lon and full: # meridian line (0°)  
+    if not fixed_lon and full: # meridian line (0°)  
         plt.text(np.radians(cml)+np.pi, 4+rlim, '0°', color='coral', fontsize=12,horizontalalignment='center', verticalalignment='bottom', fontweight='bold')
         ax.plot([np.radians(cml)+np.pi,np.radians(cml)+np.pi],[0, 180], color='coral', path_effects=[mpl_patheffects.withStroke(linewidth=1, foreground='black')], linestyle='-.', lw=1) #prime meridian (longitude 0)
 
@@ -388,7 +380,7 @@ def plot_polar(fits:astropy.io.fits.HDUList, ax,crop, full, is_lon,rlim,**kwargs
     #of the colorbars, recommended to enhance/saturate certain features)
     if 'ticks' in kwargs:
         ticks = kwargs.pop('ticks')
-    elif int(finfo.exp) < 30:
+    elif int(fitsobj[1].header['EXP']) < 30:
         ticks = [10.,40.,100.,200.,400.,800.,1500.]
     else:
         ticks = [10.,40.,100.,200.,400.,1000.,3000.]
@@ -418,10 +410,10 @@ def plot_polar(fits:astropy.io.fits.HDUList, ax,crop, full, is_lon,rlim,**kwargs
     shift = 0# cml-180.
     
     #print which hemisphere are we in:
-    ax.text(poshem, 1.3*rlim, str(hemis).capitalize(), fontsize=21, color='k', 
+    ax.text(poshem, 1.3*rlim, str(fitsheader(fitsobj, 'hemis')).capitalize(), fontsize=21, color='k', 
              horizontalalignment='center', verticalalignment='center', fontweight='bold')
              
-    return finfo
+    return ax
 
 
 def make_gif(fits_dir,fps=5,remove_temp=True,savelocation='auto',filename='auto',**kwargs)->None:

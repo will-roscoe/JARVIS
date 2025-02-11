@@ -26,7 +26,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from tqdm import tqdm 
 # local modules
-from .const import fpath, fileInfo, fitsheader, fits_from_parent
+from .const import fpath, fileInfo, fitsheader, fits_from_parent, get_datetime
 from .reading_mfp import moonfploc
 
 
@@ -58,19 +58,11 @@ def moind(fitsobj:fits.HDUList, crop:float = 1, rlim:float = 40, fixed:str= 'lon
         else:
             #regions delimitation (lat and lon)
             plot_regions(fits,ax)
-
         #drawing the moon footprints code
     if moonfp:
         plot_moonfp(fits,ax,) 
-    sloc = fpath(save_location)
-    ensure_dir(sloc)
-    if filename == 'auto': # if a filename is not specified, it will be generated.
-         '.jpg'
-    fig.savefig(f'{sloc}/{filename}', **kwargs) # kwargs are passed to savefig, (dpi, quality, bbox, etc.)
-    if 'return' in kwargs:
-        return fig
-    #plt.show()
-    plt.close()
+    return fig
+    
 def process_fits_file(fitsobj: fits.HDUList, fixed: str) -> fits.HDUList:
         cml, dece, exp_time, is_south = fitsheader(fitsobj, 'CML', 'DECE', 'EXPT', 'south')
         is_lon = fixed == 'lon'
@@ -249,7 +241,7 @@ def plot_regions(lon_fixed,ax):
     ax.plot(updusk, 200 * [10], "w--", lw=1)
 
 def plot_polar(fitsobj:fits.HDUList, ax,crop, full, rlim,**kwargs):
-    image_data=fitsobj.data[1]
+    image_data=fitsobj[1].data
     cml, is_south, fixed_lon = fitsheader(fitsobj, 'CML', 'south', 'fixed_lon')
     radials = np.arange(0,rlim,10,dtype='int')
     rho = np.linspace(0, 180, num=int(image_data.shape[0]))
@@ -314,8 +306,8 @@ def plot_polar(fitsobj:fits.HDUList, ax,crop, full, rlim,**kwargs):
     
 
     # Titles
-    plt.suptitle(f'Visit {fitsobj[1].header['VISIT']} (DOY: {fitsobj[1].header['DAY']}/{fitsobj[1].header['YEAR']}, {get_datetime(fitsobj)})', y=0.99, fontsize=14)#one of the two titles for every plot
-    plt.title(f'{"Fixed LT. " if not fixed_lon else ""}Integration time={fitsobj[1].header['EXP']} s. CML: {np.round(cml, decimals=1)}°',y=possub, fontsize=12)
+    plt.suptitle(f'Visit {fitsobj[1].header['VISIT']} (DOY: {fitsobj[1].header['DOY']}/{fitsobj[1].header['YEAR']}, {get_datetime(fitsobj)})', y=0.99, fontsize=14)#one of the two titles for every plot
+    plt.title(f'{"Fixed LT. " if not fixed_lon else ""}Integration time={fitsobj[1].header['EXPT']} s. CML: {np.round(cml, decimals=1)}°',y=possub, fontsize=12)
         
         
     if not fixed_lon and full: # meridian line (0°)  
@@ -326,7 +318,7 @@ def plot_polar(fitsobj:fits.HDUList, ax,crop, full, rlim,**kwargs):
     #of the colorbars, recommended to enhance/saturate certain features)
     if 'ticks' in kwargs:
         ticks = kwargs.pop('ticks')
-    elif int(fitsobj[1].header['EXP']) < 30:
+    elif int(fitsobj[1].header['EXPT']) < 30:
         ticks = [10.,40.,100.,200.,400.,800.,1500.]
     else:
         ticks = [10.,40.,100.,200.,400.,1000.,3000.]
@@ -356,7 +348,7 @@ def plot_polar(fitsobj:fits.HDUList, ax,crop, full, rlim,**kwargs):
     shift = 0# cml-180.
     
     #print which hemisphere are we in:
-    ax.text(poshem, 1.3*rlim, str(fitsheader(fitsobj, 'hemis')).capitalize(), fontsize=21, color='k', 
+    ax.text(poshem, 1.3*rlim, str(fitsheader(fitsobj, 'HEMISPH')).capitalize(), fontsize=21, color='k', 
              horizontalalignment='center', verticalalignment='center', fontweight='bold')
              
     return ax

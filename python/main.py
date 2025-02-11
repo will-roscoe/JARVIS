@@ -20,7 +20,7 @@ import glob
 # makes an image
 n = fpath(r'datasets\HST\v04\jup_16-140-20-48-59_0103_v04_stis_f25srf2_proj.fits')
 fitsfile = fits.open(n)
-moind(fitsfile, 'temp',)
+moind(fitsfile)
 
 # makes a gif
 #make_gif('datasets/HST/v04', dpi=300, moonfp=True, remove_temp=False)

@@ -108,7 +108,7 @@ def fitsheader(fits_object, *args, ind=1,cust=True):
         else:
             obj=fits_object[ind].header[arg.upper()]
         ret.append(obj)
-    return ret
+    return ret if len(ret) > 1 else ret[0]
 def fits_from_parent(original_fits, new_data=None, **kwargs):
     fits_new = original_fits.copy()
     if new_data is not None:
@@ -120,8 +120,8 @@ def fits_from_parent(original_fits, new_data=None, **kwargs):
            
 def get_datetime(fits_object): # returns a datetime object from the fits header ##TODO: not implemented
     udate = fitsheader(fits_object, 'UDATE')         
-    return datetime.datetime.strptime(udate, '%Y-%m-%dT%H:%M:%S.%f') 
-
+    return datetime.datetime.strptime(udate, '%Y-%m-%d %H:%M:%S') 
+#                                             '2016-05-19 20:48:59'   
 
 
 

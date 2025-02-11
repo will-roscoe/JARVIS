@@ -44,58 +44,15 @@ def clock_format(x_rads, pos):
 
 
 def moind(fitsobj:fits.HDUList, crop:float = 1, rlim:float = 40, fixed:str= 'lon', hemis:str='North', full:bool=True, regions:bool=False,moonfp:bool=False,**kwargs)->Union[None,mpl.figure.Figure]:  
-    """
-        Generate a polar projection plot of Jupiter's image data.
-        
-        Args:
-            file_location (str, optional): Path to the FITS file. Defaults to None.
-            save_location (str, optional): Directory to save the generated plot. Defaults to None.
-            filename (str, optional): Name of the output file. Defaults to 'auto'.
-            crop (float, optional): Factor to crop the image. Defaults to 1.
-            rlim (float, optional): latitudinal limit for the plot (in degrees). Defaults to 40.
-            fixed (str, optional): Fixed parameter, either 'lon' or 'lt'. Defaults to 'lon'.
-            hemis (str, optional): Hemisphere, either 'North' or 'South'. Defaults to 'North'.
-            full (bool, optional): Whether to display the full plot. Defaults to True.
-            regions (bool, optional): Whether to mark regions on the plot. Defaults to False.
-            moonfp (bool,optional): Moon footprint code. Defaults to False
-            fileinfo (fileInfo, optional): File information object. Defaults to None.
-            fitsdataheader (Tuple[np.ndarray, Dict], optional): FITS data and header if user wants to provide their own. Defaults to None.
-            **kwargs: Additional keyword arguments passed to plt.savefig()..
-        
-        Returns:
-            matplotlib.figure.Figure: The generated plot figure if 'return' is in kwargs.
-
-        Keyword Args:
-            cmap (str,mpl.colors.Colormap, optional): Colormap. Defaults to 'viridis'.
-            norm (mpl.colors.Normalize, optional): Normalize object. Defaults to mpl.colors.LogNorm(vmin=ticks[0], vmax=ticks[-1]).
-            ticks (List[float], optional): Colorbar ticks. Defaults to [10.,40.,100.,200.,400.,800.,1500.].
-            shrink (float, optional): Colorbar shrink factor. Defaults to 1.
-            pad (float, optional): Colorbar pad. Defaults to 0.06.
-            other kwargs: Additional keyword arguments passed to plt.savefig().
-       
-        Notes:
-            the function must be called with at least ONE of the following:
-            
-            - file_location (relative preffered)
-            - fileinfo (fileInfo object pointing to the file)
-            
-            where fileinfo takes precedence over file_location.
-
-            `hemis = 'South'` has not been fully implemented.
-        
-        Examples:
-            >>> moind('datasets/HST/v09-may22/jup_16-143-18-41-06_0100_v09_stis_f25srf2_proj.fits', 'pictures/', 'jupiter.jpg')
-
-            >>> moind(fileinfo=fileInfo('datasets/HST/v09-may22/jup_16-143-18-41-06_0100_v09_stis_f25srf2_proj.fits'), save_location='pictures/', filename='jupiter.jpg', cmap='inferno')
-    """
     fits_obj = process_fits_file(fitsobj, hemis, fixed)
 ##########################################################################
     #plotting the polar projection of the image
     fig =plt.figure(figsize=(7,6))
     ax = plt.subplot(projection='polar')
-
+    plot_polar(fits_obj, ax, crop, full, rlim, **kwargs)
     #drawing the regions (if marked; only available for the North so far)
-    if regions == True:
+    is_south = fitsheader(fits_obj, 'south')
+    if regions:
         if is_south:
             pass
         else:
@@ -103,10 +60,8 @@ def moind(fitsobj:fits.HDUList, crop:float = 1, rlim:float = 40, fixed:str= 'lon
             plot_regions(fits,ax)
 
         #drawing the moon footprints code
-    if moonfp == True:
-        plot_moonfp(fits,ax,)
-    
-            
+    if moonfp:
+        plot_moonfp(fits,ax,) 
     sloc = fpath(save_location)
     ensure_dir(sloc)
     if filename == 'auto': # if a filename is not specified, it will be generated.
@@ -165,7 +120,7 @@ def make_filename(fits, fixed,crop,full,regions,moonfp,rlim):
     filename += '-'+extras
     return filename
     
-def plot_moonfp(fitsobj:fits.HDUList, ax,fixed:str):
+def plot_moonfp(fitsobj:fits.HDUList, ax):
     cml, is_south, fixed_lon = fitsheader(fitsobj, 'CML', 'south', 'fixed_lon')
     lon = {
         'io': (fitsobj.header[1]['IOLON'], fitsobj.header[1]['IOLON1'], fitsobj.header[1]['IOLON2']),
@@ -266,18 +221,9 @@ def plot_moonfp(fitsobj:fits.HDUList, ax,fixed:str):
         #LON S: (np.radians(180-X1)),(np.radians(180-X2)), TEXT np.radians(180-X0)
 def plot_regions(lon_fixed,ax):
     updusk = np.linspace(np.radians(205), np.radians(170), 200)
-    dawn = {
-                k: np.linspace(v[0], v[1], 200)
-                for k, v in (("lon", (np.radians(180), np.radians(130))), ("uplat", (33, 15)), ("downlat", (39, 23)))
-            }
-    noon_a = {
-                k: np.linspace(v[0], v[1], 100)
-                for k, v in (("lon", (np.radians(205), np.radians(190))), ("downlat", (28, 32)))
-            }
-    noon_b = {
-                k: np.linspace(v[0], v[1], 100)
-                for k, v in (("lon", (np.radians(190), np.radians(170))), ("downlat", (32, 27)))
-            }
+    dawn = { k: np.linspace(v[0], v[1], 200) for k, v in (("lon", (np.radians(180), np.radians(130))), ("uplat", (33, 15)), ("downlat", (39, 23))) }
+    noon_a = {k: np.linspace(v[0], v[1], 100)for k, v in (("lon", (np.radians(205), np.radians(190))), ("downlat", (28, 32)))}
+    noon_b = {k: np.linspace(v[0], v[1], 100)for k, v in (("lon", (np.radians(190), np.radians(170))), ("downlat", (32, 27)))}
             # lon_noon_a = noon_a['lon']
             # dusk boundary
     ax.plot([np.radians(205), np.radians(205)], [20, 10], "r-", lw=1.5)
@@ -368,7 +314,7 @@ def plot_polar(fitsobj:fits.HDUList, ax,crop, full, rlim,**kwargs):
     
 
     # Titles
-    plt.suptitle(f'Visit {fitsobj[1].header['VISIT']} (DOY: {fitsobj[1].header['DAY']}/{fitsobj[1].header['year']}, {get_datetime(fitsobj)})', y=0.99, fontsize=14)#one of the two titles for every plot
+    plt.suptitle(f'Visit {fitsobj[1].header['VISIT']} (DOY: {fitsobj[1].header['DAY']}/{fitsobj[1].header['YEAR']}, {get_datetime(fitsobj)})', y=0.99, fontsize=14)#one of the two titles for every plot
     plt.title(f'{"Fixed LT. " if not fixed_lon else ""}Integration time={fitsobj[1].header['EXP']} s. CML: {np.round(cml, decimals=1)}°',y=possub, fontsize=12)
         
         
@@ -417,30 +363,6 @@ def plot_polar(fitsobj:fits.HDUList, ax,crop, full, rlim,**kwargs):
 
 
 def make_gif(fits_dir,fps=5,remove_temp=True,savelocation='auto',filename='auto',**kwargs)->None:
-    """
-        Create a GIF from a directory of FITS files.
-
-        This function takes a directory of FITS files, processes each file to create
-        images, and compiles these images into a GIF. The GIF can be saved to a specified
-        location with a specified filename.
-
-        Args:
-            fits_dir (str or list): Directory or list of directories containing FITS files.
-            fps (int, optional): Frames per second for the GIF. Defaults to 5.
-            remove_temp (bool, optional): Whether to remove temporary files after creating the GIF. Defaults to True.
-            savelocation (str, optional): Directory to save the GIF. Defaults to 'auto', which saves to 'pictures/gifs/'
-            filename (str, optional): Filename for the GIF. Defaults to 'auto', which generates a filename based on the FITS files.
-            **kwargs: Additional keyword arguments to pass to the plotting function.
-
-        Returns:
-            None
-
-        Keyword Args:
-            all keyword arguments are passed to the plotting function, moind().
-            
-        Example:
-            >>> make_gif('/path/to/fits/files', fps=10, savelocation='/path/to/save/', filename='my_gif')
-    """
     if isinstance(fits_dir,str):
           fits_dir = [fits_dir,]
     fits_file_list = []

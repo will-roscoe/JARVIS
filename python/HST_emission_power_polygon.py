@@ -13,7 +13,7 @@
 # application to Voronoi image segmentations, etc.
 
 # === Joe Kinrade - 8 January 2025 =============================================
-
+from jarvis import fpath
 from astropy.io import fits
 import matplotlib.pyplot as plt
 import numpy as np
@@ -24,10 +24,10 @@ import datetime as dt
 #import matplotlib.patheffects as pe
 #from matplotlib.path import Path
 import spiceypy as spice
-spice.furnsh("/Users/Sarah/OneDrive - Lancaster University/Prog/Python/Galileo/kernels/jupiter.mk") # SPICE kernels
+spice.furnsh('jupiter.mk') # SPICE kernels
 import time_conversions as tc
 import collections
-# import collections.abc as collections # If using Python version 3.10 and above
+import collections.abc as collections # If using Python version 3.10 and above
 #from scipy import signal
 import scipy.constants as c
 from matplotlib import path
@@ -81,10 +81,11 @@ corr = 'LT'
 # proj_filename = '/Users/joe/data/HST/HST2016_revised/long_exposure/sat_16-232-20-43-06_stis_f25srf2_sm_proj_nobg.fits'
 # proj_filename = '/Users/joe/data/HST/HST2017_revised/long_exposure/sat_17-045-04-18-34_stis_f25srf2_sm_proj_nobg.fits'
 # proj_filename = '/Users/joe/data/HST/HST2017_revised/long_exposure/sat_17-066-16-52-02_stis_f25srf2_sm_proj_nobg.fits'
-proj_filename = '/Users/Sarah/OneDrive - Lancaster University/Prog/Python/TestData/137_v01/jup_16-137-23-43-30_0100_v01_stis_f25srf2_proj.fits'
+#proj_filename = '/Users/Sarah/OneDrive - Lancaster University/Prog/Python/TestData/137_v01/jup_16-137-23-43-30_0100_v01_stis_f25srf2_proj.fits'
+proj_filename = fpath('datasets/HST/v01/jup_16-137-23-43-30_0100_v01_stis_f25srf2_proj.fits')
 
 hdu_list = fits.open(proj_filename)  # opens the FITS files, accessing data plus header info
-# hdu_list.info()                    # print file information
+hdu_list.info()                    # print file information
 
 # accessing specific header info entries:
 exp_time  = hdu_list[0].header['EXPT']
@@ -107,7 +108,7 @@ dist      = hdu_list[0].header['DIST']       # Standard (scaled) Earth-planet di
 dmeq_orig = hdu_list[0].header['DMEQ_ORG']   # Original diameter of planet equator in arcsecond
 # ------------------------------------------------------------------------------
 cts2kr    = hdu_list[0].header['CTS2KR']     # conversion factor in counts/sec/kR
-# print(1./cts2kr)                           # reciprocal of cts2kr to match in Gustin+2012 Table 1.
+print(1./cts2kr)                           # reciprocal of cts2kr to match in Gustin+2012 Table 1.
 
 ltime = dist_org*c.au/c.c
 lighttime = dt.timedelta(seconds=ltime)
@@ -118,14 +119,14 @@ colour_ratio = 2.5 # 1.10
 
 # And this in turn means that the counts-per-second to total emitted power (Watts)
 # conversion factor is 9.04e-10 (Gustin+2012 Table 2), for STIS SrF2:
-gustin_conv_factor = 1.02e-9 # 9.04e-10
+gustin_conv_factor =  9.04e-10 # 1.02e-9
 # "Conversion factor to be multiplied by the squared HST-planet distance (km)
 # to determine the total emitted power (Watts) from observed counts per second."
 
 # ------------------------------------------------------------------------------
 # In some fits files (Jupiter), these 'delta' values for auroral emission
-# altitude are listed as DELRPKM in the header:
-# delrpkm = hdu_list[0].header['DELRPKM']    # auroral emission altitudes at homopause in km, a.k.a 'deltas'
+#altitude are listed as DELRPKM in the header:
+delrpkm = hdu_list[0].header['DELRPKM']    # auroral emission altitudes at homopause in km, a.k.a 'deltas'
 
 # If not (Saturn), it's hard-wired in here depending on the target planet (probably Saturn!):
 deltas = {'Mars': 0., 'Jupiter': 240., 'Saturn': 1100., 'Uranus': 0.}
@@ -135,7 +136,7 @@ rpkm = rpeqkm            # matching a variable name used in the broject function
 # ------------------------------------------------------------------------------
 # convert HST timestamp to time at Saturn using light travel time:
 start_time = parse(hdu_list[0].header['UDATE'])     # create datetime object
-#lighttime = dt.timedelta(seconds=hdu_list[0].header['LIGHTIME'])
+lighttime = dt.timedelta(seconds=hdu_list[0].header['LIGHTIME'])
 exposure = dt.timedelta(seconds=exp_time)
 start_time_saturn = start_time - lighttime          # correct for light travel time
 end_time_saturn = start_time_saturn + exposure      # end of exposure time

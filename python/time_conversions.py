@@ -4,9 +4,9 @@ from datetime import datetime
 import numpy as np
 from pathlib import Path
 import spiceypy as spice
-
+from jarvis import fpath
 # load lsk if not loaded already
-lsk = '/Users/sarah/OneDrive - Lancaster University/Prog/Python/Galileo/kernels/naif0012.tls'
+lsk = 'Kernels\\naif0012.tls' #'/Users/sarah/OneDrive - Lancaster University/Prog/Python/Galileo/kernels/naif0012.tls'
 try:
     spice.kinfo(lsk)
 except spice.stypes.SpiceyError:

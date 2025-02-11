@@ -90,13 +90,13 @@ hdu_list.info()                    # print file information
 # accessing specific header info entries:
 exp_time  = hdu_list[0].header['EXPT']
 #ltime     = hdu_list[0].header['LIGHTIME']
-aperture  = hdu_list[0].header['APERTURE']   # filter type - important as it determines the Gustin conversion factors for intensity/counts/powers etc.
+aperture  = hdu_list[0].header['FILTER']   # filter type - important as it determines the Gustin conversion factors for intensity/counts/powers etc.
 cml       = hdu_list[0].header['CML']
-# cml_start = hdu_list[0].header['CML1']     # cml at start of exposure
-# cml_end   = hdu_list[0].header['CML2']     # cml at end of exposure
+cml_start = hdu_list[0].header['CML1']     # cml at start of exposure
+cml_end   = hdu_list[0].header['CML2']     # cml at end of exposure
 dece      = hdu_list[0].header['DECE']
 hem       = hdu_list[0].header['HEMISPH']
-# obt     = hdu_list[0].header['OBLT']       # can't see oblateness in the fits header?
+obt     = hdu_list[0].header['OBLT']       # can't see oblateness in the fits header?
 dist_org  = hdu_list[0].header['DIST_ORG']   # Earth-planet distance in AU before reduction
 pcx       = hdu_list[0].header['PCX']        # Planet centre pixel
 pcy       = hdu_list[0].header['PCY']        # Planet centre pixel
@@ -136,7 +136,7 @@ rpkm = rpeqkm            # matching a variable name used in the broject function
 # ------------------------------------------------------------------------------
 # convert HST timestamp to time at Saturn using light travel time:
 start_time = parse(hdu_list[0].header['UDATE'])     # create datetime object
-lighttime = dt.timedelta(seconds=hdu_list[0].header['LIGHTIME'])
+#lighttime = dt.timedelta(seconds=hdu_list[0].header['LIGHTIME'])
 exposure = dt.timedelta(seconds=exp_time)
 start_time_saturn = start_time - lighttime          # correct for light travel time
 end_time_saturn = start_time_saturn + exposure      # end of exposure time

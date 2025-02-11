@@ -71,10 +71,7 @@ class fileInfo():
     
 
 
-def get_datetime(fits_object): # returns a datetime object from the fits header ##TODO: not implemented
-        if self.strOnly:
-            return datetime.datetime.strptime(self._dict['year'] + self._dict['days'] + self._dict['hours'] + self._dict['minutes'] + self._dict['seconds'], '%Y%j%H%M%S')
-        return datetime.datetime(self.year, 1, 1, self.hours, self.minutes, self.seconds) + datetime.timedelta(days=self.days-1)
+
 def fitsheader(fits_object, ind=1,cust=True, *args):
     ret = []
     for arg in args:
@@ -108,7 +105,9 @@ def fits_from_parent(original_fits, new_data=None, **kwargs):
     return fits_new
         
            
-                
+def get_datetime(fits_object): # returns a datetime object from the fits header ##TODO: not implemented
+    udate = fitsheader(fits_object, 'UDATE')         
+    return datetime.datetime.strptime(udate, '%Y-%m-%dT%H:%M:%S.%f') 
 
 
 

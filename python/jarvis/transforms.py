@@ -8,7 +8,9 @@ Gx = [[-1  0  1]    Gy = [[-1 -2 -1]                      G= [[-1-1j 0-2j 1-1j]
       [-2  0  2]          [ 0  0  0]  ==> G = Gx + j*Gy =     [-2    0     2  ]
       [-1  0  1]]         [ 1  2  1]]                         [-1+1j 0+2j  1+1j]
 '''
-def gradmap(input_arr:np.ndarray, kernel2d:np.array=np.array([[-1-1j,-2j,1-1j],[-2,0,2],[-1+1j,2j,1+1j]]),boundary:str='wrap',mode:str='same')->np.ndarray:
+def gradmap(input_arr:np.ndarray, kernel2d:np.array=np.array([[-1-1j,-2j,1-1j],
+                                                              [-2,0,2],
+                                                              [-1+1j,2j,1+1j]]),boundary:str='wrap',mode:str='same')->np.ndarray:
       complexret = scipy.signal.convolve2d(input_arr, kernel2d, mode='same', boundary='wrap')
       return np.abs(complexret)
 

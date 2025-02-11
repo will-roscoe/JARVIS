@@ -57,11 +57,11 @@ def moind(fitsobj:fits.HDUList, crop:float = 1, rlim:float = 40, fixed:str= 'lon
             pass
         else:
             #regions delimitation (lat and lon)
-            plot_regions(fits,ax)
+            plot_regions(fits_obj,ax)
         #drawing the moon footprints code
     if moonfp:
-        plot_moonfp(fits,ax,) 
-    return fig
+        plot_moonfp(fits_obj,ax,) 
+    return fig, ax
     
 def process_fits_file(fitsobj: fits.HDUList, fixed: str) -> fits.HDUList:
         cml, dece, exp_time, is_south = fitsheader(fitsobj, 'CML', 'DECE', 'EXPT', 'south')
@@ -364,12 +364,13 @@ def make_gif(fits_dir,fps=5,remove_temp=True,savelocation='auto',filename='auto'
     fits_file_list.sort()    
     ln = len(fits_file_list)
     print(f'Found {ln} files in the directory.')
-    infolist = [fileInfo(f) for f in fits_file_list]
-    imagesgif = []
+    infolist = [fits.open(f) for f in fits_file_list]
+    imagesgif=[]
     with tqdm(total=ln) as pbar:        
         for i,file in enumerate(infolist):
-            moind(fileinfo=file,save_location='temp/',filename=f'gifpart_{i}.jpg', **kwargs)
-            tqdm.write(f'Image {i+1} of {ln} created: {file._basename}')
+            fig,ax = moind(file, **kwargs)
+            fig.savefig(fpath('temp/')+f'gifpart_{i}.jpg', dpi=300)
+            tqdm.write(f'Image {i+1} of {ln} created: {'IMPLEMENT'}')
             pbar.update(1)
             imagesgif.append(imageio.imread(fpath('temp/')+f'gifpart_{i}.jpg'))
             #saving the GIF
@@ -377,7 +378,7 @@ def make_gif(fits_dir,fps=5,remove_temp=True,savelocation='auto',filename='auto'
         savelocation = fpath('pictures/gifs/')
     ensure_dir(savelocation)
     if filename == 'auto':
-        filename = f"{infolist[0].obs}_{infolist[0].year}_v{infolist[0].visit}_f{fps}_{ln}frames" 
+        filename = f"{'infolist[0].obs}_{infolist[0].year}_v{infolist[0].visit}_f{fps}_{ln'}frames" 
     imageio.mimsave(savelocation+filename+".gif" , imagesgif, fps=fps)
     if remove_temp:
         for file in glob.glob(fpath('temp/')+'*'):

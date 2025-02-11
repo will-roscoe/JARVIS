@@ -1,9 +1,9 @@
 \begindata
 
 KERNELS_TO_LOAD=(
-'Kernels\naif0012.tls',
-'Kernels\mk00062a.tsc',
-'Kernels\pck00011.tpc',
-'Kernels\de430.bsp',
-'Kernels\jup365.bsp')
+'python\Kernels\naif0012.tls',
+'python\Kernels\mk00062a.tsc',
+'python\Kernels\pck00011.tpc',
+'python\Kernels\de430.bsp',
+'python\Kernels\jup365.bsp')
 \begintext

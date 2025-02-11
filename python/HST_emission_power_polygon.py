@@ -24,7 +24,7 @@ import datetime as dt
 #import matplotlib.patheffects as pe
 #from matplotlib.path import Path
 import spiceypy as spice
-spice.furnsh('jupiter.mk') # SPICE kernels
+spice.furnsh('python\\jupiter.mk') # SPICE kernels
 import time_conversions as tc
 import collections
 import collections.abc as collections # If using Python version 3.10 and above

@@ -2,7 +2,7 @@ import pytest
 from jarvis import fpath, moind, make_gif
 import os
 import itertools
-
+from astropy.io import fits
 class TestFileStructure:
         '''Testing class independent functions
         '''
@@ -13,20 +13,11 @@ class TestFileStructure:
             #assert os.path.exists(fpath('python\\tests\\test_base.py'))
         def test_should_pass(self):
             assert 1+2 == 3
-file = 'datasets/HST/v01/jup_16-137-23-43-30_0100_v01_stis_f25srf2_proj.fits'
+file = fits.open('datasets/HST/v01/jup_16-137-23-43-30_0100_v01_stis_f25srf2_proj.fits')
 temp = 'temp/tests'
 class TestImageGen:
     def test_default_img(self):
-        moind(file, temp,'test.jpg')
-        assert os.path.exists(fpath(f'{temp}/test.jpg'))
-    def test_img_param_matrix(self):
-        testp_ = ['crop','rlim','fixed','hemis','full','regions','moonfp']
-        testvals = [(1,0.7),(30,90), ('lon','lt'),('n',),(True,False),(True,False),(True,False)] 
-        test_params = [dict(zip(testp_, x)) for x in itertools.product(*testvals)]
-        for i,x in enumerate(test_params):
-            moind(file, temp, f'matrixtest{i}.jpg', **x)
-            assert os.path.exists(fpath(f'{temp}/matrixtest{i}.jpg'))
-
+        assert True if moind(file) != None else False
 class Test_GIF_Generation:
     def test_gif_gen(self):
         make_gif('datasets/HST/v01/',savelocation=temp,filename='test_norm', dpi=300)

@@ -23,7 +23,7 @@ import glob
 #moind(fitsfile)
 
 # makes a gif
-make_gif('datasets/HST/v04', dpi=300,) #moonfp=True, remove_temp=False)
+make_gif('datasets/HST/v04', dpi=300) #moonfp=True, remove_temp=False)
 
 #hdu = fits.open(n)
 #d = hdu[1].data

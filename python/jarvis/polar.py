@@ -43,8 +43,8 @@ def clock_format(x_rads, pos):
 
 
 
-def moind(fitsobj:fits.HDUList, crop:float = 1, rlim:float = 40, fixed:str= 'lon', hemis:str='North', full:bool=True, regions:bool=False,moonfp:bool=False,**kwargs)->Union[None,mpl.figure.Figure]:  
-    fits_obj = process_fits_file(fitsobj, hemis, fixed)
+def moind(fits_obj:fits.HDUList, crop:float = 1, rlim:float = 40, fixed:str= 'lon', hemis:str='North', full:bool=True, regions:bool=False,moonfp:bool=False,**kwargs)->Union[None,mpl.figure.Figure]:  
+    fits_obj = process_fits_file(fits_obj, fixed)
 ##########################################################################
     #plotting the polar projection of the image
     fig =plt.figure(figsize=(7,6))

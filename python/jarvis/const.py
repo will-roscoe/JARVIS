@@ -76,7 +76,7 @@ def fitsheader(fits_object, ind=1,cust=True, *args):
     ret = []
     for arg in args:
         if arg.lower() =='south':
-            obj=fits_object[int].header['HEMIS']
+            obj=fits_object[ind].header['HEMIS']
             if obj.lower()[0] == 'n':
                 obj=False
             elif obj.lower()[0] == 's':
@@ -84,17 +84,17 @@ def fitsheader(fits_object, ind=1,cust=True, *args):
             else:
                 obj=''   
         if arg.lower()=='fixed_lon':
-            obj=fits_object[int].header['FIXED']
+            obj=fits_object[ind].header['FIXED']
             if obj == 'LON':
                 obj=True
             elif obj == 'LT':
                 obj=False
             else:
                 obj = ''  
-        elif arg.lower() in['fixed',]:
+        elif arg.lower() in ['fixed',]:
             obj=''
         else:
-            obj=fits_object[int].header[arg.upper()]
+            obj=fits_object[ind].header[arg.upper()]
         ret.append(obj)
 def fits_from_parent(original_fits, new_data=None, **kwargs):
     fits_new = original_fits.copy()

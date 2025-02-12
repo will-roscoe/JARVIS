@@ -15,11 +15,11 @@ from const import fpath
 
 #plt.show()
 
-filename = "Solar_Wind.txt"
+filename = "datasets\Solar_Wind.txt"
 table = pd.read_csv(fpath(filename), sep=r'\s+', comment='#')
 
-times = table['Times']
-values = table['Values']
+times = table['Time_UT']
+values = table['jup_sw_pdyn']
 # access a row of the table using the row index:
 row = table.iloc[0]
 # remove rows with empty values:
@@ -29,10 +29,10 @@ table = table.fillna(0)
 # get statistics of the table:
 stats = table.describe()
 # get the row indexes with values greater than 10:
-indexes = table[table['Values'] > 10].index
+indexes = table[table['jup_sw_pdyn'] > 10].index
 # or similarly get the rows with values greater than 10:
-rows = table[table['Values'] > 10]
+rows = table[table['jup_sw_pdyn'] > 10]
 # turn a datetime collumn into a datetime object, which can be used for plotting:
-table['Times'] = pd.to_datetime(table['Times'], format='%d-%m-%Y_%H:%M:%S') # see https://strftime.org/ for format codes
+table['Time_UT'] = pd.to_datetime(table['Time_UT'], format='%Y-%m-%d_%H:%M:%S') # see https://strftime.org/ for format codes
 # plot the table:
-table.plot(x='Times', y='Values', title='Values vs Time', xlabel='Time', ylabel='Values')
+table.plot(x='Time_UT', y='jup_sw_pdyn', title='jup_sw_pdyn vs Time_UT', xlabel='Time_UT', ylabel='jup_sw_pdyn')

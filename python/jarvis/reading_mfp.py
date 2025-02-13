@@ -11,7 +11,7 @@ expected latitude and longitude of the four Galilean moons.
 """
 import numpy as np
 from scipy import stats
-from .const import fpath
+from .utils import fpath
 
 def moonfploc(iolon, eulon, galon):
     

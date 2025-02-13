@@ -1,0 +1,133 @@
+import os
+import datetime
+import numpy as np
+import astropy.io.fits as fits
+from typing import List
+import glob
+from .const import GHROOT, FITSINDEX
+
+
+
+def ensure_dir(file_path):
+    '''this function checks if the file path exists, if not it will create one'''
+    if not os.path.exists(file_path):
+            os.makedirs(file_path)
+def clock_format(x_rads, pos=None):
+    """Converts radians to clock format."""
+    # x_rads => 0, pi/4, pi/2, 3pi/4, pi, 5pi/4, 3pi/2, 7pi/4, ...
+    # returns=> 00, 03, 06, 09, 12, 15, 18, 21,..., 00,03,06,09,12,15,18,21,
+    cnum= int(np.degrees(x_rads)/15)
+    return f'{cnum:02d}' if cnum%24 != 0 else '00'
+
+# test, prints the README at the root of the project
+def __testpaths():
+    for x in os.listdir(GHROOT):
+        print(x)
+
+def fitsheader(fits_object, *args, ind=FITSINDEX,cust=True):
+    """Returns the header value of a fits object.
+    Args:
+        fits_object: fits.HDUList
+        *args: list of header keys to return
+        ind: index of the fits object in the HDUList
+        cust: if True, returns custom values for 'south', 'fixed_lon', 'fixed', else will return the header value corresponding to the key."""
+    #print(fits_object[ind].header.__dict__)
+    ret = []
+    assert all(isinstance(arg, str) for arg in args), 'All arguments must be strings.'
+    for arg in args:
+        if arg.lower() =='south': # returns if_south as bool
+            obj_l=fits_object[ind].header['HEMISPH'].lower()[0]
+            obj = True if obj_l == 's' else False if obj_l == 'n' else ''
+        elif arg.lower()=='fixed_lon': # returns if fixed_lon as bool
+            obj_=fits_object[ind].header['FIXED']
+            obj = False if obj_.lower() == 'lt' else True if obj_.lower() == 'lon' else ''
+        elif arg.lower() in ['fixed',]: # returns fixed as so
+            obj=''
+        else:
+            obj=fits_object[ind].header[arg.upper()]
+        ret.append(obj)
+    return ret if len(ret) > 1 else ret[0]
+def fits_from_parent(original_fits, new_data=None, **kwargs):
+    """Returns a new fits object with the same header as the original fits object, but with new data and/or new header values."""
+    orig_header = [original_fits[i].header.copy() for i in [0,1]]
+    orig_data = [original_fits[i].data for i in [0,1]]
+    
+    for k,v in kwargs.items():
+        orig_header[FITSINDEX][k] = v
+    if new_data is not None:
+        try:
+            orig_header[FITSINDEX]['VERSION'] +=1
+        except KeyError:
+            orig_header[FITSINDEX]['VERSION'] = 1
+    else:
+        new_data = orig_data[FITSINDEX]
+    fits_new = fits.HDUList([fits.PrimaryHDU(orig_data[0], header=orig_header[0]), fits.ImageHDU(new_data, header=orig_header[1])])
+    #print(fits_new.info(), original_fits.info())
+   
+    return fits_new   
+           
+def get_datetime(fits_object):
+    """Returns a datetime object from the fits header."""
+    udate = fitsheader(fits_object, 'UDATE')         
+    return datetime.datetime.strptime(udate, '%Y-%m-%d %H:%M:%S') 
+#                                             '2016-05-19 20:48:59'   
+def prepare_fits(fits_obj:fits.HDUList, regions=False, moonfp=False, fixed='lon', rlim=40,full=True, crop=1, **kwargs)->fits.HDUList:
+    """Returns a fits object with specified header values, which can be used for processing."""
+    kwargs.update({'REGIONS':bool(regions), 'MOONFP':bool(moonfp), 'FIXED':str(fixed).upper(), 'RLIM':int(rlim), 'FULL':bool(full), 'CROP': float(crop) if abs(float(crop)) <=1 else 1}) 
+    return fits_from_parent(fits_obj,  **kwargs)
+
+def make_filename(fits_obj:fits.HDUList):
+    """Returns a filename based on the fits header values."""
+    # might be better to alter the filename each time we process or plot something.
+    args = ['CML', 'HEMISPH', 'FIXED', 'RLIM', 'FULL', 'CROP', 'REGIONS', 'MOONFP', 'VISIT', 'DOY', 'YEAR', 'EXPTIME']
+    udate = get_datetime(fits_obj)
+    cml, hem, fixed, rlim, full, crop, regions, moonfp, visit, doy, year, expt = [fitsheader(fits_obj, arg) for arg in args]
+    extras = ",".join([
+    hem[0].upper(),
+    fixed.upper(),
+    f'{rlim}deg' if rlim != 40 else None,
+    'full' if full else 'half',
+    f'crop{crop}' if crop != 1 else None,
+    'regions' if regions else None,
+    'moonfp' if moonfp else None,])
+    filename = f'jup_v{visit:0<2}_{doy:0<3}_{year}_{udate.strftime("%H%M%S")}_E{expt:0<4}({extras})',
+    return filename
+
+def update_history(fits_object, *args):
+    """Updates the HISTORY field of the fits header with the current time."""
+    curr_hist=fitsheader(fits_object, 'HISTORY')
+    if args is None:
+        return curr_hist
+    else:
+        for arg in args:
+            fits_object[FITSINDEX].header['HISTORY'] = arg + '@' + datetime.datetime.now().strftime('%y%m%d_%H%M%S') 
+        
+def fits_from_glob(fits_dir:str, suffix:str='/*.fits', recursive=True, sort=True)->List[fits.HDUList]:
+    """Returns a list of fits objects from a directory."""
+    if isinstance(fits_dir,str):
+          fits_dir = [fits_dir,]
+    fits_file_list = []
+    for f in fits_dir:
+        for g in glob.glob(f + '/*.fits', recursive=True):
+            fits_file_list.append(g)
+    if sort:
+        fits_file_list.sort()   
+    print(f'Found {len(fits_file_list)} files in the directory.')
+    return [fits.open(f) for f in fits_file_list]
+def fpath(x):
+    return os.path.join(GHROOT, x)
+def rpath(x):
+    return os.path.relpath(x, GHROOT)
+
+
+
+
+
+class DataWrapper:
+    def __init__(self, fits_object:fits.HDUList, **kwargs):
+        self.data = np.asarray(fits_object[FITSINDEX].data)
+        self.header = {k:v for k,v in fits_object[FITSINDEX].header.items()}
+        self.header.update(kwargs)
+        self.__HDUList = fits_object
+    def to_fits(self, filepath:str=None):
+        newhdu = fits.HDUList([fits.PrimaryHDU()])

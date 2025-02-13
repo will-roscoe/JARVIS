@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
-from const import fpath
+from .utils import fpath
 
 #Time = np.arange(1, 13)
 #Intensity = (8,7,5,3,4,12,9,4,17,12,11,5)

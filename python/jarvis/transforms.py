@@ -28,14 +28,3 @@ def normalize(input_arr: np.ndarray) -> np.ndarray:
     max_val = np.max(input_arr)
     return (input_arr - min_val) / (max_val - min_val)
 
-def align_cmls(input_fits:List[fits.HDUList], primary_index:int)-> List[fits.HDUList]:
-      """Align a list of fits objects to a primary fits object by rolling the images to match the CML positions."""
-      primary_fits = input_fits[primary_index] # align all images to this one
-      data0,header0 = primary_fits[FITSINDEX].data, primary_fits[FITSINDEX].header # 'zero point' data and fits
-      cml0 = header0['CML'] # 'zero point' cml
-      assert all([f[FITSINDEX].data.shape == data0.shape for f in input_fits]), 'All images must have the same shape.'
-      height,width = data0.shape # get shape, so we can identify index to roll by
-      diffs = [cml0 - fitsheader(f,'CML') for f in input_fits] # angle differences
-      dwidths =[int(d/360*width) for d in diffs] # index/pixel differences
-      aligned = [np.roll(f[FITSINDEX].data, d, axis=1) for f,d in zip(input_fits,dwidths)] # roll each image
-      return [fits_from_parent(f,new_data=arr) for f,arr in zip(input_fits,aligned)] # return new fits objects.

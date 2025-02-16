@@ -11,6 +11,10 @@ from dateutil.parser import parse
 import datetime as dt
 import glob
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+import fastgif
+>>>>>>> parent of 70ac701 (new, faster gif creating function)
 from typing import Tuple, Dict, Union, Callable
 
 =======
@@ -350,3 +354,31 @@ def make_gif(fits_dir,fps=5,remove_temp=False,savelocation='auto',filename='auto
         for file in glob.glob(fpath('temp/')+'*'):
             os.remove(file)
         os.rmdir(fpath('temp/'))
+
+
+
+def makefast_gif(fitsobjs,initfunc=None,fps=5,showprogress=True,**kwargs)->None:
+    """
+    Create a GIF from a list of FITS files using the fastgif module.
+    Parameters:
+    fitsobjs (list): A list of FITS file objects.
+    initfunc (function, optional): The initialization function for the GIF. this function should take an index as an argument and return a figure object. Default is None, which uses the moind function.
+    fps (int, optional): The frames per second for the GIF. Default is 5.
+    showprogress (bool, optional): Whether to show the progress bar. Default is True.
+    **kwargs: Additional keyword arguments for the moind function. If 'saveto' is provided, the GIF is saved to the specified location.
+    Returns:
+    None
+    The function generates a GIF from the list of FITS files using the fastgif module. It uses the initialization function to create the figure objects for each frame.
+    The GIF is saved to the specified location if 'saveto' is provided in the keyword arguments.
+    """
+    if initfunc is None:
+        def initfunc(idx):
+            fits_obj = fitsobjs[idx]
+            fig,_ = moind(fits_obj, **kwargs['fits'])
+            return fig
+    if 'saveto' in kwargs:
+        savelocation = kwargs.pop('saveto')
+    else:
+        savelocation = fpath('figures/gifs/')+make_filename(prepare_fits(fitsobjs[0], **kwargs))+'.gif'
+    fastgif.make_gif(initfunc,num_calls=len(fitsobjs),filename=savelocation,show_progress=showprogress,writer_kwargs={'duration':1/fps})
+    

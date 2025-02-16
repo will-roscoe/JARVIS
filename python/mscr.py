@@ -1,4 +1,3 @@
-import re
 from jarvis.transforms import align_cmls, coadd, gradmap, dropthreshold
 from jarvis.polar import process_fits_file, plot_polar, prepare_fits, fits_from_parent
 from jarvis.utils import fpath, fitsheader

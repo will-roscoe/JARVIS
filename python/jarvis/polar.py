@@ -10,16 +10,11 @@ import os
 from dateutil.parser import parse
 import datetime as dt
 import glob
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-import fastgif
->>>>>>> parent of 70ac701 (new, faster gif creating function)
-from typing import Tuple, Dict, Union, Callable
 
-=======
+
+from typing import Tuple, Dict, Union, Callable
 import fastgif
->>>>>>> parent of 04da12c (reorganise for FITS file functionality)
+
 #third party libraries
 from astropy.io import fits
 import imageio

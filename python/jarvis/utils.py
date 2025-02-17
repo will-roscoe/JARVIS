@@ -82,15 +82,15 @@ def make_filename(fits_obj:fits.HDUList):
     args = ['CML', 'HEMISPH', 'FIXED', 'RLIM', 'FULL', 'CROP', 'REGIONS', 'MOONFP', 'VISIT', 'DOY', 'YEAR', 'EXPTIME']
     udate = get_datetime(fits_obj)
     cml, hem, fixed, rlim, full, crop, regions, moonfp, visit, doy, year, expt = [fitsheader(fits_obj, arg) for arg in args]
-    extras = ",".join([
+    extras = ",".join([m for m in [
     hem[0].upper(),
     fixed.upper(),
     f'{rlim}deg' if rlim != 40 else None,
     'full' if full else 'half',
     f'crop{crop}' if crop != 1 else None,
     'regions' if regions else None,
-    'moonfp' if moonfp else None,])
-    filename = f'jup_v{visit:0<2}_{doy:0<3}_{year}_{udate.strftime("%H%M%S")}_E{expt:0<4}({extras})',
+    'moonfp' if moonfp else None,] if m is not None])
+    filename = f'jup_v{visit:0<2}_{doy:0<3}_{year}_{udate.strftime("%H%M%S")}_E{expt:0>4}({extras})'
     return filename
 
 def update_history(fits_object, *args):
@@ -120,14 +120,33 @@ def rpath(x):
     return os.path.relpath(x, GHROOT)
 
 
-
-
-
-class DataWrapper:
-    def __init__(self, fits_object:fits.HDUList, **kwargs):
-        self.data = np.asarray(fits_object[FITSINDEX].data)
-        self.header = {k:v for k,v in fits_object[FITSINDEX].header.items()}
+class Jfits:
+    ind = FITSINDEX
+    def __init__(self, fits_loc:str=None, fits_obj: fits.HDUList=None, **kwargs):
+        if fits_loc is not None:
+            self.loc = fits_loc
+            self.hdul= fits.open(fits_loc)
+        else:
+            self.hdul = fits_obj
         self.header.update(kwargs)
-        self.__HDUList = fits_object
-    def to_fits(self, filepath:str=None):
-        newhdu = fits.HDUList([fits.PrimaryHDU()])
+    @property
+    def data(self):
+        return self.hdul[self.ind].data
+    @property
+    def header(self):
+        return self.hdul[self.ind].header
+    def update(self,data=None, **kwargs):
+        if data is not None:
+            self.hdul = fits_from_parent(self.hdul, new_data=data)
+        for k,v in kwargs.items():
+            self.hdul = fits_from_parent(self.hdul, **{k:v})
+    def writeto(self, path:str):
+        self.hdul.writeto(path)
+    def close(self):
+        self.hdul.close()
+    def data_apply(self, func, *args, **kwargs):
+        self.update(data=func(self.data, *args, **kwargs))
+    def apply(self, func, *args, **kwargs):
+        self = func(self, *args, **kwargs)
+    def __del__(self):
+        self.close()

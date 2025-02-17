@@ -305,7 +305,7 @@ def moind(fitsobj:fits.HDUList, crop:float = 1, rlim:float = 40, fixed:str= 'lon
     fits_obj = process_fits_file(prepare_fits(fitsobj, crop=crop, rlim=rlim, fixed=fixed, full=full, regions=regions, moonfp=moonfp))                                     
     fig =plt.figure(figsize=(7,6))
     ax = plt.subplot(projection='polar')
-    plot_polar(fits_obj, ax, crop, full, rlim, **kwargs)
+    plot_polar(fits_obj, ax, **kwargs)
     if regions and not fitsheader(fits_obj, 'south'):
         plot_regions(fits_obj,ax)
     if moonfp:

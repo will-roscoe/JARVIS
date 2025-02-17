@@ -28,6 +28,10 @@ def coadd(input_arrs:List[np.ndarray], weights:Optional[List[float]]=None)->np.n
             weights = [1 for i in range(len(input_arrs))]
       combined = np.stack(input_arrs, axis=0)
       return np.average(combined, axis=0, weights=weights)
+def adaptive_coadd(input_fits:List[fits.HDUList])-> fits.HDUList:
+      # each array has better resolution closer to cml, and worse at the edges. we need to identify how 
+      pass
+
 
 def normalize(input_arr: np.ndarray) -> np.ndarray:
     '''Normalize the input array to the range [0, 1].'''

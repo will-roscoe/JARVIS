@@ -85,12 +85,12 @@ def make_filename(fits_obj:fits.HDUList):
     extras = ",".join([m for m in [
     hem[0].upper(),
     fixed.upper(),
-    f'{rlim}deg' if rlim != 40 else None,
+    f'{rlim}deg' if rlim != 40 else "",
     'full' if full else 'half',
-    f'crop{crop}' if crop != 1 else None,
-    'regions' if regions else None,
-    'moonfp' if moonfp else None,] if m is not None])
-    filename = f'jup_v{visit:0<2}_{doy:0<3}_{year}_{udate.strftime("%H%M%S")}_E{expt:0>4}({extras})'
+    f'crop{crop}' if crop != 1 else "",
+    'regions' if regions else "",
+    'moonfp' if moonfp else ""] if m != ""])
+    filename = f'jup_v{visit:0<2}_{doy:0<3}_{year}_{udate.strftime("%H%M%S")}_{expt:0>4}({extras})'
     return filename
 
 def update_history(fits_object, *args):
@@ -118,6 +118,14 @@ def fpath(x):
     return os.path.join(GHROOT, x)
 def rpath(x):
     return os.path.relpath(x, GHROOT)
+
+
+def debug_fits(fits_obj:fits.HDUList):
+    header = fits_obj[FITSINDEX].header
+    data = fits_obj[FITSINDEX].data
+
+
+
 
 
 class Jfits:

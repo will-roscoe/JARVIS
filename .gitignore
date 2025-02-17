@@ -120,3 +120,6 @@ pck00011.tpc
 *.gif
 ### Keep all latex stuff all the time
 !LaTeX/**
+!pictures/**/*.jpg
+!pictures/**/*.png
+!pictures/**/*.gif

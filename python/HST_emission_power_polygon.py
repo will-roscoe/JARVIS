@@ -38,20 +38,21 @@ fs = 12   # font size for plots
 dusk_active_region = [[20,167.75],[30,160],[20,140],[15,130],[15,140]] # SIII longitudes
 swirl_region = [[2.75,111],[17,155],[18,185],[4,190]] # high cml, swirl 360-SIII longitudes here
 noon_active_region = [[18,154],[24,154],[28,192],[22,192]] # high cml, noon 360-SIII longitudes here
-
-#dar_boundary = path.Path([(20,192.25), (30,200), (20,220), (15,230), (15,220), (20,192.25)]) 
-dar_boundary = path.Path([(dusk_active_region[0][0],360-dusk_active_region[0][1]), 
-                          (dusk_active_region[1][0],360-dusk_active_region[1][1]),
-                          (dusk_active_region[2][0],360-dusk_active_region[2][1]),
-                          (dusk_active_region[3][0],360-dusk_active_region[3][1]),
-                          (dusk_active_region[4][0],360-dusk_active_region[4][1]),
-                          (dusk_active_region[0][0],360-dusk_active_region[0][1]),]) 
+dark_region = ([8,247.5], [12,247.5], [18,225], [22,217.5], [22,202.5], [20,202.5], [14,202.5], [8,217.5])
+dark_boundary = path.Path([(8,247.5), (12,247.5), (18,225), (22,217.5), (22,202.5), (20,202.5), (14,202.5), (8,217.5)]) 
+#dar_boundary_2 = path.Path([(),(),(),()])
+#dar_boundary = path.Path([(dusk_active_region[0][0],360-dusk_active_region[0][1]), 
+                   #       (dusk_active_region[1][0],360-dusk_active_region[1][1]),
+                    #      (dusk_active_region[2][0],360-dusk_active_region[2][1]),
+                     #     (dusk_active_region[3][0],360-dusk_active_region[3][1]),
+                      #    (dusk_active_region[4][0],360-dusk_active_region[4][1]),
+                       #   (dusk_active_region[0][0],360-dusk_active_region[0][1]),]) 
 testlons = np.arange(0,360,0.25)
 testcolats = np.arange(0,40,0.25)
 llons, llats = np.meshgrid(testlons, testcolats) # checked correct
 coords = np.vstack([llats.flatten(), llons.flatten()]).T
-dar_mask = dar_boundary.contains_points(coords) # ([[llats], [llons]])
-dar_mask_2D = dar_mask.reshape(160,1440)
+dark_mask = dark_boundary.contains_points(coords) # ([[llats], [llons]])
+dark_mask_2D = dark_mask.reshape(160,1440)
 # mask needs to be applied to un-rolled image
 
 # ------------------------------------------------------------------------------
@@ -82,7 +83,7 @@ corr = 'LT'
 # proj_filename = '/Users/joe/data/HST/HST2017_revised/long_exposure/sat_17-045-04-18-34_stis_f25srf2_sm_proj_nobg.fits'
 # proj_filename = '/Users/joe/data/HST/HST2017_revised/long_exposure/sat_17-066-16-52-02_stis_f25srf2_sm_proj_nobg.fits'
 #proj_filename = '/Users/Sarah/OneDrive - Lancaster University/Prog/Python/TestData/137_v01/jup_16-137-23-43-30_0100_v01_stis_f25srf2_proj.fits'
-proj_filename = fpath('datasets/HST/v01/jup_16-137-23-43-30_0100_v01_stis_f25srf2_proj.fits')
+proj_filename = fpath('datasets/HST/v01/jup_16-138-00-26-50_0102_v01_stis_f25srf2_proj.fits')
 
 hdu_list = fits.open(proj_filename)  # opens the FITS files, accessing data plus header info
 hdu_list.info()                    # print file information
@@ -260,11 +261,15 @@ ax.set_ylim([0,40])                            # max colat range
 # plot image data in linear colour-scale:
 plt.pcolormesh(theta,rho,image_extract,cmap='cubehelix',
                vmin=0.,vmax=1000.)
-plt.plot([np.radians(360-dusk_active_region[0][1]),np.radians(360-dusk_active_region[1][1]),
-          np.radians(360-dusk_active_region[2][1]),np.radians(360-dusk_active_region[3][1]),
-          np.radians(360-dusk_active_region[0][1])],  # corner A repeated to
-          [dusk_active_region[0][0],dusk_active_region[1][0],dusk_active_region[2][0],
-                    dusk_active_region[3][0],dusk_active_region[0][0]],  # close the box.
+plt.plot([np.radians(360-dark_region[0][1]),np.radians(360-dark_region[1][1]),
+          np.radians(360-dark_region[2][1]),np.radians(360-dark_region[3][1]),
+          np.radians(360-dark_region[4][1]),np.radians(360-dark_region[5][1]),
+          np.radians(360-dark_region[6][1]),np.radians(360-dark_region[7][1]),
+          np.radians(360-dark_region[0][1])],  # corner A repeated to
+          [dark_region[0][0],dark_region[1][0],dark_region[2][0],
+           dark_region[3][0], dark_region[4][0], dark_region[5][0],
+           dark_region[6][0], dark_region[7][0], 
+           dark_region[0][0]],  # close the box.
           color='red',linewidth=3.)
 #
 # -> OVERPLOT THE ROI IN POLAR PROJECTION HERE. <-
@@ -325,14 +330,18 @@ plt.ylabel('co-latitude [deg]')
 #    dusk_active_region = [[20,192.25],[30,200],[20,220],[15,230],[15,220]]
 #    dar_boundary = path.Path([(20,192.25), (30,200), (20,220), (15,230), (15,220), (20,192.25)]) 
 
-plt.plot([360-dusk_active_region[0][1],360-dusk_active_region[1][1],360-dusk_active_region[2][1],
-          360-dusk_active_region[3][1],360-dusk_active_region[0][1]],  # corner A repeated to
-          [dusk_active_region[0][0],dusk_active_region[1][0],dusk_active_region[2][0],
-                    dusk_active_region[3][0],dusk_active_region[0][0]],  # close the box.
-          color='red',linewidth=3.)
+plt.plot([360-dark_region[0][1],360-dark_region[1][1],
+          360-dark_region[2][1],360-dark_region[3][1],
+          360-dark_region[4][1],360-dark_region[5][1],
+          360-dark_region[6][1],360-dark_region[7][1],
+          360-dark_region[0][1]],  # corner A repeated to
+          [dark_region[0][0],dark_region[1][0],dark_region[2][0],
+           dark_region[3][0],dark_region[4][0],dark_region[5][0],
+           dark_region[6][0],dark_region[7][0],
+           dark_region[0][0]],  # close the box. color='red',linewidth=3.)
 # plt.plot([roi_a[0],roi_b[0],roi_c[0],roi_d[0],roi_a[0]],  # corner A repeated to
 #           [roi_a[1],roi_b[1],roi_c[1],roi_d[1],roi_a[1]],  # close the box.
-#           color='red',linewidth=3.)
+           color='red',linewidth=3.)
 plt.show()
 
 # # Now use the roi to mask the projected image, and plot:
@@ -349,7 +358,7 @@ plt.show()
 
 # Quick plot check of the ROI mask:
 plt.figure()
-plt.imshow(dar_mask_2D, origin='lower')
+plt.imshow(dark_mask_2D, origin='lower')
 plt.title('ROI mask in image space')
 plt.xlabel('longitude pixels')
 plt.ylabel('co-latitude pixels')
@@ -357,7 +366,7 @@ plt.ylabel('co-latitude pixels')
 plt.show()
 
 # Now mask off the image by setting image regions where mask=False, to NaNs:
-image_extract[dar_mask_2D==False] = np.nan
+image_extract[dark_mask_2D==False] = np.nan
 # Quick plot check of the masked off image:
 # plt.figure(figsize=(8,6))
 # plt.pcolormesh(lons,lats,image_extract,cmap='cubehelix',
@@ -376,7 +385,7 @@ roi_im_full[0:160,:] = image_extract
 
 # Do the same thing for a full image space ROI mask:
 roi_mask_full          = np.zeros((720,1440))
-roi_mask_full[0:160,:] = dar_mask_2D
+roi_mask_full[0:160,:] = dark_mask_2D
 
 # ==============================================================================
 # Now at the point we can try back-projecting this projected image mask
@@ -399,7 +408,7 @@ def _cylbroject(pimage, cml, dece, dmeq, xcen, ycen, psize, nppa, req, obt, ndiv
 
    # # # third, calculate the pixel size. 1 au = 1.49598e8 km */
     plen = (psize / 3600.) * deg2rad * dmeq * 1.49598e8 
-    print(plen) # in km
+    #print(plen) # in km
 
     # # # first initialize global variables */
     sn = np.sin(nppa * deg2rad)

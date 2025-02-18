@@ -1,10 +1,11 @@
-from jarvis.transforms import align_cmls, coadd, gradmap, dropthreshold, adaptive_coadd
+import tqdm
+from jarvis.transforms import align_cmls, coadd, gradmap, dropthreshold, gaussian_blur
 from jarvis.polar import process_fits_file,  prepare_fits, fits_from_parent
-from jarvis.utils import fpath, ensure_dir, make_filename, debug_fitsdata
+from jarvis.utils import fpath, ensure_dir, make_filename, debug_fitsdata, basename
 import os
 from astropy.io import fits
 from glob import glob
-
+from tqdm import tqdm
 
 import numpy as np
 import cmasher as cmr
@@ -33,35 +34,54 @@ def mask_top_stripe(img:np.ndarray,threshold=0.01, trimfrac=0.3, bg_color=0, fac
     mask = np.ones_like(img) * 255
     mask[:datai,:] = 0
     return cv2.bitwise_and(img, mask)
-
+savedir = fpath(r"datasets/HST/custom/")
+ensure_dir(savedir)
+pbar = tqdm(total=20)
 for i in [f"{m:0>2}" for m in range(1,21)]:
     path = fpath(f'datasets/HST/v{i}/*.fits')
-    print(path)
+    tqdm.write(path)
     targetpaths = glob(path)
     fitsfiles = [fits.open(x) for x in targetpaths]
-    aligned_data = [x[1].data for x in fitsfiles]
-    acoadded_data = adaptive_coadd(fitsfiles)[1].data
-    coadded_data = coadd(aligned_data)
-    #graddat = gradmap(coadded_data)#np.where(gradmap(coadded_data)<40,np.nan,gradmap(coadded_data))##
-    #coadd2 = coadd([graddat,coadded_data], weights=[1,1])
-    procorig = prepare_fits(fitsfiles[0], fixed='LT', full=False)
-    aproc = process_fits_file(fits_from_parent(procorig, new_data=coadded_data))
-    proc = process_fits_file(fits_from_parent(procorig, new_data=acoadded_data))
-    # import numpy as np
-    # from matplotlib import pyplot as plt
+    bases = [basename(x) for x in targetpaths]
+    print(bases)
+    smoothed = [gaussian_blur(fitsfiles[i][1].data, 3, 1) for i in range(len(fitsfiles))]
+    coadded = coadd(smoothed)
+    cofits = fits_from_parent(fitsfiles[0], new_data=coadded)
+    cofits[1].header['HISTORY'] = f'Coadded from {len(smoothed)} files with gaussian blur 3,1 pre-applied'
+    cofits.writeto(savedir+f"v{i}_gaussian[3_1]_coadded.fits", overwrite=True)
+
+    cofitsd = coadd([fitsfiles[i][1].data for i in range(len(fitsfiles))])
+    cogauss = gaussian_blur(coadded, 3, 1)
+    cofitsd = fits_from_parent(fitsfiles[0], new_data=cogauss)
+    cofitsd[1].header['HISTORY'] = f'Coadded from {len(smoothed)} files, then gaussian blurred with 3,1'
+    cofitsd.writeto(savedir+f"v{i}_coadded_gaussian[3_1].fits", overwrite=True)
+    grad = gradmap(coadded)
+    pbar.update(1)
     
-    img = mk_stripped_polar(proc,bg_color='black', facecolor='white', cmap=cmr.neutral_r)
-    cv2.imwrite(fpath(f"temp/{make_filename(proc)}_proc.jpg"), img)
-    img = mk_stripped_polar(aproc,bg_color='black', facecolor='white', cmap=cmr.neutral_r)
-    cv2.imwrite(fpath(f"temp/{make_filename(proc)}_aproc.jpg"), img)
-    # # make a mask removing the top stripe of the image which will only contain black and white (0,255) values
-    # masked_img = mask_top_stripe(img)
-    # ret, thresh = cv2.threshold(masked_img, 150, 255, cv2.THRESH_BINARY)
-    # contours, hierarchy = cv2.findContours(image=thresh, mode=cv2.RETR_TREE, method=cv2.CHAIN_APPROX_NONE)
-    # # save the image
+
+
+    # acoadded_data = coadd(smoothed_data)
+    # coadded_data = coadd(data)
+    # #graddat = gradmap(coadded_data)#np.where(gradmap(coadded_data)<40,np.nan,gradmap(coadded_data))##
+    # #coadd2 = coadd([graddat,coadded_data], weights=[1,1])
+    # procorig = prepare_fits(fitsfiles[0], fixed='LT', full=False)
+    # aproc = process_fits_file(fits_from_parent(procorig, new_data=coadded_data))
+    # proc = process_fits_file(fits_from_parent(procorig, new_data=acoadded_data))
+    # # import numpy as np
+    # # from matplotlib import pyplot as plt
     
-    # cv2.drawContours(image=img, contours=contours, contourIdx=-1, color=(0, 255, 0), thickness=2, lineType=cv2.LINE_AA)
-    #cv2.imwrite(fpath(f"temp/{make_filename(proc)}_bw_stripped_maked_cont.jpg"), img)
+    # img = mk_stripped_polar(proc,bg_color='black', facecolor='white', cmap=cmr.neutral_r)
+    # cv2.imwrite(fpath(f"temp/{make_filename(proc)}_proc.jpg"), img)
+    # img = mk_stripped_polar(aproc,bg_color='black', facecolor='white', cmap=cmr.neutral_r)
+    # cv2.imwrite(fpath(f"temp/{make_filename(proc)}_aproc.jpg"), img)
+    # # # make a mask removing the top stripe of the image which will only contain black and white (0,255) values
+    # # masked_img = mask_top_stripe(img)
+    # # ret, thresh = cv2.threshold(masked_img, 150, 255, cv2.THRESH_BINARY)
+    # # contours, hierarchy = cv2.findContours(image=thresh, mode=cv2.RETR_TREE, method=cv2.CHAIN_APPROX_NONE)
+    # # # save the image
+    
+    # # cv2.drawContours(image=img, contours=contours, contourIdx=-1, color=(0, 255, 0), thickness=2, lineType=cv2.LINE_AA)
+    # #cv2.imwrite(fpath(f"temp/{make_filename(proc)}_bw_stripped_maked_cont.jpg"), img)
 
 
 rmglob = glob(fpath(r"temp/temp*.png"))

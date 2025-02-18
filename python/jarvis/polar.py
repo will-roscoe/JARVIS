@@ -335,7 +335,7 @@ def make_gif(fits_dir,fps=5,remove_temp=False,savelocation='auto',filename='auto
         for i,file in enumerate(fitslist):
             fig,ax = moind(file, **kwargs)
             fig.savefig(fpath('temp/')+f'gifpart_{i}.jpg', dpi=300)
-            tqdm.write(f'Image {i+1} of {len(fitslist)} created: {'IMPLEMENT'}')
+            tqdm.write(f'Image {i+1} of {len(fitslist)} created: {"IMPLEMENT"}')
             pbar.update(1)
             imagesgif.append(imageio.imread(fpath('temp/')+f'gifpart_{i}.jpg'))
             #saving the GIF

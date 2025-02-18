@@ -120,9 +120,15 @@ def rpath(x):
     return os.path.relpath(x, GHROOT)
 
 
-def debug_fits(fits_obj:fits.HDUList):
+def debug_fitsheader(fits_obj:fits.HDUList):
     header = fits_obj[FITSINDEX].header
+    print(header.__dict__)
+def debug_fitsdata(fits_obj:fits.HDUList):
     data = fits_obj[FITSINDEX].data
+    print(data.shape)
+    print(f"[0,:]:{data[0].shape} {data[0]}")
+    print(f"[1,:]: {data[1].shape} {','.join([str(round(d,3)) for d in data[1,:5]])} ... {','.join([str(round(d,3)) for d in data[1,-5:]])}")
+    
 
 
 

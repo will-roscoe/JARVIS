@@ -1,6 +1,6 @@
-from jarvis.transforms import align_cmls, coadd, gradmap, dropthreshold
+from jarvis.transforms import align_cmls, coadd, gradmap, dropthreshold, adaptive_coadd
 from jarvis.polar import process_fits_file,  prepare_fits, fits_from_parent
-from jarvis.utils import fpath, ensure_dir, make_filename
+from jarvis.utils import fpath, ensure_dir, make_filename, debug_fitsdata
 import os
 from astropy.io import fits
 from glob import glob
@@ -39,26 +39,29 @@ for i in [f"{m:0>2}" for m in range(1,21)]:
     print(path)
     targetpaths = glob(path)
     fitsfiles = [fits.open(x) for x in targetpaths]
-    print()
-    aligned_data = [x[1].data for x in align_cmls(fitsfiles,len(fitsfiles)//2)]
+    aligned_data = [x[1].data for x in fitsfiles]
+    acoadded_data = adaptive_coadd(fitsfiles)[1].data
     coadded_data = coadd(aligned_data)
-    graddat = gradmap(coadded_data)#np.where(gradmap(coadded_data)<40,np.nan,gradmap(coadded_data))##
+    #graddat = gradmap(coadded_data)#np.where(gradmap(coadded_data)<40,np.nan,gradmap(coadded_data))##
     #coadd2 = coadd([graddat,coadded_data], weights=[1,1])
     procorig = prepare_fits(fitsfiles[0], fixed='LT', full=False)
-    proc = process_fits_file(fits_from_parent(procorig, new_data=graddat))
-
+    aproc = process_fits_file(fits_from_parent(procorig, new_data=coadded_data))
+    proc = process_fits_file(fits_from_parent(procorig, new_data=acoadded_data))
     # import numpy as np
     # from matplotlib import pyplot as plt
     
     img = mk_stripped_polar(proc,bg_color='black', facecolor='white', cmap=cmr.neutral_r)
-    # make a mask removing the top stripe of the image which will only contain black and white (0,255) values
-    masked_img = mask_top_stripe(img)
-    ret, thresh = cv2.threshold(masked_img, 150, 255, cv2.THRESH_BINARY)
-    contours, hierarchy = cv2.findContours(image=thresh, mode=cv2.RETR_TREE, method=cv2.CHAIN_APPROX_NONE)
-    # save the image
+    cv2.imwrite(fpath(f"temp/{make_filename(proc)}_proc.jpg"), img)
+    img = mk_stripped_polar(aproc,bg_color='black', facecolor='white', cmap=cmr.neutral_r)
+    cv2.imwrite(fpath(f"temp/{make_filename(proc)}_aproc.jpg"), img)
+    # # make a mask removing the top stripe of the image which will only contain black and white (0,255) values
+    # masked_img = mask_top_stripe(img)
+    # ret, thresh = cv2.threshold(masked_img, 150, 255, cv2.THRESH_BINARY)
+    # contours, hierarchy = cv2.findContours(image=thresh, mode=cv2.RETR_TREE, method=cv2.CHAIN_APPROX_NONE)
+    # # save the image
     
-    cv2.drawContours(image=img, contours=contours, contourIdx=-1, color=(0, 255, 0), thickness=2, lineType=cv2.LINE_AA)
-    cv2.imwrite(fpath(f"temp/{make_filename(proc)}_bw_stripped_maked_cont.jpg"), img)
+    # cv2.drawContours(image=img, contours=contours, contourIdx=-1, color=(0, 255, 0), thickness=2, lineType=cv2.LINE_AA)
+    #cv2.imwrite(fpath(f"temp/{make_filename(proc)}_bw_stripped_maked_cont.jpg"), img)
 
 
 rmglob = glob(fpath(r"temp/temp*.png"))

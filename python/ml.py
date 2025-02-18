@@ -21,7 +21,11 @@ def halfxy_to_polar(x_pixel:float,y_pixel:float,x_0:float,rlim:float)-> np.ndarr
     pcal = np.linalg.norm(vec_pcal)
     colat = pcal/x_0 * rlim
     lon = np.degrees(np.arctan2(vec_pcal[1], vec_pcal[0])) + 270
-    return np.array(colat,lon)
+    while lon < 0:
+        lon += 360
+    while lon > 360:
+        lon -= 360
+    return np.array([colat,lon])
 def halfxy_to_polar_arr(xy:np.ndarray,x_0:float,rlim:float)->np.ndarray:
     """transforms a list of coordinates of points on an image (x,y=0,0 at top_left) to polar colatitude and longitude.
     xy: list of x,y coordinates of the points
@@ -65,6 +69,7 @@ def mk_stripped_polar(fits_obj,path=None,**kwargs)->None:
         spine.set_linewidth(0)
     tempdir = fpath(r"temp/"+f"temp_stripped_{random.randint(0,99999999):0<8}.png")
     fig.savefig(tempdir, dpi=dpi)
+    plt.close()
     return cropimg(tempdir,facecolor=facecolor,bg_color=bg_color)
    
 def cropimg(inpath,outpath=None,facecolor='black',bg_color='white'): 

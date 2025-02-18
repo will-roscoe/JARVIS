@@ -7,3 +7,4 @@ python_dateutil==2.9.0.post0
 scipy==1.15.1
 tqdm==4.66.2
 spiceypy==5.1.2
+opencv-python

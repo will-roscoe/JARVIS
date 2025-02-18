@@ -18,7 +18,7 @@
 
 import os
 import tarfile
-import tqdm
+from tqdm import tqdm
 from jarvis.utils import fpath
 import argparse
 if __name__ == "__main__":
@@ -64,7 +64,7 @@ if __name__ == "__main__":
         with open(tar_path, 'rb') as f:
             total_size = os.path.getsize(tar_path)
             part_num = 1
-            with tqdm.tqdm(total=total_size, unit='B', unit_scale=True, desc="Compressing") as pbar:
+            with tqdm(total=total_size, unit='B', unit_scale=True, desc="Compressing") as pbar:
                 while chunk := f.read(CHUNKSIZE_BYTES):
                     part_path = os.path.join(ARCHIVE_DIR, f'archive.part{part_num}')
                     with open(part_path, 'wb') as part_file:
@@ -92,7 +92,7 @@ if __name__ == "__main__":
         
         total_size = sum(os.path.getsize(part) for part in part_files)
         
-        with open(tar_path, 'wb') as f, tqdm.tqdm(total=total_size, unit='B', unit_scale=True, desc="Decompressing") as pbar:
+        with open(tar_path, 'wb') as f, tqdm(total=total_size, unit='B', unit_scale=True, desc="Decompressing") as pbar:
             for part_path in part_files:
                 with open(part_path, 'rb') as part_file:
                     chunk = part_file.read()
@@ -111,7 +111,7 @@ if __name__ == "__main__":
         tqdm.write("Decompression complete.")
     elif args.command == "cleanup":
         tqdm.write("KERNELEXTRACT: cleaning up decompressed files.")
-        with tqdm.tqdm(total=len(KERNELFILES), desc="Cleaning up") as pbar:
+        with tqdm(total=len(KERNELFILES), desc="Cleaning up") as pbar:
             for file in KERNELFILES:
                 file_path = os.path.join(KERNEL_DIR, file)
                 if os.path.exists(file_path):

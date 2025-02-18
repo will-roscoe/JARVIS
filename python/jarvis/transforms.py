@@ -11,6 +11,19 @@ Gx = [[-1  0  1]    Gy = [[-1 -2 -1]                      G= [[-1-1j 0-2j 1-1j]
       [-2  0  2]          [ 0  0  0]  ==> G = Gx + j*Gy =     [-2    0     2  ]
       [-1  0  1]]         [ 1  2  1]]                         [-1+1j 0+2j  1+1j]
 '''
+def gaussian_blur(input_arr:np.ndarray, radius, amount,boundary:str='wrap',mode:str='same')->np.ndarray:
+      '''Return the input array convolved with the kernel2d convolution kernel.
+      radius = pixel radius of the kernel
+      amount = standard deviation of the gaussian kernel
+      '''
+      kernel2d = np.exp(-np.arange(-radius,radius+1)**2/(2*amount**2))
+      kernel2d = np.outer(kernel2d, kernel2d)
+      kernel2d /= np.sum(kernel2d)
+      return scipy.signal.convolve2d(input_arr, kernel2d, mode=mode, boundary=boundary)
+      
+
+
+
 def gradmap(input_arr:np.ndarray, kernel2d:np.array=np.array([[-1-1j,-2j,1-1j],[-2,0,2],[-1+1j,2j,1+1j]]),boundary:str='wrap',mode:str='same')->np.ndarray:
       '''Return the gradient of the input array using the kernel2d convolution kernel.'''
       complexret = scipy.signal.convolve2d(input_arr, kernel2d, mode='same', boundary='wrap')
@@ -28,22 +41,21 @@ def coadd(input_arrs:List[np.ndarray], weights:Optional[List[float]]=None)->np.n
             weights = [1 for i in range(len(input_arrs))]
       combined = np.stack(input_arrs, axis=0)
       return np.average(combined, axis=0, weights=weights)
-def adaptive_coadd(input_fits:List[fits.HDUList])-> fits.HDUList:
+
+
+def adaptive_coadd(input_fits:List[fits.HDUList], eff_ang=90)-> fits.HDUList:
       # each array has better resolution closer to cml, and worse at the edges. we need to identify how 
       cmls = [fitsheader(f,'CML') for f in input_fits]
-      latlen, lonlen = input_fits[0][FITSINDEX].data.shape
-      weights = []
-      for i in cmls:
-            indcml = int(i / 360 * lonlen)
-            # create pdf distribution of len width, with peak at centre
-            exp_ = np.exp(-0.5 * ((np.arange(lonlen) - lonlen // 2) / (lonlen / 12)) ** 2)
-            # shift the peak to the cml
-            shifted = np.roll(exp_, indcml - lonlen // 2)
-            stacked = np.stack([shifted for _ in range(latlen)], axis=0)
-            weights.append(stacked)
-      weights3d = np.stack(weights, axis=0)
-      coadded = coadd([f[FITSINDEX].data for f in input_fits], weights=weights3d)
-      return fits_from_parent(input_fits[0], new_data=coadded)
+      effective_lims = [[cml-eff_ang, cml+eff_ang] for cml in cmls]
+      for i in range(len(effective_lims)):
+            if effective_lims[i][0] < 0:
+                  effective_lims[i][0] += 360
+            if effective_lims[i][1] > 360:
+                  effective_lims[i][1] -= 360
+      #for each longitude, we need to identify which of the input fits objects are relevant
+      
+      
+      
 
 
 

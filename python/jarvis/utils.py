@@ -118,7 +118,11 @@ def fpath(x):
     return os.path.join(GHROOT, x)
 def rpath(x):
     return os.path.relpath(x, GHROOT)
-
+def basename(x, ext=False):
+    parts = x.split('/') 
+    parts = parts[-1].split('\\') if '\\' in parts[-1] else parts
+    base = parts[-1].split('.')[0] if not ext else parts[-1]
+    return base
 
 def debug_fitsheader(fits_obj:fits.HDUList):
     header = fits_obj[FITSINDEX].header

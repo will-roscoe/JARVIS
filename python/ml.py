@@ -69,14 +69,7 @@ def mk_stripped_polar(fits_obj,path=None,**kwargs)->None:
    
 def cropimg(inpath,outpath=None,facecolor='black',bg_color='white'): 
     img = cv2.imread(inpath,cv2.IMREAD_GRAYSCALE)
-    bg_l, fc_l = bg_color, facecolor
-    col = [bg_l, fc_l]
-    for i,c in enumerate(col):
-        # turn into rgb, could be mpl string color, hex , rgb
-        c_ = mcolors.to_rgba(c)[:3]
-        # turn into luminance int
-        col[i] = int(0.2126*c_[0]+0.7152*c_[1]+0.0722*c_[2])
-    bg_l, fc_l = col
+    bg_l, fc_l =mcolor_to_lum(bg_color, facecolor)
     # Find the bounding box of the non-black pixels
     coords = cv2.findNonZero(cv2.threshold(img, fc_l-1, fc_l, cv2.THRESH_BINARY)[1])
     x, y, w, h = cv2.boundingRect(coords)

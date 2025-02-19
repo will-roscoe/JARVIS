@@ -5,25 +5,47 @@ import astropy.io.fits as fits
 from typing import List
 import glob
 from .const import GHROOT, FITSINDEX
+from matplotlib import colors as mcolors
 
-
-
+#################################################################################
+#                   PATH/DIRECTORY MANAGMENT
+#################################################################################
 def ensure_dir(file_path):
     '''this function checks if the file path exists, if not it will create one'''
     if not os.path.exists(file_path):
             os.makedirs(file_path)
-def clock_format(x_rads, pos=None):
-    """Converts radians to clock format."""
-    # x_rads => 0, pi/4, pi/2, 3pi/4, pi, 5pi/4, 3pi/2, 7pi/4, ...
-    # returns=> 00, 03, 06, 09, 12, 15, 18, 21,..., 00,03,06,09,12,15,18,21,
-    cnum= int(np.degrees(x_rads)/15)
-    return f'{cnum:02d}' if cnum%24 != 0 else '00'
 
 # test, prints the README at the root of the project
 def __testpaths():
     for x in os.listdir(GHROOT):
         print(x)
-
+def fpath(x):
+    return os.path.join(GHROOT, x)
+def rpath(x):
+    return os.path.relpath(x, GHROOT)
+def basename(x, ext=False):
+    parts = x.split('/') 
+    parts = parts[-1].split('\\') if '\\' in parts[-1] else parts
+    base = parts[-1].split('.')[0] if not ext else parts[-1]
+    return base
+#################################################################################
+#                   FITS FILE INTERFACING
+#################################################################################
+def fits_from_glob(fits_dir:str, suffix:str='/*.fits', recursive=True, sort=True)->List[fits.HDUList]:
+    """Returns a list of fits objects from a directory."""
+    if isinstance(fits_dir,str):
+          fits_dir = [fits_dir,]
+    fits_file_list = []
+    for f in fits_dir:
+        for g in glob.glob(f + '/*.fits', recursive=True):
+            fits_file_list.append(g)
+    if sort:
+        fits_file_list.sort()   
+    print(f'Found {len(fits_file_list)} files in the directory.')
+    return [fits.open(f) for f in fits_file_list]
+#################################################################################
+#                  HDUList/FITS object FUNCTIONS
+#################################################################################
 def fitsheader(fits_object, *args, ind=FITSINDEX,cust=True):
     """Returns the header value of a fits object.
     Args:
@@ -64,18 +86,15 @@ def fits_from_parent(original_fits, new_data=None, **kwargs):
     fits_new = fits.HDUList([fits.PrimaryHDU(orig_data[0], header=orig_header[0]), fits.ImageHDU(new_data, header=orig_header[1])])
     #print(fits_new.info(), original_fits.info())
    
-    return fits_new   
-           
+    return fits_new          
 def get_datetime(fits_object):
     """Returns a datetime object from the fits header."""
     udate = fitsheader(fits_object, 'UDATE')         
-    return datetime.datetime.strptime(udate, '%Y-%m-%d %H:%M:%S') 
-#                                             '2016-05-19 20:48:59'   
+    return datetime.datetime.strptime(udate, '%Y-%m-%d %H:%M:%S') # '2016-05-19 20:48:59'                     
 def prepare_fits(fits_obj:fits.HDUList, regions=False, moonfp=False, fixed='lon', rlim=40,full=True, crop=1, **kwargs)->fits.HDUList:
     """Returns a fits object with specified header values, which can be used for processing."""
     kwargs.update({'REGIONS':bool(regions), 'MOONFP':bool(moonfp), 'FIXED':str(fixed).upper(), 'RLIM':int(rlim), 'FULL':bool(full), 'CROP': float(crop) if abs(float(crop)) <=1 else 1}) 
     return fits_from_parent(fits_obj,  **kwargs)
-
 def make_filename(fits_obj:fits.HDUList):
     """Returns a filename based on the fits header values."""
     # might be better to alter the filename each time we process or plot something.
@@ -92,7 +111,6 @@ def make_filename(fits_obj:fits.HDUList):
     'moonfp' if moonfp else ""] if m != ""])
     filename = f'jup_v{visit:0<2}_{doy:0<3}_{year}_{udate.strftime("%H%M%S")}_{expt:0>4}({extras})'
     return filename
-
 def update_history(fits_object, *args):
     """Updates the HISTORY field of the fits header with the current time."""
     curr_hist=fitsheader(fits_object, 'HISTORY')
@@ -102,28 +120,6 @@ def update_history(fits_object, *args):
         for arg in args:
             fits_object[FITSINDEX].header['HISTORY'] = arg + '@' + datetime.datetime.now().strftime('%y%m%d_%H%M%S') 
         
-def fits_from_glob(fits_dir:str, suffix:str='/*.fits', recursive=True, sort=True)->List[fits.HDUList]:
-    """Returns a list of fits objects from a directory."""
-    if isinstance(fits_dir,str):
-          fits_dir = [fits_dir,]
-    fits_file_list = []
-    for f in fits_dir:
-        for g in glob.glob(f + '/*.fits', recursive=True):
-            fits_file_list.append(g)
-    if sort:
-        fits_file_list.sort()   
-    print(f'Found {len(fits_file_list)} files in the directory.')
-    return [fits.open(f) for f in fits_file_list]
-def fpath(x):
-    return os.path.join(GHROOT, x)
-def rpath(x):
-    return os.path.relpath(x, GHROOT)
-def basename(x, ext=False):
-    parts = x.split('/') 
-    parts = parts[-1].split('\\') if '\\' in parts[-1] else parts
-    base = parts[-1].split('.')[0] if not ext else parts[-1]
-    return base
-
 def debug_fitsheader(fits_obj:fits.HDUList):
     header = fits_obj[FITSINDEX].header
     print(header.__dict__)
@@ -132,9 +128,38 @@ def debug_fitsdata(fits_obj:fits.HDUList):
     print(data.shape)
     print(f"[0,:]:{data[0].shape} {data[0]}")
     print(f"[1,:]: {data[1].shape} {','.join([str(round(d,3)) for d in data[1,:5]])} ... {','.join([str(round(d,3)) for d in data[1,-5:]])}")
-    
+#################################################################################
+#                    IMAGE UTILITIES
+#################################################################################
+def mcolor_to_lum(*colors):
+    col = [0]*len(colors)
+    for i,c in enumerate(colors):
+        if not isinstance(c, int):
+            # turn into rgb, could be mpl string color, hex , rgb
+            c_ = mcolors.to_rgba(c)[:3]
+            # turn into luminance int
+            col[i] = int(0.2126*c_[0]+0.7152*c_[1]+0.0722*c_[2])
+        else:
+            col[i] = c
+    if len(col) == 1:
+        return col[0]
+    return col
 
 
+
+
+
+
+#################################################################################
+#                   MISC/UNUSED FUNCTIONS
+#################################################################################
+
+def clock_format(x_rads, pos=None):
+    """Converts radians to clock format."""
+    # x_rads => 0, pi/4, pi/2, 3pi/4, pi, 5pi/4, 3pi/2, 7pi/4, ...
+    # returns=> 00, 03, 06, 09, 12, 15, 18, 21,..., 00,03,06,09,12,15,18,21,
+    cnum= int(np.degrees(x_rads)/15)
+    return f'{cnum:02d}' if cnum%24 != 0 else '00'
 
 
 

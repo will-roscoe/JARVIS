@@ -1,6 +1,6 @@
 from astropy.io import fits
-
-from jarvis import make_gif, moind, fpath, gradmap
+from jarvis.cvis import pathtest
+# from jarvis import make_gif, moind, fpath, gradmap
 from matplotlib.colors import LinearSegmentedColormap
 import matplotlib as mpl
 import glob
@@ -30,3 +30,6 @@ import glob
 #print(d)
 
 
+if __name__ == "__main__":
+    clist = pathtest()
+    print(clist)

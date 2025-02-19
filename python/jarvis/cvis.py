@@ -128,9 +128,10 @@ def generate_contourpoints(fits_obj:fits.HDUList, id_pixel: List[int]=None, lran
     # if a contour is found, convert the contour points to polar coordinates and return them
     if showimg:
         fig, ax = plt.subplots(111)
-        cv2.drawContours(image=img, contours=contours, contourIdx=-1,  color=(0, 255, 0), thickness=2, lineType=cv2.LINE_AA)
-        plt.imshow(img, cmap=cmr.neutral)
-        plt.show()
+        if selected_contour is not None:
+            cv2.drawContours(image=img, contours=selected_contour, contourIdx=-1,  color=(0, 255, 0), thickness=2, lineType=cv2.LINE_AA)
+        cv2.imshow("stripped img", img)
+        cv2.waitKey(0)
     if selected_contour is not None:
         paths= selected_contour.reshape(-1, 2)
         paths = fullxy_to_polar_arr(paths, img, 40)
@@ -154,7 +155,7 @@ def plot_pathpoints(clist):
 
 def pathtest():
     test = fits.open(fpath(r"datasets/HST/custom/v04_coadded_gaussian[3_1].fits"))
-    clist = [generate_contourpoints(test, DPR_IMXY['04'], (0.25,0.35))]
+    clist = [generate_contourpoints(test, DPR_IMXY['04'], (0.25,0.35),)]
     plot_pathpoints(clist)
     return clist[0]
 

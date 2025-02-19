@@ -122,7 +122,7 @@ def update_history(fits_object, *args):
         
 def debug_fitsheader(fits_obj:fits.HDUList):
     header = fits_obj[FITSINDEX].header
-    print(header.__dict__)
+    print("\n".join([f"{k}: {v}"for k,v in header.items()]))
 def debug_fitsdata(fits_obj:fits.HDUList):
     data = fits_obj[FITSINDEX].data
     print(data.shape)
@@ -132,15 +132,15 @@ def debug_fitsdata(fits_obj:fits.HDUList):
 #                    IMAGE UTILITIES
 #################################################################################
 def mcolor_to_lum(*colors):
-    col = [0]*len(colors)
+    col = []
     for i,c in enumerate(colors):
         if not isinstance(c, int):
             # turn into rgb, could be mpl string color, hex , rgb
-            c_ = mcolors.to_rgba(c)[:3]
+            c_ = mcolors.to_rgba(c)
             # turn into luminance int
-            col[i] = int(0.2126*c_[0]+0.7152*c_[1]+0.0722*c_[2])
+            col.append(int((0.2126*c_[0]+0.7152*c_[1]+0.0722*c_[2])*255))
         else:
-            col[i] = c
+            col.append(c)
     if len(col) == 1:
         return col[0]
     return col

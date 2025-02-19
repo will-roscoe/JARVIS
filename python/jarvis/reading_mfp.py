@@ -15,7 +15,7 @@ from .utils import fpath
 
 def moonfploc(iolon, eulon, galon):
     
-    tablename = fpath('python/jarvis/hess2011_table1.txt')
+    tablename = fpath('datasets/hess2011_table1.txt')
     table = open(tablename, 'r')
     
     lista = []

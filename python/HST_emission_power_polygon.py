@@ -31,6 +31,7 @@ import collections.abc as collections # If using Python version 3.10 and above
 #from scipy import signal
 import scipy.constants as c
 from matplotlib import path
+from jarvis.cvis import pathtest
 fs = 12   # font size for plots
 ctrs  = pathtest()# dictionary of contour paths 
 print(ctrs)
@@ -38,7 +39,8 @@ print(ctrs)
 dusk_active_region = [[20,167.75],[30,160],[20,140],[15,130],[15,140]] # SIII longitudes
 swirl_region = [[2.75,111],[17,155],[18,185],[4,190]] # high cml, swirl 360-SIII longitudes here
 noon_active_region = [[18,154],[24,154],[28,192],[22,192]] # high cml, noon 360-SIII longitudes here
-dark_region = ([8,247.5], [12,247.5], [18,225], [22,217.5], [22,202.5], [20,202.5], [14,202.5], [8,217.5])
+
+#dark_region = ([8,247.5], [12,247.5], [18,225], [22,217.5], [22,202.5], [20,202.5], [14,202.5], [8,217.5]) #v01 boundary
 #dark_boundary = path.Path([(8,247.5), (12,247.5), (18,225), (22,217.5), (22,202.5), (20,202.5), (14,202.5), (8,217.5)]) 
 dark_region = [[30,172.5],[32,172.5],[32,180], [29.75,191.25],[26.5,202.5],[20,225],[16,225],[27,190],[28,180]]
 dark_boundary =path.Path([(28,180),(27,190),(16,225),(20,225),(26.5,202.5),(29.75,191.25),(32,180),(32,172.5),(30,172.5)])

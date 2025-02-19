@@ -24,14 +24,13 @@ import datetime as dt
 #import matplotlib.patheffects as pe
 #from matplotlib.path import Path
 import spiceypy as spice
-spice.furnsh('python\\jupiter.mk') # SPICE kernels
+spice.furnsh('python/jupiter.mk') # SPICE kernels
 import time_conversions as tc
 import collections
 import collections.abc as collections # If using Python version 3.10 and above
 #from scipy import signal
 import scipy.constants as c
 from matplotlib import path
-from mscr import pathtest
 fs = 12   # font size for plots
 ctrs  = pathtest()# dictionary of contour paths 
 print(ctrs)
@@ -40,9 +39,12 @@ dusk_active_region = [[20,167.75],[30,160],[20,140],[15,130],[15,140]] # SIII lo
 swirl_region = [[2.75,111],[17,155],[18,185],[4,190]] # high cml, swirl 360-SIII longitudes here
 noon_active_region = [[18,154],[24,154],[28,192],[22,192]] # high cml, noon 360-SIII longitudes here
 dark_region = ([8,247.5], [12,247.5], [18,225], [22,217.5], [22,202.5], [20,202.5], [14,202.5], [8,217.5])
-dark_boundary = path.Path([(8,247.5), (12,247.5), (18,225), (22,217.5), (22,202.5), (20,202.5), (14,202.5), (8,217.5)]) 
+#dark_boundary = path.Path([(8,247.5), (12,247.5), (18,225), (22,217.5), (22,202.5), (20,202.5), (14,202.5), (8,217.5)]) 
+dark_region = [[30,172.5],[32,172.5],[32,180], [29.75,191.25],[26.5,202.5],[20,225],[16,225],[27,190],[28,180]]
+dark_boundary =path.Path([(28,180),(27,190),(16,225),(20,225),(26.5,202.5),(29.75,191.25),(32,180),(32,172.5),(30,172.5)])
 dark_region = ctrs
-dark_boundary = path.Path(ctrs) # use the first contour as the boundary
+dark_boundary = path.Path(ctrs) 
+
 #dar_boundary_2 = path.Path([(),(),(),()])
 #dar_boundary = path.Path([(dusk_active_region[0][0],360-dusk_active_region[0][1]), 
                    #       (dusk_active_region[1][0],360-dusk_active_region[1][1]),
@@ -86,7 +88,9 @@ corr = 'LT'
 # proj_filename = '/Users/joe/data/HST/HST2017_revised/long_exposure/sat_17-045-04-18-34_stis_f25srf2_sm_proj_nobg.fits'
 # proj_filename = '/Users/joe/data/HST/HST2017_revised/long_exposure/sat_17-066-16-52-02_stis_f25srf2_sm_proj_nobg.fits'
 #proj_filename = '/Users/Sarah/OneDrive - Lancaster University/Prog/Python/TestData/137_v01/jup_16-137-23-43-30_0100_v01_stis_f25srf2_proj.fits'
+
 proj_filename = fpath(r'datasets\HST\v04\jup_16-140-20-07-19_0100_v04_stis_f25srf2_proj.fits')
+
 
 hdu_list = fits.open(proj_filename)  # opens the FITS files, accessing data plus header info
 hdu_list.info()                    # print file information
@@ -264,6 +268,7 @@ ax.set_ylim([0,40])                            # max colat range
 # plot image data in linear colour-scale:
 plt.pcolormesh(theta,rho,image_extract,cmap='cubehelix',
                vmin=0.,vmax=1000.)
+
 dr = [[i[0] for i in dark_region], [i[1] for i in dark_region]]
 plt.plot([np.radians(360-r) for r in dr[1]], dr[0], color='red',linewidth=3.)
     
@@ -336,6 +341,7 @@ plt.ylabel('co-latitude [deg]')
 #    dusk_active_region = [[20,192.25],[30,200],[20,220],[15,230],[15,220]]
 #    dar_boundary = path.Path([(20,192.25), (30,200), (20,220), (15,230), (15,220), (20,192.25)]) 
 
+
 plt.plot([360-r for r in dr[1]], dr[0], 
     # [360-dark_region[0][1],360-dark_region[1][1],
     #       360-dark_region[2][1],360-dark_region[3][1],
@@ -346,6 +352,7 @@ plt.plot([360-r for r in dr[1]], dr[0],
     #        dark_region[3][0],dark_region[4][0],dark_region[5][0],
     #        dark_region[6][0],dark_region[7][0],
     #        dark_region[0][0]],  # close the box. color='red',linewidth=3.)
+
 # plt.plot([roi_a[0],roi_b[0],roi_c[0],roi_d[0],roi_a[0]],  # corner A repeated to
 #           [roi_a[1],roi_b[1],roi_c[1],roi_d[1],roi_a[1]],  # close the box.
            color='red',linewidth=3.)

@@ -1,5 +1,7 @@
+from calendar import c
 import os
 import random
+import re
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -9,12 +11,13 @@ import cv2
 from jarvis.utils import fitsheader, fpath, mcolor_to_lum, fits_from_parent, prepare_fits, ensure_dir,  basename
 from jarvis.polar import plot_polar, process_fits_file
 from astropy.io import fits
-from jarvis.const import FITSINDEX,DPR_IMXY
+from jarvis.const import FITSINDEX, DPR_IMXY, DPR_JSON
 from typing import List, Union
 from tqdm import tqdm
 from jarvis.transforms import  coadd,gaussian_blur,fullxy_to_polar_arr
 from glob import glob
 import matplotlib as mpl
+import json
 
 def cropimg(inpath:str,outpath:str=None,ax_background=255,img_background=0)->Union[None,np.ndarray]: 
     """Crop an image to the bounding box of the non 'image_background' pixels.
@@ -90,24 +93,11 @@ def gen_gaussian_coadded_fits():
         cofitsd.writeto(savedir+f"v{i}_coadded_gaussian[3_1].fits", overwrite=True)
         pbar.update(1)
 
-def generate_contourpoints(fits_obj:fits.HDUList, id_pixel: List[int]=None, lrange=(0.2,0.4), showimg=False)->List[List[float]]:
+def generate_contours(fits_obj:fits.HDUList, lrange=(0.2,0.4))->List[List[float]]:
     # generate a stripped down, grey scale image of the fits file
-    d = fits_obj[FITSINDEX].data 
     proc =process_fits_file(prepare_fits(fits_obj, fixed='LON', full=True))
     img = mk_stripped_polar(proc, cmap=cmr.neutral, ax_background='white', img_background='black') 
     # if a pixel is not provided, ask the user to provide one, and show the image
-    if id_pixel is None or isinstance(id_pixel, str):
-        def on_click(event):
-            global click_coords
-            if event.xdata is not None and event.ydata is not None:
-                click_coords = (event.xdata, event.ydata)
-                plt.close()
-        fig, ax = plt.subplots()
-        ax.imshow(img, cmap=cmr.neutral)
-        ax.set_title("Click on a point")
-        event_connection = fig.canvas.mpl_connect('button_press_event', on_click)
-        plt.show()
-        id_pixel = click_coords
     # normalize image
     normed = cv2.normalize(img, None, 0, 255, cv2.NORM_MINMAX)
     # create a mask of the image using the provided luminance range
@@ -120,24 +110,34 @@ def generate_contourpoints(fits_obj:fits.HDUList, id_pixel: List[int]=None, lran
     contours, hierarchy = cv2.findContours(image=mask, mode=cv2.RETR_EXTERNAL, method=cv2.CHAIN_APPROX_SIMPLE)
     #contours = [cv2.convexHull(cnt) for cnt in contours] # Convex hull of the contours
     # Find the contour that encloses the given point
+    return contours, hierarchy, img
+
+def select_contour(contours, hierarchy, img:np.ndarray, id_pixel=None):
+    if id_pixel is None or isinstance(id_pixel, str):
+        def on_click(event):
+            global click_coords
+            if event.xdata is not None and event.ydata is not None:
+                click_coords = (event.xdata, event.ydata)
+                plt.close()
+        fig, ax = plt.subplots()
+        ax.imshow(img, cmap=cmr.neutral)
+        ax.set_title("Click on a point")
+        event_connection = fig.canvas.mpl_connect('button_press_event', on_click)
+        plt.show()
+        id_pixel = click_coords
+    
     selected_contour = None
     for contour in contours:
         if cv2.pointPolygonTest(contour, id_pixel, False) > 0:  # >0 means inside
             selected_contour = contour
             break  # Stop searching once we find the correct contour
     # if a contour is found, convert the contour points to polar coordinates and return them
-    if showimg:
-        fig, ax = plt.subplots(111)
-        if selected_contour is not None:
-            cv2.drawContours(image=img, contours=selected_contour, contourIdx=-1,  color=(0, 255, 0), thickness=2, lineType=cv2.LINE_AA)
-        cv2.imshow("stripped img", img)
-        cv2.waitKey(0)
     if selected_contour is not None:
         paths= selected_contour.reshape(-1, 2)
         paths = fullxy_to_polar_arr(paths, img, 40)
         return paths
     else:
-        return None
+        raise ValueError("No contour found for the selected pixel at the given luminance range.")
 def plot_pathpoints(clist):
     fig = plt.figure(figsize=(12, 6))
     ax = fig.add_subplot(121, polar=True)
@@ -150,8 +150,11 @@ def plot_pathpoints(clist):
     ax.set_theta_zero_location('N')
     ax2.invert_yaxis()
     ax2.invert_xaxis()
-
-    plt.show()         
+    plt.show()       
+def generate_contourpoints(fits_obj:fits.HDUList,id_pixel=None, lrange=(0.2,0.4), ):
+    contours, hierarchy, img = generate_contours(fits_obj, lrange)
+    return select_contour(contours, hierarchy, img, id_pixel)
+  
 
 def pathtest():
     test = fits.open(fpath(r"datasets/HST/custom/v04_coadded_gaussian[3_1].fits"))
@@ -159,7 +162,43 @@ def pathtest():
     plot_pathpoints(clist)
     return clist[0]
 
+def savecontourpath(contours, path_id, **kwargs):
+    with open(DPR_JSON, 'r') as f:
+        data = json.load(f)
 
+    # if only one contour is input, save it as a single path (only one if shape is (n,2)))
+    c1 = contours[0]
+    if isinstance(c1[0], (int, float)):
+        data[path_id] = {'path':contours, **kwargs}
+    else:
+        for i, contour in enumerate(contours):
+            data[f"{path_id}_{i}"] = {'path':contour, **kwargs}
+    # if more than one contour is input, save them all as separate paths (if shape is (m,n,2))
+    with open(DPR_JSON, 'w') as f:
+        json.dump(data, f, indent=4)
+def loadcontourpath(path_id, *args, regex=False):
+    if not regex:
+        with open(DPR_JSON, 'r') as f:
+            data = json.load(f)
+            contourd=data[path_id]
+            if len(args) == 0:
+                return contourd['path']
+        return contourd['path'], [contourd[arg] for arg in args]
+    # use regex to see if there are multiple paths with the same id
+    with open(DPR_JSON, 'r') as f:
+        data = json.load(f)
+        contourd = {k:v for k,v in data.items() if re.match(path_id, k)}
+        if len(contourd) == 0:
+            raise ValueError(f"No paths found matching the regex {path_id}")
+        if len(args) == 0:
+            return [contourd[k]['path'] for k in contourd.keys()]
+        return [contourd[k]['path'] for k in contourd.keys()], [[contourd[k][arg] for arg in args] for k in contourd.keys()]
+        
+    
+    
 
+    
+
+  
 
 

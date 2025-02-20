@@ -1,10 +1,11 @@
-from astropy.io import fits
-from jarvis.cvis import pathtest, savecontourpoints
+
+
 from jarvis.utils import fpath
 # from jarvis import make_gif, moind, fpath, gradmap
 from matplotlib.colors import LinearSegmentedColormap
 import matplotlib as mpl
 import glob
+from jarvis.power import powercalc
 
 #norm = mpl.colors.Normalize(vmin=0, vmax=1000)
 
@@ -32,6 +33,6 @@ import glob
 
 
 if __name__ == "__main__":
-
-    contours = pathtest()
-    savecontourpoints(contours, fpath(r"datasets/HST/custom/v04_coadded_gaussian[3_1].fits"))
+    powercalc()
+    # contours = pathtest()
+    # savecontourpoints(contours, fpath(r"datasets/HST/custom/v04_coadded_gaussian[3_1].fits"))

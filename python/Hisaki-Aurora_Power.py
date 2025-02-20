@@ -40,8 +40,6 @@ time_series_data = hdul[2].data
 
 #to get data from a specific column in the table, use the 'field' function; we want 'SECOFDAY', 'TPOW0710ADAWN' and 'TPOW0710ADUSK'
 time = time_series_data.field('SECOFDAY')
-#intensity_dawn = time_series_data.field('TPOW0710ADAWN')
-#intensity_dusk = time_series_data.field('TPOW0710ADUSK')
 aurora_power = time_series_data.field('TPOW1190A')
 
 ############################
@@ -56,8 +54,6 @@ ax.set_xlabel('Time (s)')
 ax.set_ylabel('Power (GW)')
 
 #plot the data
-#ax.plot(time, intensity_dawn, label='Dawn')
-#ax.plot(time, intensity_dusk, label='Dusk')
 ax.plot(time, aurora_power, label='Power')
 
 #add a legend to the plot (it will automatically contain the labels defined above)

@@ -310,7 +310,7 @@ def moind(fitsobj:fits.HDUList, crop:float = 1, rlim:float = 40, fixed:str= 'lon
         plot_regions(fits_obj,ax)
     if moonfp:
         plot_moonfp(fits_obj,ax,) 
-    return fig, ax
+    return fig, ax, fits_obj
 
 
 
@@ -331,19 +331,20 @@ def make_gif(fits_dir,fps=5,remove_temp=False,savelocation='auto',filename='auto
     """
     fitslist = list(fits_from_glob(fits_dir))
     imagesgif=[]
-    with tqdm(total=len(fitslist)) as pbar:        
+    with tqdm(total=len(fitslist)) as pb:        
         for i,file in enumerate(fitslist):
-            fig,ax = moind(file, **kwargs)
+            fig,ax,f = moind(file, **kwargs)
             fig.savefig(fpath('temp/')+f'gifpart_{i}.jpg', dpi=300)
+            plt.close(fig)
             tqdm.write(f'Image {i+1} of {len(fitslist)} created: {"IMPLEMENT"}')
-            pbar.update(1)
+            pb.update(1)
             imagesgif.append(imageio.imread(fpath('temp/')+f'gifpart_{i}.jpg'))
             #saving the GIF
     if savelocation == 'auto':
         savelocation = fpath('pictures/gifs/')
     ensure_dir(savelocation)
     if filename == 'auto':
-        filename = make_filename(fitslist[0])+f'{len(fitslist)}fr_{fps}fps' +'.gif'
+        filename = make_filename(f)+f'{len(fitslist)}fr_{fps}fps' +'.gif'
     imageio.mimsave(savelocation+filename, imagesgif, fps=fps)
     if remove_temp:
         for file in glob.glob(fpath('temp/')+'*'):
@@ -368,8 +369,14 @@ def makefast_gif(fitsobjs,initfunc=None,fps=5,showprogress=True,**kwargs)->None:
     """
     if initfunc is None:
         def initfunc(idx):
-            fits_obj = fitsobjs[idx]
-            fig,_ = moind(fits_obj, **kwargs['fits'])
+            fits_obj = process_fits_file(prepare_fits(fitsobjs[idx], **kwargs.pop('fits',{})))                                     
+            fig =plt.figure(figsize=(7,6))
+            ax = plt.subplot(projection='polar')
+            plot_polar(fits_obj, ax, **kwargs)
+            if all([not fitsheader(fits_obj, 'south'), fitsheader(fits_obj, 'REGIONS')]):
+                plot_regions(fits_obj,ax)
+            if fitsheader(fits_obj, 'MOONFP'):
+                plot_moonfp(fits_obj,ax,) 
             return fig
     if 'saveto' in kwargs:
         savelocation = kwargs.pop('saveto')

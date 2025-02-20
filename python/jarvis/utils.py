@@ -6,6 +6,7 @@ from typing import List
 import glob
 from .const import GHROOT, FITSINDEX
 from matplotlib import colors as mcolors
+from tqdm import tqdm
 
 #################################################################################
 #                   PATH/DIRECTORY MANAGMENT
@@ -41,7 +42,7 @@ def fits_from_glob(fits_dir:str, suffix:str='/*.fits', recursive=True, sort=True
             fits_file_list.append(g)
     if sort:
         fits_file_list.sort()   
-    print(f'Found {len(fits_file_list)} files in the directory.')
+    tqdm.write(f'Found {len(fits_file_list)} files in the directory.')
     return [fits.open(f) for f in fits_file_list]
 #################################################################################
 #                  HDUList/FITS object FUNCTIONS

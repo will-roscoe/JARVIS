@@ -1,7 +1,12 @@
 # import relevant packages
+import numpy as np
 from astropy.io import fits					#handling of FITS files
-from matplotlib import pyplot as plt		#for making plots
-
+import matplotlib.pyplot as plt		#for making plots
+from pathlib import Path 
+import os
+GHROOT = Path(__file__).parents[1]
+def fpath(x):
+    return os.path.join(GHROOT, x)
 
 #############################################
 #### Retrieving data from the FITS file #####
@@ -51,5 +56,6 @@ plt.tight_layout()
 
 #save the figure (this will save it in the current directory; to save it somewhere else edit the filename to include the desired directory)
 figname = 'EUV_intensity_vs_time.pdf'
-plt.savefig(figname, bbox_inches='tight')
+plt.show()
+#plt.savefig(figname, bbox_inches='tight')
 

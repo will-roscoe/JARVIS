@@ -1,4 +1,5 @@
 from pathlib import Path
+
 #! defines the project root directory (as the root of the gh repo) 
 GHROOT = Path(__file__).parents[2]
 #! if you move this file/folder, you need to change this line to match the new location. 
@@ -7,6 +8,8 @@ GHROOT = Path(__file__).parents[2]
 DATADIR = GHROOT / 'datasets'
 PYDIR = GHROOT / 'python'
 PKGDIR = PYDIR / 'jarvis' 
+KERNELDIR = "datasets/kernels/"
+
 # DEFAULT FITSINDEX: the default target HDU within a fits file.
 FITSINDEX = 1 
 # XY COORDS FOR IN DPR REGION OF IMAGES 

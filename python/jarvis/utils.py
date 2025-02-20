@@ -1,5 +1,6 @@
 import os
 import datetime
+import re
 import numpy as np
 import astropy.io.fits as fits
 from typing import List
@@ -32,7 +33,7 @@ def basename(x, ext=False):
 #################################################################################
 #                   FITS FILE INTERFACING
 #################################################################################
-def fits_from_glob(fits_dir:str, suffix:str='/*.fits', recursive=True, sort=True)->List[fits.HDUList]:
+def fits_from_glob(fits_dir:str, suffix:str='/*.fits', recursive=True, sort=True, names=False)->List[fits.HDUList]:
     """Returns a list of fits objects from a directory."""
     if isinstance(fits_dir,str):
           fits_dir = [fits_dir,]
@@ -43,7 +44,9 @@ def fits_from_glob(fits_dir:str, suffix:str='/*.fits', recursive=True, sort=True
     if sort:
         fits_file_list.sort()   
     tqdm.write(f'Found {len(fits_file_list)} files in the directory.')
-    return [fits.open(f) for f in fits_file_list]
+    if names:
+        return [fits.open(f) for f in fits_file_list] , [basename(f) for f in fits_file_list]
+    return [fits.open(f) for f in fits_file_list] 
 #################################################################################
 #                  HDUList/FITS object FUNCTIONS
 #################################################################################
@@ -194,3 +197,45 @@ class Jfits:
         self = func(self, *args, **kwargs)
     def __del__(self):
         self.close()
+
+gv_translation = dict(
+ group =  [ 1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20], #group numbers
+ visit =  [ 1,  2,  5,  4,  3,  8,  9, 10, 13, 15, 11, 12, 16, 18, 19, 20, 21, 23, 24, 29])
+
+def group_to_visit(*args):
+    ret = []
+    for arg in args:
+        arg = int(arg) 
+        if arg in gv_translation['group']:
+            ret.append(gv_translation['visit'][gv_translation['group'].index(arg)])
+        else:
+            ret.append(None)
+    if len(ret) == 1:
+        return ret[0]
+    return ret
+
+def visit_to_group(*args):
+    ret = []
+    for arg in args:
+        arg = int(arg) 
+        if arg in gv_translation['visit']:
+            ret.append(gv_translation['group'][gv_translation['visit'].index(arg)])
+        else:
+            ret.append(None)
+    if len(ret) == 1:
+        return ret[0]
+    return ret
+
+def fitsdir(sortby='visit', full=False):
+    fitspaths = []
+    for g in gv_translation['group']:
+        fitspaths.append(fpath(f'datasets/HST/group_{g:0>2}'))
+    if sortby == 'visit':
+        # sort the file paths by their respective visit number
+        fitspaths = [fitspaths[i] for i in np.argsort(gv_translation['visit'])]
+    if full:
+        for i, f in enumerate(fitspaths):
+            files = os.listdir(f)
+            fitspaths[i] = [os.path.join(f, file) for file in files]
+    return fitspaths
+

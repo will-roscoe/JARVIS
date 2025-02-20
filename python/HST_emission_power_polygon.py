@@ -606,8 +606,10 @@ print(total_power_emitted_from_roi)
 print('Power per unit area in GW/km^2:')
 print(power_per_area)
 
-
-
+visit= hdu_list[0].header['VISIT']
+filepath = 'powers.txt'
+with open(filepath, 'a') as f:
+    f.write(visit + ' ' + str(start_time) + ' ' + str(total_power_emitted_from_roi) + ' ' + str(power_per_area) + '\n')
 # ==============================================================================
 # This next bit is to make a logic mask for an auroral oval polygon, via
 # image wrapping and interpolation at full-image resolution to get it working

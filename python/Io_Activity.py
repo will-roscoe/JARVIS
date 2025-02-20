@@ -16,7 +16,7 @@ def fpath(x):
 filename = 'TestData/exeuv_torus_20150131_lv03_LT00-24_dt00010_vr01_00.fits'
 
 # load the file
-hdul = fits.open(filename)
+hdul = fits.open(fpath(filename))
 
 # 'hdul' is a HDUList (header-data unit list) containing 3 elements; using Python indexing you can retrieve the individual elements:
 # hdul[0] contains 'metadata' - you'll rarely have to use this one

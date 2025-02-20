@@ -26,7 +26,7 @@ import numpy as np
 from tqdm import tqdm 
 # local modules
 from .const import FITSINDEX
-from .utils import fpath, fitsheader, fits_from_parent, get_datetime, clock_format, ensure_dir, prepare_fits, make_filename, fits_from_glob
+from .utils import fpath, fitsheader, fits_from_parent, get_datetime, clock_format, ensure_dir, prepare_fits, make_filename, fits_from_glob, basename
 from .reading_mfp import moonfploc
 
 
@@ -329,15 +329,17 @@ def make_gif(fits_dir,fps=5,remove_temp=False,savelocation='auto',filename='auto
     The function reads all FITS files in the specified directory, generates polar plots using the moind function,
     and creates a GIF from the images. The GIF is saved in the specified location with the given filename.
     """
-    fitslist = list(fits_from_glob(fits_dir))
+    fitslist,fnames = fits_from_glob(fits_dir, names=True)
     imagesgif=[]
     with tqdm(total=len(fitslist)) as pb:        
         for i,file in enumerate(fitslist):
+            pb.set_postfix(file=fnames[i])
             fig,ax,f = moind(file, **kwargs)
             fig.savefig(fpath('temp/')+f'gifpart_{i}.jpg', dpi=300)
             plt.close(fig)
-            tqdm.write(f'Image {i+1} of {len(fitslist)} created: {"IMPLEMENT"}')
+            #tqdm.write(f'Image {i+1} of {len(fitslist)} created: {"IMPLEMENT"}')
             pb.update(1)
+            
             imagesgif.append(imageio.imread(fpath('temp/')+f'gifpart_{i}.jpg'))
             #saving the GIF
     if savelocation == 'auto':

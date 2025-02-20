@@ -40,10 +40,10 @@ if __name__ == "__main__":
         ddir = fpath('datasets/HST')
         #find all directories in the HST directory, as absolute paths
         dirs = [f for f in os.listdir(ddir) if os.path.isdir(os.path.join(ddir, f))] if args.dir == 'NONE' else [fpath(a) for a in args.dir]
-        pbar = tqdm(total=len(dirs))
+        pb_ = tqdm(total=len(dirs), desc="Generating GIFs", unit="gifs")
         for d in dirs:
             make_gif(f'{ddir}/{d}', savelocation=fpath("figures/gifs/"), fps=args.fps, )
-            pbar.update(1)
+            pb_.update(1)
 
     elif args.command == "imgs":
         from jarvis.polar import moind

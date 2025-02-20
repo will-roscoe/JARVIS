@@ -20,6 +20,7 @@ import os
 import tarfile
 from tqdm import tqdm
 from jarvis.utils import fpath
+from jarvis.const import KERNELDIR
 import argparse
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Compress, decompress and cleanup kernel files.")
@@ -41,8 +42,8 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    ARCHIVE_DIR = fpath('datasets/kernels/archive') if args.archive_dir == '.' else fpath(args.archive_dir)
-    KERNEL_DIR = fpath('python/Kernels') if args.kernel_dir == '.' else fpath(args.kernel_dir)
+    ARCHIVE_DIR = fpath(KERNELDIR+'archive') if args.archive_dir == '.' else fpath(args.archive_dir)
+    KERNEL_DIR = fpath(KERNELDIR) if args.kernel_dir == '.' else fpath(args.kernel_dir)
     KERNELFILES = getattr(args,'files', ['de430.bsp', 'jup365.bsp', 'mk00062a.tsc', 'naif0012.tls', 'pck00011.tpc'])
     CHUNKSIZE_BYTES = getattr(args, 'chunksize_mb', 100) * 1024 * 1024
     DECOMPRESS_OVERWRITE = getattr(args, 'force', False)  # Use getattr to provide a default value

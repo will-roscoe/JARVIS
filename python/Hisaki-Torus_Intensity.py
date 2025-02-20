@@ -76,4 +76,3 @@ plt.show()
 
 #save the figure (this will save it in the current directory; to save it somewhere else edit the filename to include the desired directory)
 #plt.savefig(figname, bbox_inches='tight')
-

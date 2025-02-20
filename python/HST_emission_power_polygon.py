@@ -42,12 +42,10 @@ noon_active_region = [[18,154],[24,154],[28,192],[22,192]] # high cml, noon 360-
 
 #dark_region = ([8,247.5], [12,247.5], [18,225], [22,217.5], [22,202.5], [20,202.5], [14,202.5], [8,217.5]) #v01 boundary
 #dark_boundary = path.Path([(8,247.5), (12,247.5), (18,225), (22,217.5), (22,202.5), (20,202.5), (14,202.5), (8,217.5)]) 
-dark_region = [[30,172.5],[32,172.5],[32,180], [29.75,191.25],[26.5,202.5],[20,225],[16,225],[27,190],[28,180]]
-dark_boundary =path.Path([(28,180),(27,190),(16,225),(20,225),(26.5,202.5),(29.75,191.25),(32,180),(32,172.5),(30,172.5)])
+#dark_region = [[30,172.5],[32,172.5],[32,180], [29.75,191.25],[26.5,202.5],[20,225],[16,225],[27,190],[28,180]] #v04 boundary
+#dark_boundary =path.Path([(28,180),(27,190),(16,225),(20,225),(26.5,202.5),(29.75,191.25),(32,180),(32,172.5),(30,172.5)])
 dark_region = ctrs
 dark_boundary = path.Path(ctrs) 
-
-#dar_boundary_2 = path.Path([(),(),(),()])
 #dar_boundary = path.Path([(dusk_active_region[0][0],360-dusk_active_region[0][1]), 
                    #       (dusk_active_region[1][0],360-dusk_active_region[1][1]),
                     #      (dusk_active_region[2][0],360-dusk_active_region[2][1]),
@@ -586,10 +584,28 @@ plt.show()
 distance_squared = (dist * au_to_km)**2          # AU in km
 #
 # calculate emitted power from ROI in GW (exposure time not required here as kR intensities are per second):
-total_power_emitted_from_roi = np.nansum(bimage_roi) * cts2kr * distance_squared * gustin_conv_factor / 1e9
 
+def area_calc(vertices):
+    '''Calculates the area in units of degrees^2 of the ROI'''
+    n = len(vertices)
+    area = 0.0
+    for i in range(n):
+        j = (i + 1) % n
+        area += vertices[i][0] * vertices[j][1]
+        area -= vertices[j][0] * vertices[i][1]
+    area = abs(area) / 2.0
+    return area
+def area_to_km2(area_deg,rad_km=rpkm+240):
+    '''Converts the area from degrees^2 to km^2'''
+    return area_deg * (np.pi/180.)**2 * rad_km**2
+total_power_emitted_from_roi = np.nansum(bimage_roi) * cts2kr * distance_squared * gustin_conv_factor / 1e9
+area = area_to_km2(area_calc(dark_region))
+power_per_area = total_power_emitted_from_roi / area
 print('Total power emitted from ROI in GW:')
 print(total_power_emitted_from_roi)
+print('Power per unit area in GW/km^2:')
+print(power_per_area)
+
 
 
 # ==============================================================================

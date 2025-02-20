@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import cmasher as cmr
 import cv2
 
-from jarvis.utils import fitsheader, fpath, mcolor_to_lum, fits_from_parent, prepare_fits, ensure_dir,  basename
+from jarvis.utils import fits_from_glob, fitsheader, fpath, mcolor_to_lum, fits_from_parent, prepare_fits, ensure_dir,  basename, fitsdir
 from jarvis.polar import plot_polar, process_fits_file
 from astropy.io import fits
 from jarvis.const import FITSINDEX, DPR_IMXY, DPR_JSON
@@ -73,27 +73,20 @@ def mk_stripped_polar(fits_obj: fits.HDUList, ax_background='white',img_backgrou
     os.remove(tempdir)
     return img
 
-def gen_gaussian_coadded_fits():
-    savedir = fpath(r"datasets/HST/custom/")
-    ensure_dir(savedir)
-    pbar = tqdm(total=20)
-    for i in [f"{m:0>2}" for m in range(1,21)]:
-        path = fpath(f'datasets/HST/v{i}/*.fits')
-        tqdm.write(path)
-        targetpaths = glob(path)
-        fitsfiles = [fits.open(x) for x in targetpaths]
-        bases = [basename(x) for x in targetpaths]
-        print(bases)
-        smoothed = [gaussian_blur(fitsfiles[i][1].data, 3, 1) for i in range(len(fitsfiles))]
-        coadded = coadd(smoothed)
-        cofitsd = coadd([fitsfiles[i][1].data for i in range(len(fitsfiles))])
-        cogauss = gaussian_blur(coadded, 3, 1)
-        cofitsd = fits_from_parent(fitsfiles[0], new_data=cogauss)
-        cofitsd[1].header['HISTORY'] = f'Coadded from {len(smoothed)} files, then gaussian blurred with 3,1'
-        cofitsd.writeto(savedir+f"v{i}_coadded_gaussian[3_1].fits", overwrite=True)
-        pbar.update(1)
+def gaussian_coadded_fits(fits_objs,saveto=None, gaussian=(3,1), overwrite=True,indiv=True,coadded=True):
+    fdatas = [fits_objs[i][1].data for i in range(len(fits_objs))]
+    if saveto == 'auto':
+        saveto = fpath(f'datasets/HST/custom/{basename(fitsdir)}_coadded_gaussian{gaussian}.fits')
+    fdatas = [gaussian_blur(fd, *gaussian) for fd in fdatas] if indiv else fdatas
+    coaddg = coadd(fdatas)
+    coaddg = gaussian_blur(coadded, 3, 1) if coadded else coaddg
+    cofitsd = fits_from_parent(fits_objs[0], new_data=coaddg)
+    if saveto is not None:
+        cofitsd.writeto(saveto, overwrite=overwrite)
+    return cofitsd
+       
 
-def generate_contours(fits_obj:fits.HDUList, lrange=(0.2,0.4))->List[List[float]]:
+def contourgen(fits_obj:fits.HDUList, lrange=(0.2,0.4))->List[List[float]]:
     # generate a stripped down, grey scale image of the fits file
     proc =process_fits_file(prepare_fits(fits_obj, fixed='LON', full=True))
     img = mk_stripped_polar(proc, cmap=cmr.neutral, ax_background='white', img_background='black') 
@@ -112,7 +105,7 @@ def generate_contours(fits_obj:fits.HDUList, lrange=(0.2,0.4))->List[List[float]
     # Find the contour that encloses the given point
     return contours, hierarchy, img
 
-def select_contour(contours, hierarchy, img:np.ndarray, id_pixel=None):
+def identify_boundary(contours, hierarchy, img:np.ndarray, id_pixel=None):
     if id_pixel is None or isinstance(id_pixel, str):
         def on_click(event):
             global click_coords
@@ -125,7 +118,6 @@ def select_contour(contours, hierarchy, img:np.ndarray, id_pixel=None):
         event_connection = fig.canvas.mpl_connect('button_press_event', on_click)
         plt.show()
         id_pixel = click_coords
-    
     selected_contour = None
     for contour in contours:
         if cv2.pointPolygonTest(contour, id_pixel, False) > 0:  # >0 means inside
@@ -138,6 +130,7 @@ def select_contour(contours, hierarchy, img:np.ndarray, id_pixel=None):
         return paths
     else:
         raise ValueError("No contour found for the selected pixel at the given luminance range.")
+
 def plot_pathpoints(clist):
     fig = plt.figure(figsize=(12, 6))
     ax = fig.add_subplot(121, polar=True)
@@ -152,8 +145,8 @@ def plot_pathpoints(clist):
     ax2.invert_xaxis()
     plt.show()       
 def generate_contourpoints(fits_obj:fits.HDUList,id_pixel=None, lrange=(0.2,0.4), ):
-    contours, hierarchy, img = generate_contours(fits_obj, lrange)
-    return select_contour(contours, hierarchy, img, id_pixel)
+    contours, hierarchy, img = contourgen(fits_obj, lrange)
+    return identify_boundary(contours, hierarchy, img, id_pixel)
   
 
 def pathtest():

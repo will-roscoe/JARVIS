@@ -11,6 +11,7 @@ import cv2
 from jarvis.utils import fits_from_glob, fitsheader, fpath, mcolor_to_lum, fits_from_parent, prepare_fits, ensure_dir,  basename, fitsdir
 from jarvis.polar import plot_polar, process_fits_file
 from astropy.io import fits
+import astropy as ap
 from jarvis.const import FITSINDEX, DPR_IMXY, DPR_JSON
 from typing import List, Union
 from tqdm import tqdm
@@ -136,8 +137,8 @@ def plot_pathpoints(clist):
     ax = fig.add_subplot(121, polar=True)
     ax2 = fig.add_subplot(122)
     for c in clist:
-        ax.scatter(np.radians([x[1] for x in c]), [x[0] for x in c], s=1)
-        ax2.scatter([x[1] for x in c], [x[0] for x in c], s=1)
+        ax.scatter(np.radians(c[:,1]), [c[:,0]], s=1)
+        ax2.scatter(c[:,1], c[:,0], s=1)
 
     ax.set_theta_direction(-1)
     ax.set_theta_zero_location('N')
@@ -155,40 +156,22 @@ def pathtest():
     plot_pathpoints(clist)
     return clist[0]
 
-def savecontourpath(contours, path_id, **kwargs):
-    with open(DPR_JSON, 'r') as f:
-        data = json.load(f)
-
-    # if only one contour is input, save it as a single path (only one if shape is (n,2)))
-    c1 = contours[0]
-    if isinstance(c1[0], (int, float)):
-        data[path_id] = {'path':contours, **kwargs}
-    else:
-        for i, contour in enumerate(contours):
-            data[f"{path_id}_{i}"] = {'path':contour, **kwargs}
-    # if more than one contour is input, save them all as separate paths (if shape is (m,n,2))
-    with open(DPR_JSON, 'w') as f:
-        json.dump(data, f, indent=4)
-def loadcontourpath(path_id, *args, regex=False):
-    if not regex:
-        with open(DPR_JSON, 'r') as f:
-            data = json.load(f)
-            contourd=data[path_id]
-            if len(args) == 0:
-                return contourd['path']
-        return contourd['path'], [contourd[arg] for arg in args]
-    # use regex to see if there are multiple paths with the same id
-    with open(DPR_JSON, 'r') as f:
-        data = json.load(f)
-        contourd = {k:v for k,v in data.items() if re.match(path_id, k)}
-        if len(contourd) == 0:
-            raise ValueError(f"No paths found matching the regex {path_id}")
-        if len(args) == 0:
-            return [contourd[k]['path'] for k in contourd.keys()]
-        return [contourd[k]['path'] for k in contourd.keys()], [[contourd[k][arg] for arg in args] for k in contourd.keys()]
-        
-    
-    
+def savecontour_tofits(fits_obj: fits.HDUList, path, index=None):
+    # if no index given, use the next available index
+    if index is None:
+        index = len(fits_obj)
+    table = ap.table.Table(data=path, names=['colat', 'lon'])
+    # find any existing boundary HDUs
+    ver = 0
+    for i, hdu in enumerate(fits_obj):
+        if hdu.name == 'BOUNDARY':
+            ver = max(ver, hdu.ver)
+    ver += 1
+    newtablehdu = fits.BinTableHDU(table, name='BOUNDARY', ver=ver)
+    curr_hdus = [fits_obj[i] for i in range(len(fits_obj))]
+    curr_hdus.insert(index, newtablehdu)
+    newfits = fits.HDUList(curr_hdus)
+    return newfits
 
     
 

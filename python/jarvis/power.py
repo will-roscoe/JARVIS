@@ -1,20 +1,17 @@
-#=== HST_emission_power.py =====================================================
-# Script to read in projected/unprojected HST STIS .fits images, define a
-# spatial region, and calculate the UV emission power.
-#
-# Translation between unprojected/projected images is partly handled by IDL
-# pipeline legacy code from Boston University, and partly from python code
-# provided by Jonny Nichols at Leicester. (broject function)
+#> === HST_emission_power.py ===================================================
+#> Script to read in projected/unprojected HST STIS .fits images, define a
+#> spatial region, and calculate the UV emission power.
+#>
+#> Translation between unprojected/projected images is partly handled by IDL
+#> pipeline legacy code from Boston University, and partly from python code
+#> provided by Jonny Nichols at Leicester. (broject function)
 
-# Emission power computed as per Gustin+ 2012.
+#> Emission power computed as per Gustin+ 2012.
 
-# Should allow e.g., calculation of total auroral oval UV emission power using
-# statistical auroral boundaries, planetary auroral comparisons, or
-# application to Voronoi image segmentations, etc.
-
-# === Joe Kinrade - 8 January 2025 =============================================
-
-import re
+#> Should allow e.g., calculation of total auroral oval UV emission power using
+#> statistical auroral boundaries, planetary auroral comparisons, or
+#> application to Voronoi image segmentations, etc.
+#> === Joe Kinrade - 8 January 2025 ============================================
 from astropy.io import fits
 import matplotlib.pyplot as plt
 import numpy as np
@@ -24,9 +21,9 @@ from .const import KERNELDIR, FITSINDEX
 from .utils import fitsheader, get_datetime
 # Nichols constants:
 au_to_km = 1.495978707e8
-gustin_conv_factor =  9.04e-10 # 1.02e-9 # "Conversion factor to be multiplied by the squared HST-planet distance (km) to determine the total emitted power (Watts) from observed counts per second."
+gustin_conv_factor =  9.04e-10 # 1.02e-9 #> "Conversion factor to be multiplied by the squared HST-planet distance (km) to determine the total emitted power (Watts) from observed counts per second."
 
-# Load SPICE kernels, and define planet radii and oblateness:
+#> Load SPICE kernels, and define planet radii and oblateness:
 spice.furnsh(KERNELDIR+'jupiter.mk') # SPICE kernels
 # Nichols spice stuff:
 planets = ['Mercury', 'Venus', 'Earth', 'Mars', 'Jupiter', 'Saturn',
@@ -34,7 +31,7 @@ planets = ['Mercury', 'Venus', 'Earth', 'Mars', 'Jupiter', 'Saturn',
 inx = planets.index('Jupiter')
 naifobj = 99 + (inx + 1) * 100
 radii = spice.bodvcd(naifobj, 'RADII', 3)
-#print(radii)
+#// print(radii)
 rpeqkm = radii[1][0]
 rpplkm = radii[1][2]
 oblt = 1. - rpplkm / rpeqkm
@@ -42,7 +39,8 @@ oblt = 1. - rpplkm / rpeqkm
 
     # Nicked from Jonny's pypline.py file: 
     # Numpy vectorization & loop optimizations for python 3.8+ implemented by W. Roscoe, 2025
-def _cylbroject(pimage, cml, dece, dmeq, xcen, ycen, psize, nppa, req, obt, ndiv=2, correct=True):
+def _cylbroject(pimage, cml, dece, dmeq, xcen, ycen, psize, nppa, req, obt, 
+                ndiv=2, correct=True):
     """
     cml: central meridian longitude (degrees)
     dece: declination of the equator (degrees)
@@ -68,7 +66,8 @@ def _cylbroject(pimage, cml, dece, dmeq, xcen, ycen, psize, nppa, req, obt, ndiv
     longs = np.linspace(0, 360, nx * ndiv) + cml
     sin_lon = np.sin(np.radians(longs))
     cos_lon = np.cos(np.radians(longs))
-    ll = np.degrees(np.arctan((1.0 - obt)*(1.0 - obt)*np.tan(np.radians(dece + 90.0))*cos_lon))
+    ll = np.degrees(np.arctan(
+        (1.0 - obt)*(1.0 - obt)*np.tan(np.radians(dece + 90.0))*cos_lon))
     lats = np.linspace(-90, 90, ny * ndiv)
     sin_lat = np.sin(np.radians(lats))
     cos_lat = np.cos(np.radians(lats))
@@ -131,7 +130,8 @@ def powercalc(fits_obj:fits.HDUList="", dpr_coords:np.ndarray=""):
             dpr_coords = fits_obj[dpr_coords].data
         else:
             #> check in the hdulist with the name 'BOUNDARY' and take the newest one 
-            b_inds = [i for i in range(len(fits_obj)) if fits_obj[i].name == 'BOUNDARY']
+            b_inds = [i for i in range(len(fits_obj)) 
+                      if fits_obj[i].name == 'BOUNDARY']
             newestb = fits_obj[b_inds[0]]
             for bo in b_inds:
                 if fits_obj[bo].header['EXTVER'] > newestb.header['EXTVER']:
@@ -144,7 +144,8 @@ def powercalc(fits_obj:fits.HDUList="", dpr_coords:np.ndarray=""):
     dpr_path = path.Path(dpr_coords) 
     #-------------------------- MASKING THE IMAGE ARRAY  ------------------------#
     llons, llats = np.meshgrid(np.arange(0,360,0.25), np.arange(0,40,0.25)) # checked correct
-    dark_mask_2d = dpr_path.contains_points(np.vstack([llats.flatten(), llons.flatten()]).T).reshape(160,1440)#> mask needs to be applied to un-rolled image
+    dark_mask_2d = dpr_path.contains_points(np.vstack(
+        [llats.flatten(), llons.flatten()]).T).reshape(160,1440)#> mask needs to be applied to un-rolled image
     # ----------------- FITS FILE HEADER INFO AND VARIABLE DEFS -----------------#
     #fits_obj.info()                    #> print file information
     #> accessing specific header info entries:
@@ -169,7 +170,7 @@ def powercalc(fits_obj:fits.HDUList="", dpr_coords:np.ndarray=""):
     # ------------------------ IMAGE ARRAY EXTRACTION ---------------------------#
     image_data = fits_obj[FITSINDEX].data   
     #! _plot_raw()
-    #fits_obj.close()                # close file once you're done with it
+    #//fits_obj.close()                # close file once you're done with it
     # --------------------------- LIMB TRIMMING ---------------------------------#
     #> perform limb trimming based on angle of surface vector normal to the sun
     lonm = np.radians(np.linspace(0.,360.,num=1440))
@@ -177,14 +178,15 @@ def powercalc(fits_obj:fits.HDUList="", dpr_coords:np.ndarray=""):
     limb_mask = np.zeros((720,1440))   # rows by columns
     cmlr, decr = np.radians([cml, dece])    
     for i in range(0,720):
-        limb_mask[i,:] = np.sin(latm[i])*np.sin(decr) + np.cos(latm[i])*np.cos(decr)*np.cos(lonm-cmlr)
+        limb_mask[i,:] = (np.sin(latm[i])*np.sin(decr) + 
+        np.cos(latm[i])*np.cos(decr)*np.cos(lonm-cmlr))
     limb_mask    = np.flip(limb_mask,axis=1)          # flip the mask horizontally, not sure why this is needed
     cliplim      = np.cos(np.radians(88.))            # >set a minimum required vector normal surface-sun angle
     clipind      = np.squeeze([limb_mask >= cliplim]) #> False = out of bounds (over the limb)
     image_data[clipind  == False] = np.nan  #> set image array values outside clip mask to nans # noqa: E712
     image_centred = image_data.copy() # don't shift by cml for J bc regions defined in longitude not LT
     im_clean = np.flip(image_centred.copy(),0)    #> a centred, clipped version of the full image
-    im_4broject = im_clean.copy()       #im_4broject[im_4broject < -100] = np.nan# 0-40 degrees colat in image pixel res.
+    im_4broject = im_clean.copy()       #// im_4broject[im_4broject < -100] = np.nan  #> 0-40 degrees colat in image pixel res.
     #! _plot_raw_limbtrimmed()
     # -------------------------- AURORAL REGION EXTRACTION ----------------------#
     #> flip image vertically if required (ease of indexing) and extract auroral region
@@ -212,14 +214,15 @@ def powercalc(fits_obj:fits.HDUList="", dpr_coords:np.ndarray=""):
     #> this cylbroject function definition is feeding inputs into _cylbroject - JK
 
     def cylbroject(image, ndiv=2):
-        # self._check_image_loaded(proj=True)      # commented out JK
+        #// self._check_image_loaded(proj=True)      # commented out JK
         print('Brojecting with ndiv = ', ndiv)
-        bimage = _cylbroject(image,cml, dece, dist,pcx, pcy, pxsec,nppa,rpeqkm + delrpkm,oblt, ndiv, True)
+        bimage = _cylbroject(image,cml,dece,dist,pcx,pcy,pxsec,nppa,
+                             rpeqkm+delrpkm,oblt,ndiv,True)
         return bimage
     #> Backprojecting! Image input needs to be full [1440,720] centred projection
     bimage_roi = cylbroject(np.flip(np.flip(roi_im_full, axis=1)),ndiv=2)   #? flips required to get bimage looking right?
     full_image = cylbroject(np.flip(np.flip(im_4broject, axis=1)), ndiv=2)
-    # bimage = cylbroject(image_centred,ndiv=2)
+    #// bimage = cylbroject(image_centred,ndiv=2)
     #! _plot_brojected_full()
     #! _plot_brojected_roi()
 
@@ -228,7 +231,8 @@ def powercalc(fits_obj:fits.HDUList="", dpr_coords:np.ndarray=""):
     #> ISOLATE THE ROI INTENSITIES IN A FULL 1440*720 PROJECTED IMAGE (all other pixels set to nans/zeros)
     distance_squared = (dist * au_to_km)**2          #> AU in km
     #> calculate emitted power from ROI in GW (exposure time not required here as kR intensities are per second):
-    total_power_emitted_from_roi = np.nansum(bimage_roi) * cts2kr * distance_squared * gustin_conv_factor / 1e9
+    total_power_emitted_from_roi = (np.nansum(bimage_roi) * cts2kr * 
+                                    distance_squared * gustin_conv_factor / 1e9)
     area = area_to_km2(area_calc(dpr_coords), rpeqkm+240)
     power_per_area = total_power_emitted_from_roi / area
     print('Total power emitted from ROI in GW:')
@@ -238,8 +242,9 @@ def powercalc(fits_obj:fits.HDUList="", dpr_coords:np.ndarray=""):
     visit= fits_obj[0].header['VISIT']
     filepath = 'powers.txt'
     with open(filepath, 'a') as f:
-        f.write(visit + ' ' + str(start_time) + ' ' + str(total_power_emitted_from_roi) + ' ' + str(power_per_area) + '\n')
-    return total_power_emitted_from_roi, power_per_area
+        f.write(visit + ' ' + str(start_time) + ' ' + str(total_power_emitted_from_roi) 
+                + ' ' + str(power_per_area) + '\n')
+    return total_power_emitted_from_roi, power_per_area, full_image, bimage_roi, roi_mask_full
 
 
 

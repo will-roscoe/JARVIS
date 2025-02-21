@@ -40,6 +40,7 @@ def fullxy_to_polar_arr(xys, img, rlim=40)->np.ndarray:
         while lon > 360:
             lon -= 360
         cl.append((colat,lon))
+    cl = np.array(cl)
     return cl
 
 def polar_to_fullxy(colat, lon, img, rlim)->np.ndarray:

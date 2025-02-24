@@ -390,6 +390,7 @@ def luminosity_viewer(fits_dir: fits.HDUList,saveloc=None,show_tooltips=True, mo
                 lax.legend(handles=handles, **_legendkws)
                 lax.set_facecolor(get_bg(lax))
         else:
+            linfax.clear()
             linfax.text(0.5, 0.5, 'Select at least 2 or more\nLuminosity Samples', fontsize=10, color='black', ha='center', va='center')
             lax.set_facecolor(get_bg(ax))
         fig.canvas.draw()

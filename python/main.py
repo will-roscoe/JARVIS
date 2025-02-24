@@ -1,8 +1,8 @@
 
 
-from astropy.io import fits
+
 from jarvis import fpath
-from jarvis.cvis import luminosity_viewer
+from jarvis.extensions import luminosity_viewer
 
 #norm = mpl.colors.Normalize(vmin=0, vmax=1000)
 

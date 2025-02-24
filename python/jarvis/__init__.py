@@ -39,7 +39,7 @@ __all__ = ['polar', 'const', 'utils', 'cvis', 'power',
     'moind', 'make_gif', 'plot_moonfp', 'plot_regions', 'plot_polar', 
     'process_fits_file', 'powercalc', 'plotcontours', 'pathtest', 'contourgen', 
     'identify_boundary', 'plot_pathpoints', 'savecontour_tofits', 'KERNELDIR', 
-    'FITSINDEX', 'GHROOT', 'DATADIR', 'PYDIR', 'PKGDIR']
+    'FITSINDEX', 'GHROOT', 'DATADIR', 'PYDIR', 'PKGDIR',]
 AUTHORS = {
     'Will Roscoe': '@will-roscoe',
     'Samuel Courthold': '@samoo2000000',

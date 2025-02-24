@@ -5,9 +5,12 @@ import numpy as np
 import astropy.io.fits as fits
 from typing import List
 import glob
+
+from regex import P
 from .const import GHROOT, FITSINDEX
 from matplotlib import colors as mcolors
 from tqdm import tqdm
+from pathlib import Path
 
 #################################################################################
 #                   PATH/DIRECTORY MANAGMENT
@@ -30,6 +33,12 @@ def basename(x, ext=False):
     parts = parts[-1].split('\\') if '\\' in parts[-1] else parts
     base = parts[-1].split('.')[0] if not ext else parts[-1]
     return base
+def split_path(x, include_sep=True):
+    parts = Path(x).parts
+    if include_sep:
+        parts = [p + os.sep for p in parts[0:-1]] + [parts[-1]]
+    return parts
+    
 #################################################################################
 #                   FITS FILE INTERFACING
 #################################################################################

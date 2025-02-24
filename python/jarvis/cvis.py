@@ -1,24 +1,21 @@
-from calendar import c
+
 import os
 import random
-import re
-
 import numpy as np
 import matplotlib.pyplot as plt
 import cmasher as cmr
 import cv2
 
-from jarvis.utils import fits_from_glob, fitsheader, fpath, mcolor_to_lum, fits_from_parent, prepare_fits, ensure_dir,  basename, fitsdir
-from jarvis.polar import plot_polar, process_fits_file
+
+from .utils import fitsheader, fpath, mcolor_to_lum, fits_from_parent, prepare_fits,  basename, fitsdir
+from .polar import plot_polar, process_fits_file
 from astropy.io import fits
 import astropy as ap
-from jarvis.const import FITSINDEX, DPR_IMXY, DPR_JSON
+from .const import  DPR_IMXY
 from typing import List, Union
-from tqdm import tqdm
-from jarvis.transforms import  coadd,gaussian_blur,fullxy_to_polar_arr
-from glob import glob
-import matplotlib as mpl
-import json
+
+from .transforms import  coadd,gaussian_blur,fullxy_to_polar_arr
+
 
 def cropimg(inpath:str,outpath:str=None,ax_background=255,img_background=0)->Union[None,np.ndarray]: 
     """Crop an image to the bounding box of the non 'image_background' pixels.
@@ -86,8 +83,7 @@ def gaussian_coadded_fits(fits_objs,saveto=None, gaussian=(3,1), overwrite=True,
         cofitsd.writeto(saveto, overwrite=overwrite)
     return cofitsd
        
-
-def contourgen(fits_obj:fits.HDUList, lrange=(0.2,0.4))->List[List[float]]:
+def contourgen(fits_obj:fits.HDUList, lrange=(0.2,0.4), morphex=(cv2.MORPH_CLOSE,cv2.MORPH_OPEN), fcmode=cv2.RETR_EXTERNAL, fcmethod=cv2.CHAIN_APPROX_SIMPLE, cvh=False)->List[List[float]]:
     # generate a stripped down, grey scale image of the fits file
     proc =process_fits_file(prepare_fits(fits_obj, fixed='LON', full=True))
     img = mk_stripped_polar(proc, cmap=cmr.neutral, ax_background='white', img_background='black') 
@@ -98,11 +94,12 @@ def contourgen(fits_obj:fits.HDUList, lrange=(0.2,0.4))->List[List[float]]:
     mask = cv2.inRange(normed, lrange[0]*255, lrange[1]*255)
     # smooth out the mask to remove noise
     kernel = np.ones((5, 5), np.uint8)  # Small kernel to smooth edges
-    mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)  # Fill small holes
-    mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)   # Remove small noise
+    for morph in morphex:# cv2.MORPH_CLOSE (Fill small holes) cv2.MORPH_OPEN (Remove small noise)
+        mask = cv2.morphologyEx(mask, morph, kernel)
     # find the contours of the mask
-    contours, hierarchy = cv2.findContours(image=mask, mode=cv2.RETR_EXTERNAL, method=cv2.CHAIN_APPROX_SIMPLE)
-    #contours = [cv2.convexHull(cnt) for cnt in contours] # Convex hull of the contours
+    contours, hierarchy = cv2.findContours(image=mask, mode=fcmode, method=fcmethod)
+    if cvh:
+        contours = [cv2.convexHull(cnt) for cnt in contours] # Convex hull of the contours
     # Find the contour that encloses the given point
     return contours, hierarchy, img
 
@@ -116,7 +113,7 @@ def identify_boundary(contours, hierarchy, img:np.ndarray, id_pixel=None):
         fig, ax = plt.subplots()
         ax.imshow(img, cmap=cmr.neutral)
         ax.set_title("Click on a point")
-        event_connection = fig.canvas.mpl_connect('button_press_event', on_click)
+        event_connection = fig.canvas.mpl_connect('button_press_event', on_click) #noqa: F841
         plt.show()
         id_pixel = click_coords
     selected_contour = None
@@ -131,6 +128,8 @@ def identify_boundary(contours, hierarchy, img:np.ndarray, id_pixel=None):
         return paths
     else:
         raise ValueError("No contour found for the selected pixel at the given luminance range.")
+
+
 
 def plot_pathpoints(clist):
     fig = plt.figure(figsize=(12, 6))

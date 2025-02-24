@@ -405,6 +405,7 @@ def luminosity_viewer(fits_dir: fits.HDUList,saveloc=None,show_tooltips=True, mo
         global id_pixels
         clicked_coords = []
         id_pixels = []
+        update_fig(None)
     breset.on_clicked(reset)
     #---- SAVE button ----#
     bsave = mpl.widgets.Button(sbax, "Save       "+u'\uEB4B')

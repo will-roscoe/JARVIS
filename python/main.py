@@ -2,7 +2,7 @@
 
 
 from jarvis import fpath
-from jarvis.extensions import luminosity_viewer
+from jarvis.extensions import pathfinder
 
 #norm = mpl.colors.Normalize(vmin=0, vmax=1000)
 
@@ -32,6 +32,6 @@ from jarvis.extensions import luminosity_viewer
 
 if __name__ == '__main__':
     p = fpath(r'datasets\HST\custom\v04_coadded_gaussian[3_1].fits')
-    luminosity_viewer(p)
+    pathfinder(p)
     # contours = pathtest()
     # savecontourpoints(contours, fpath(r"datasets/HST/custom/v04_coadded_gaussian[3_1].fits"))

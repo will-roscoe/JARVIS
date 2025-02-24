@@ -8,8 +8,13 @@ from .cvis import mk_stripped_polar, savecontour_tofits
 from astropy.io import fits
 from tqdm import tqdm
 import matplotlib as mpl
-from PyQt6 import QtGui
-
+try:
+    from PyQt6 import QtGui # type: ignore #
+except ImportError:
+    try:
+        from PyQt5 import QtGui # type: ignore #
+    except ImportError:
+        tqdm.write('Warning: PyQt6 or PyQt5 not found, pathfinder app may not function correctly')
 
 class QuickPlot:
     titles = {'raw': 'Image array in fits file.',
@@ -178,7 +183,26 @@ bgs ={
 def get_bg(ax):
     return bgs.get(ax.get_label(), bgs.get('sidebar', bgs.get('main', '#fff')))
 
-def luminosity_viewer(fits_dir: fits.HDUList,saveloc=None,show_tooltips=True, morphex=(cv2.MORPH_CLOSE,cv2.MORPH_OPEN), fcmode=cv2.RETR_EXTERNAL, fcmethod=cv2.CHAIN_APPROX_SIMPLE, cvh=False, ksize=5, ):
+def pathfinder(fits_dir: fits.HDUList,saveloc=None,show_tooltips=True, morphex=(cv2.MORPH_CLOSE,cv2.MORPH_OPEN), fcmode=cv2.RETR_EXTERNAL, fcmethod=cv2.CHAIN_APPROX_SIMPLE, cvh=False, ksize=5, ):
+    """### *JAR:VIS* Pathfinder
+    > ***Requires PyQt6 (or PyQt5)***
+
+    A GUI tool to select contours from a fits file. The tool allows the user to select luminosity samples from the image, and then to select a contour that encloses all of the selected samples. The user can then save the contour to the fits file, or to a new file if a save location is provided. The user can also change the morphological operations applied to the mask before finding the contours, the method used to find the contours, the method used to approximate the contours, and whether to use the convex hull of the contours. The user can also change the kernel size for the morphological operations.
+
+    #### Parameters:
+    - `fits_dir`: The fits file to open.
+    - `saveloc`: The location to save the selected contour to. If `None`, the contour will be saved to the original fits file if the user chooses to save it.
+    - `show_tooltips`: Whether to show tooltips when hovering over buttons.
+    - Initial Config Options:
+        - `morphex`: The morphological operations to apply to the mask before finding the contours. Default is `(cv2.MORPH_CLOSE,cv2.MORPH_OPEN)`.
+        - `fcmode`: The method to find the contours. Default is `cv2.RETR_EXTERNAL`.
+        - `fcmethod`: The method to approximate the contours. Default is `cv2.CHAIN_APPROX_SIMPLE`.
+        - `cvh`: Whether to use convex hulls of the contours. Default is `False`.
+        - `ksize`: The kernel size for the morphological operations. Default is `5`.
+
+        These may be changed during the session using the GUI buttons.
+    """
+    
     global G_fits_obj
     G_fits_obj = fits.open(fits_dir)
     from matplotlib import font_manager 
@@ -229,7 +253,7 @@ def luminosity_viewer(fits_dir: fits.HDUList,saveloc=None,show_tooltips=True, mo
         fig.canvas.manager.window.setGeometry(0,0,fw[0][1],fw[1][1])
     fig.set_size_inches(fw[0][1]/fig.dpi, fw[1][1]/fig.dpi)
     qapp = fig.canvas.manager.window
-    qapp.setWindowTitle('Luminance Viewer')
+    qapp.setWindowTitle(f'JAR:VIS Pathfinder ({fits_dir})')
     iconpath = fpath('python/jarvis/resources/aa_asC_icon.ico')
     qapp.setWindowIcon(QtGui.QIcon(iconpath))
 
@@ -420,7 +444,7 @@ def luminosity_viewer(fits_dir: fits.HDUList,saveloc=None,show_tooltips=True, mo
                 G_fits_obj.writeto(saveloc, overwrite=True)
                 tqdm.write(f"Saved to {saveloc}, restarting viewer with new data")
                 plt.close()
-                luminosity_viewer(saveloc, saveloc, G_morphex, G_fcmode, G_fcmethod
+                pathfinder(saveloc, saveloc, G_morphex, G_fcmode, G_fcmethod
                                   , G_cvh, G_ksize)
             else:
                 tqdm.write("Save Failed: No save location provided or found")

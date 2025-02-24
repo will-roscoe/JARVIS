@@ -24,14 +24,16 @@ import datetime as dt
 #import matplotlib.patheffects as pe
 #from matplotlib.path import Path
 import spiceypy as spice
-spice.furnsh('python/jupiter.mk') # SPICE kernels
-import time_conversions as tc
+
+#import time_conversions as tc
 import collections
 import collections.abc as collections # If using Python version 3.10 and above
 #from scipy import signal
 import scipy.constants as c
 from matplotlib import path
 from jarvis.cvis import pathtest
+from jarvis.const import KERNELDIR
+spice.furnsh(KERNELDIR+'jupiter.mk') # SPICE kernels
 fs = 12   # font size for plots
 ctrs  = pathtest()# dictionary of contour paths 
 print(ctrs)
@@ -89,7 +91,7 @@ corr = 'LT'
 # proj_filename = '/Users/joe/data/HST/HST2017_revised/long_exposure/sat_17-066-16-52-02_stis_f25srf2_sm_proj_nobg.fits'
 #proj_filename = '/Users/Sarah/OneDrive - Lancaster University/Prog/Python/TestData/137_v01/jup_16-137-23-43-30_0100_v01_stis_f25srf2_proj.fits'
 
-proj_filename = fpath(r'datasets\HST\v04\jup_16-140-20-07-19_0100_v04_stis_f25srf2_proj.fits')
+proj_filename = fpath(r'datasets\HST\group_04\jup_16-140-20-07-19_0100_v04_stis_f25srf2_proj.fits')
 
 
 hdu_list = fits.open(proj_filename)  # opens the FITS files, accessing data plus header info
@@ -166,7 +168,7 @@ def datetime2et(pytimes):
     else:
         return ettimes
 
-et = tc.datetime2et(mid_ex)   # mid-exposure ephemeris time at HST (variable for bproject function)
+#et = tc.datetime2et(mid_ex)   # mid-exposure ephemeris time at HST (variable for bproject function)
 
 # ------------------------------------------------------------------------------
 image_data = hdu_list[1].data   # extract image data from first fits extension (ext=0)

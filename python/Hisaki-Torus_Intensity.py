@@ -9,17 +9,19 @@ GHROOT = Path(__file__).parents[1]
 def fpath(x):
     return os.path.join(GHROOT, x)
 
-def HMS(seconds, pos):
-    seconds = int(seconds)
-    hours = seconds / 3600
-    seconds -= 3600 * hours
-    minutes = seconds / 60
-    seconds -= 60 * minutes
-    if hours == 0:
-        if minutes == 0:
-            return "%ds" % (seconds)
-        return "%dm%02ds" % (minutes, seconds)
-    return "%dh%02dm" % (hours, minutes)
+# function to plot x-axis in H:M:S format
+def HMS(sec_of_day, pos):
+    sec_of_day = int(sec_of_day)
+    hours = sec_of_day // 3600
+    rsec = sec_of_day % 3600
+    minutes = rsec // 60
+    seconds = rsec % 60
+    return f"{hours:0>2}:{minutes:0>2}:{seconds:0>2}"
+
+# function to plot x-axis in hours only
+def hours_conversion(sec_of_day, pos):
+    hours = int(sec_of_day / 3600)
+    return hours
 
 #############################################
 #### Retrieving data from the FITS file #####
@@ -30,14 +32,18 @@ filename = 'C:datasets\Hisaki\Torus Power\exeuv_torus_20160504_lv03_LT00-24_dt00
 
 # load the file
 hdul = fits.open(fpath(filename))
-init_time = hdul[1].header["BLK_STA"]
-fin_time = hdul[1].header["BLK_END"]
+
+# print initial and final times of observation
+init_time = hdul[1].header["DATE-OBS"]
+fin_time = hdul[1].header["DATE-END"]
 print("From "+ init_time + " to " + fin_time)
 
 # 'hdul' is a HDUList (header-data unit list) containing 3 elements; using Python indexing you can retrieve the individual elements:
 # hdul[0] contains 'metadata' - you'll rarely have to use this one
 # hdul[1] contains image data, stored as a 2D array where each element is a value corresponding to a specific pixel in the image
 # hdul[2] is a table containing the time series data, and we can retrieve the data using hdul[2].data
+
+# extract time series data for use on the x-axis
 time_series_data = hdul[2].data
 
 #to get data from a specific column in the table, use the 'field' function; we want 'SECOFDAY', 'TPOW0710ADAWN' and 'TPOW0710ADUSK'
@@ -53,7 +59,7 @@ intensity_dusk = time_series_data.field('TPOW0710ADUSK')
 f, ax = plt.subplots(1, 1)
 
 #label the axes
-ax.set_xlabel('Time (s)')
+ax.set_xlabel('Time (h)')
 ax.set_ylabel('Intensity (GW)')
 
 #plot the data
@@ -70,9 +76,12 @@ plt.tight_layout()
 
 figname = 'EUV_intensity_vs_time.pdf'
 
+# spaces x-axis ticks to be every 2 hours
+plt.xticks(np.arange(0, 86401, step = 14400))
 
-# fig & axes code here
+# codes for formatting the time axis (x-axis) in H:M:S format or integer hours only, only use one at a time 
 #ax.xaxis.set_major_formatter(plt.FuncFormatter(HMS))
+ax.xaxis.set_major_formatter(plt.FuncFormatter(hours_conversion))
 
 plt.show()
 

@@ -1,20 +1,28 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import time
 import cmasher as cmr
 import cv2
+
+from .transforms import fullxy_to_polar_arr
 from .utils import fitsheader, fpath, get_datetime, prepare_fits, ensure_dir, rpath, split_path
+
 from .polar import process_fits_file
-from .cvis import mk_stripped_polar, savecontour_tofits
+from .cvis import getcontourhdu, mk_stripped_polar, savecontour_tofits
 from astropy.io import fits
 from tqdm import tqdm
 import matplotlib as mpl
 try:
     from PyQt6 import QtGui # type: ignore #
+    
 except ImportError:
     try:
         from PyQt5 import QtGui # type: ignore #
     except ImportError:
         tqdm.write('Warning: PyQt6 or PyQt5 not found, pathfinder app may not function correctly')
+
+
+
 
 class QuickPlot:
     titles = {'raw': 'Image array in fits file.',
@@ -183,7 +191,7 @@ bgs ={
 def get_bg(ax):
     return bgs.get(ax.get_label(), bgs.get('sidebar', bgs.get('main', '#fff')))
 
-def pathfinder(fits_dir: fits.HDUList,saveloc=None,show_tooltips=True, morphex=(cv2.MORPH_CLOSE,cv2.MORPH_OPEN), fcmode=cv2.RETR_EXTERNAL, fcmethod=cv2.CHAIN_APPROX_SIMPLE, cvh=False, ksize=5, ):
+def pathfinder(fits_dir: fits.HDUList,saveloc=None,show_tooltips=True, morphex=(cv2.MORPH_CLOSE,cv2.MORPH_OPEN), fcmode=cv2.RETR_EXTERNAL, fcmethod=cv2.CHAIN_APPROX_SIMPLE, cvh=False, ksize=5,**persists):
     """### *JAR:VIS* Pathfinder
     > ***Requires PyQt6 (or PyQt5)***
 
@@ -202,13 +210,11 @@ def pathfinder(fits_dir: fits.HDUList,saveloc=None,show_tooltips=True, morphex=(
 
         These may be changed during the session using the GUI buttons.
     """
-    
+    mpl.use('QtAgg')
     global G_fits_obj
-    G_fits_obj = fits.open(fits_dir)
+    G_fits_obj = fits.open(fits_dir, mode='update')
     from matplotlib import font_manager 
-    if saveloc is None:
-        saveloc = fits_dir
-    ensure_dir(saveloc)
+    
     font_manager.fontManager.addfont(fpath('python/jarvis/resources/FiraCodeNerdFont-Regular.ttf'))
     plt.rcParams['font.family'] = 'FiraCode Nerd Font'
     plt.rcParams['axes.unicode_minus'] = False
@@ -223,9 +229,9 @@ def pathfinder(fits_dir: fits.HDUList,saveloc=None,show_tooltips=True, morphex=(
     global imarea
     imarea = (np.pi*(normed.shape[0]/2)**2)/2
     global clicked_coords
-    clicked_coords = []
+    clicked_coords = persists.get('clicked_coords', [])
     global id_pixels
-    id_pixels = []
+    id_pixels = persists.get('id_pixels', [])
     global G_morphex
     G_morphex = [m for m in morphex]
     global G_fcmode
@@ -237,9 +243,9 @@ def pathfinder(fits_dir: fits.HDUList,saveloc=None,show_tooltips=True, morphex=(
     global G_ksize
     G_ksize = ksize
     global G_clicktype
-    G_clicktype=0
+    G_clicktype=persists.get('G_clicktype', 0)
     global G_path
-    G_path = None
+    G_path = persists.get('G_path', None)
     def getareapct(area):
         num = area/imarea * 100
         if num < 0.01:
@@ -256,9 +262,6 @@ def pathfinder(fits_dir: fits.HDUList,saveloc=None,show_tooltips=True, morphex=(
     qapp.setWindowTitle(f'JAR:VIS Pathfinder ({fits_dir})')
     iconpath = fpath('python/jarvis/resources/aa_asC_icon.ico')
     qapp.setWindowIcon(QtGui.QIcon(iconpath))
-
-
-
 
     # gs: 1 row, 2 columns, splitting the figure into plot and options
     gs = fig.add_gridspec(1,2, wspace=0.05, hspace=0, width_ratios=[8,3], left=0, right=1, top=1, bottom=0)
@@ -439,15 +442,29 @@ def pathfinder(fits_dir: fits.HDUList,saveloc=None,show_tooltips=True, morphex=(
         global G_path
         global G_fits_obj
         if G_path is not None:
-            G_fits_obj = savecontour_tofits(fits_obj=G_fits_obj, contour=G_path)
+            pth = G_path.reshape(-1, 2)
+            pth = fullxy_to_polar_arr(pth, normed, 40)
             if saveloc is not None:
-                G_fits_obj.writeto(saveloc, overwrite=True)
+                n_fits_obj = savecontour_tofits(fits_obj=G_fits_obj, cont=pth)
+                n_fits_obj.writeto(saveloc, overwrite=True)
                 tqdm.write(f"Saved to {saveloc}, restarting viewer with new data")
+                linfax.clear()
+                linfax.text(0.5, 0.5, f"Saved to {saveloc}, restarting viewer with new data", fontsize=10, color='black', ha='center', va='center')
+                fig.canvas.blit(linfax.bbox)
+                #wait for 1 second
+                time.sleep(1)
                 plt.close()
-                pathfinder(saveloc, saveloc, G_morphex, G_fcmode, G_fcmethod
-                                  , G_cvh, G_ksize)
+                G_fits_obj.close()
+                G_fits_obj = n_fits_obj
+                pathfinder(saveloc, None, G_morphex, G_fcmode, G_fcmethod
+                                  , G_cvh, G_ksize,persists={'clicked_coords':clicked_coords, 'id_pixels':id_pixels, 'G_clicktype':G_clicktype, 'G_path':G_path})
             else:
-                tqdm.write("Save Failed: No save location provided or found")
+                G_fits_obj.append(getcontourhdu(pth)) 
+                G_fits_obj.flush()
+                tqdm.write(f"Save Successful, contour added to fits file at index {len(G_fits_obj)-1}")
+                linfax.clear()
+                linfax.text(0.5, 0.5, f"Save Successful, contour added to fits file at index {len(G_fits_obj)-1}", fontsize=10, color='black', ha='center', va='center')
+                fig.canvas.blit(linfax.bbox)
         else:
             tqdm.write("Save Failed: No contour selected to save")
     bsave.on_clicked(save)
@@ -492,12 +509,14 @@ def pathfinder(fits_dir: fits.HDUList,saveloc=None,show_tooltips=True, morphex=(
     ksizeax.add_patch(mpl.patches.Rectangle((0,0.995), 5/12, 1.005, facecolor='#fff', lw=0, zorder=10, transform=ksizeax.transAxes))
     def ksizefunc(val):
         global G_ksize
+        global clicked_coords
         ksizeax.set_facecolor('#fff')
         G_ksize = int(val)
-        fig.canvas.draw_idle()
         ksizesubax.clear()
         ksizesubax.text(0.1, 0.45, f'ksize: {G_ksize}', fontsize=10, color='black', ha='left', va='center')
-        fig.canvas.draw()
+        fig.canvas.blit(ksizesubax.bbox)
+        update_fig(clicked_coords)
+
     ksizeslider.on_changed(ksizefunc)
     #---- SELECTMODE options ----#
     _radioprops={'facecolor':['#000', _clickedkws['color'], _clickedkws['color'], _idpxkws['color'], _idpxkws['color']], 
@@ -577,7 +596,8 @@ def pathfinder(fits_dir: fits.HDUList,saveloc=None,show_tooltips=True, morphex=(
         hover_event = fig.canvas.mpl_connect('motion_notify_event', on_hover) #noqa: F841
     plt.show()
     if G_path is not None:
-        return G_path
+        pth = G_path.reshape(-1, 2)
+        return fullxy_to_polar_arr(pth, normed, 40)
     else:
         return None
     

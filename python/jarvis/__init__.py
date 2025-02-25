@@ -20,18 +20,26 @@ Primary Contributors
 - Ronan Szeto
 
 '''
+import spiceypy as spice
+from .const import KERNELDIR, FITSINDEX, GHROOT, DATADIR, PYDIR, PKGDIR
+try:
+    spice.furnsh(KERNELDIR+'jupiter.mk')
+    from .power import powercalc
+    print('Kernel may need to be extracted for full functionality')
+except:  #noqa: E722
+    def powercalc(*args, **kwargs):
+        raise NotImplementedError('Power calculations require SPICE kernels to be loaded.')
+
+
 import logging
 import os
 from .utils import (fpath, fitsheader, ensure_dir, fits_from_glob, fitsdir, 
                 prepare_fits, fits_from_parent, group_to_visit, visit_to_group)
 from .polar import (moind, make_gif, plot_moonfp, plot_regions, plot_polar, 
                     process_fits_file)
-from .power import powercalc
+
 from .cvis import (pathtest, contourgen, identify_boundary, 
-                   plot_pathpoints, savecontour_tofits)
-
-from .const import KERNELDIR, FITSINDEX, GHROOT, DATADIR, PYDIR, PKGDIR
-
+                plot_pathpoints, savecontour_tofits)
 __version__ = '0.1.0-alpha'
 __all__ = ['polar', 'const', 'utils', 'cvis', 'power', 
     'fpath', 'fitsheader', 'ensure_dir', 'fits_from_glob', 'fitsdir', 

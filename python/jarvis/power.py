@@ -244,8 +244,8 @@ def powercalc(fits_obj:fits.HDUList, dpr_coords:np.ndarray=None)-> Tuple[float, 
     #> this cylbroject function definition is feeding inputs into _cylbroject - JK
 
     #> Backprojecting! Image input needs to be full [1440,720] centred projection
-    bimage_roi = cylbroject(roi_im_full, fits_obj,ndiv=2)   
-    full_image = cylbroject(im_4broject,fits_obj, ndiv=2)
+    bimage_roi = cylbroject(roi_im_full,fits_obj,ndiv=2)   
+    full_image = cylbroject(im_4broject,fits_obj,ndiv=2)
     #// bimage = cylbroject(image_centred,ndiv=2)
     __plot('brj', image=full_image, loc='full')
     __plot('brj', image=bimage_roi, loc='ROI')

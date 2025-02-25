@@ -1,12 +1,12 @@
 import os
 import datetime
-import re
+#import re
 import numpy as np
 import astropy.io.fits as fits
 from typing import List
 import glob
 
-from regex import P
+#from regex import P
 from .const import GHROOT, FITSINDEX
 from matplotlib import colors as mcolors
 from tqdm import tqdm

@@ -21,3 +21,5 @@ plt.title("Variation in solar wind pressure dynamics at Jupiter over 21 visits")
 plt.xlabel("Date (UT)")
 plt.ylabel("Solar wind pressure dynamics at Jupiter")
 plt.show()  
+
+# from 6/5/16 to 17/6/16

@@ -31,14 +31,41 @@ import collections.abc as collections # If using Python version 3.10 and above
 #from scipy import signal
 import scipy.constants as c
 from matplotlib import path
-from jarvis.cvis import pathtest
 from jarvis.const import KERNELDIR
-from jarvis.utils import fits_from_glob
+from jarvis.extensions import pathfinder
+from jarvis.cvis import gaussian_coadded_fits, pathtest
+from jarvis.utils import fits_from_glob, group_to_visit
+from tqdm import tqdm
 
 fitslist = fits_from_glob(fpath(r'datasets\HST\group_04')) # list of fits files
 spice.furnsh(KERNELDIR+'jupiter.mk') # SPICE kernels
 fs = 12   # font size for plots
-ctrs  = pathtest()# dictionary of contour paths 
+# if __name__ == '__main__':
+#     # # script to generate the coadded fits
+#     groups = [1,2,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19] #remove 3 (broken), 20 (southern)
+#     basefitpath = [fpath(f'datasets/HST/group_{i:0>2}') for i in groups]
+#     nfits =[]
+#     _mpbar = tqdm(total=len(basefitpath), desc='Generating coadded fits')
+#     for i,fp in enumerate(basefitpath):
+#         _mpbar.set_description(f'Generating coadded fits for group {i+1:0>2}')
+#         fitsg = fits_from_glob(fp)
+#         p = fpath(f'datasets/HST/custom/g{i+1:0>2},v{group_to_visit(i+1):0>2}_[3,1]gaussian-coadded.fits')
+#         fit = gaussian_coadded_fits(fitsg, saveto=p, gaussian=(3,1), overwrite=True,indiv=False, coadded=True)
+#         _mpbar.update(1)
+#         nfits.append(p)
+#     _mpbar.close()
+#     # script to generate the contours 
+   
+#     paths =[]
+#     for fit in nfits:
+#         pt=pathfinder(fit)
+#         #paths.append(pathfinder(fit))
+#         f = fits.open(fit, 'append')
+#         f.info()
+#         print(*[fi for fi in f], sep='\n')
+#         print(*[f.fileinfo(i) for i in range(len(f))], sep='\n')
+
+ctrs  = pathtest() # dictionary of contour paths 
 # print(ctrs)
 #dusk_active_region = [[20,192.25],[30,200],[20,220],[15,230],[15,220]] # high cml, dusk
 dusk_active_region = [[20,167.75],[30,160],[20,140],[15,130],[15,140]] # SIII longitudes
@@ -63,15 +90,15 @@ llons, llats = np.meshgrid(testlons, testcolats) # checked correct
 coords = np.vstack([llats.flatten(), llons.flatten()]).T
 dark_mask = dark_boundary.contains_points(coords) # ([[llats], [llons]])
 dark_mask_2D = dark_mask.reshape(160,1440)
-# mask needs to be applied to un-rolled image
+    # mask needs to be applied to un-rolled image
 
-# ------------------------------------------------------------------------------
-# Nichols constants:
+    # ------------------------------------------------------------------------------
+    # Nichols constants:
 au_to_km = 1.495978707e8
 
 # Nichols spice stuff:
 planets = ['Mercury', 'Venus', 'Earth', 'Mars', 'Jupiter', 'Saturn',
-           'Uranus', 'Neptune', 'Pluto', 'Vulcan']
+        'Uranus', 'Neptune', 'Pluto', 'Vulcan']
 inx = planets.index('Jupiter')
 naifobj = 99 + (inx + 1) * 100
 frame = 'IAU_' + 'Jupiter'
@@ -95,12 +122,8 @@ corr = 'LT'
 #proj_filename = '/Users/Sarah/OneDrive - Lancaster University/Prog/Python/TestData/137_v01/jup_16-137-23-43-30_0100_v01_stis_f25srf2_proj.fits'
 
 
-for f in fitslist:
-    print(f)
-    proj_filename = f
-
-
-    hdu_list = fits.open(proj_filename)  # opens the FITS files, accessing data plus header info
+for hdu_list in fitslist:
+    # opens the FITS files, accessing data plus header info
     hdu_list.info()                    # print file information
 
 # accessing specific header info entries:
@@ -189,7 +212,7 @@ for f in fitslist:
     # plt.colorbar()
     cbar = plt.colorbar(pad=0.05)
     cbar.ax.set_ylabel('Intensity [kR]',fontsize=12)
-    plt.show()
+    plt.close()
     hdu_list.close()                # close file once you're done with it
 
     # ------------------------------------------------------------------------------
@@ -227,7 +250,7 @@ for f in fitslist:
     plt.xlabel('longitude pixels')
     plt.ylabel('co-latitude pixels')
 
-    plt.show()
+    plt.close()
 
     # flip image vertically if required (ease of indexing) and extract auroral region
     # (not strictly required but makes polar projections less confusing):
@@ -248,7 +271,7 @@ for f in fitslist:
     cbar = plt.colorbar(pad=0.05)
     cbar.ax.set_ylabel('Intensity [kR]',fontsize=12)
 
-    plt.show()
+    plt.close()
 
     # ==============================================================================
     # make polar projection plot
@@ -298,7 +321,7 @@ for f in fitslist:
     cbar.ax.set_yticklabels(['0','100','500','900'])
     cbar.ax.set_ylabel('Intensity [kR]',fontsize=12)
 
-    plt.show()
+    plt.close()
 
     # ==============================================================================
     # Adding a shape/contour to the plot within which to calculate emission power
@@ -364,7 +387,7 @@ for f in fitslist:
     # plt.plot([roi_a[0],roi_b[0],roi_c[0],roi_d[0],roi_a[0]],  # corner A repeated to
     #           [roi_a[1],roi_b[1],roi_c[1],roi_d[1],roi_a[1]],  # close the box.
             color='red',linewidth=3.)
-    plt.show()
+    plt.close()
 
     # # Now use the roi to mask the projected image, and plot:
     # roi_mask = np.zeros(image_extract.shape,dtype=bool) # initialise a mask array, same size as the auroral image
@@ -385,7 +408,7 @@ for f in fitslist:
     plt.xlabel('longitude pixels')
     plt.ylabel('co-latitude pixels')
 
-    plt.show()
+    plt.close()
 
     # Now mask off the image by setting image regions where mask=False, to NaNs:
     image_extract[dark_mask_2D==False] = np.nan
@@ -566,7 +589,7 @@ for f in fitslist:
     fignamei = 'broject_full.pdf'
     plt.savefig(fignamei, dpi=350) #, bbox_inches='tight')  
 
-    plt.show()
+    plt.close()
 
     plt.figure()
     plt.title('Brojected ROI image.')
@@ -578,7 +601,7 @@ for f in fitslist:
     cbar.ax.set_ylabel('Intensity [kR]',fontsize=12)
     fignamei = 'broject_roi.pdf'
     plt.savefig(fignamei, dpi=350) #, bbox_inches='tight')  
-    plt.show()
+    plt.close()
 
 
     # ==============================================================================
@@ -617,7 +640,7 @@ for f in fitslist:
     visit= hdu_list[0].header['VISIT']
     filepath = 'powers.txt'
     with open(filepath, 'a') as f:
-        f.write(visit + ' ' + str(start_time) + ' ' + str(total_power_emitted_from_roi) + ' ' + str(power_per_area) + '\n')
+        f.write(visit + ' ' + str(start_time) + ' ' + str(total_power_emitted_from_roi) + ' ' + str(power_per_area) + ' ' + str(area) + '\n')
     # ==============================================================================
 # This next bit is to make a logic mask for an auroral oval polygon, via
 # image wrapping and interpolation at full-image resolution to get it working

@@ -30,8 +30,10 @@ filename = 'C:datasets\Hisaki\Torus Power\exeuv_torus_20160504_lv03_LT00-24_dt00
 
 # load the file
 hdul = fits.open(fpath(filename))
-time = hdul[1].header["BLK_STA"]
-print(time)
+init_time = hdul[1].header["BLK_STA"]
+fin_time = hdul[1].header["BLK_END"]
+print("From "+ init_time + " to " + fin_time)
+
 # 'hdul' is a HDUList (header-data unit list) containing 3 elements; using Python indexing you can retrieve the individual elements:
 # hdul[0] contains 'metadata' - you'll rarely have to use this one
 # hdul[1] contains image data, stored as a 2D array where each element is a value corresponding to a specific pixel in the image
@@ -70,7 +72,7 @@ figname = 'EUV_intensity_vs_time.pdf'
 
 
 # fig & axes code here
-ax.xaxis.set_major_formatter(plt.FuncFormatter(HMS))
+#ax.xaxis.set_major_formatter(plt.FuncFormatter(HMS))
 
 plt.show()
 

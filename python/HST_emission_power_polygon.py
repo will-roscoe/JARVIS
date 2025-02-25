@@ -31,12 +31,12 @@ import collections.abc as collections # If using Python version 3.10 and above
 #from scipy import signal
 import scipy.constants as c
 from matplotlib import path
-from jarvis.cvis import pathtest
+
 from jarvis.const import KERNELDIR
 spice.furnsh(KERNELDIR+'jupiter.mk') # SPICE kernels
 fs = 12   # font size for plots
-ctrs  = pathtest()# dictionary of contour paths 
-print(ctrs)
+#ctrs  = pathtest()# dictionary of contour paths 
+#print(ctrs)
 #dusk_active_region = [[20,192.25],[30,200],[20,220],[15,230],[15,220]] # high cml, dusk
 dusk_active_region = [[20,167.75],[30,160],[20,140],[15,130],[15,140]] # SIII longitudes
 swirl_region = [[2.75,111],[17,155],[18,185],[4,190]] # high cml, swirl 360-SIII longitudes here
@@ -46,8 +46,14 @@ noon_active_region = [[18,154],[24,154],[28,192],[22,192]] # high cml, noon 360-
 #dark_boundary = path.Path([(8,247.5), (12,247.5), (18,225), (22,217.5), (22,202.5), (20,202.5), (14,202.5), (8,217.5)]) 
 #dark_region = [[30,172.5],[32,172.5],[32,180], [29.75,191.25],[26.5,202.5],[20,225],[16,225],[27,190],[28,180]] #v04 boundary
 #dark_boundary =path.Path([(28,180),(27,190),(16,225),(20,225),(26.5,202.5),(29.75,191.25),(32,180),(32,172.5),(30,172.5)])
-dark_region = ctrs
-dark_boundary = path.Path(ctrs) 
+fp = fpath('datasets/HST/custom/g01,v01_[3,1]gaussian-coadded.fits')
+boundfit=fits.open(fp)
+boundfit.info()
+dark_region = boundfit['BOUNDARY'].data
+
+dark_region = dark_region.tolist()
+dark_region = [[i[0],i[1]] for i in dark_region]
+dark_boundary = path.Path(dark_region) 
 #dar_boundary = path.Path([(dusk_active_region[0][0],360-dusk_active_region[0][1]), 
                    #       (dusk_active_region[1][0],360-dusk_active_region[1][1]),
                     #      (dusk_active_region[2][0],360-dusk_active_region[2][1]),
@@ -91,7 +97,7 @@ corr = 'LT'
 # proj_filename = '/Users/joe/data/HST/HST2017_revised/long_exposure/sat_17-066-16-52-02_stis_f25srf2_sm_proj_nobg.fits'
 #proj_filename = '/Users/Sarah/OneDrive - Lancaster University/Prog/Python/TestData/137_v01/jup_16-137-23-43-30_0100_v01_stis_f25srf2_proj.fits'
 
-proj_filename = fpath(r'datasets\HST\group_04\jup_16-140-20-07-19_0100_v04_stis_f25srf2_proj.fits')
+proj_filename = fpath(r'datasets/HST/group_01/jup_16-138-00-20-10_0100_v01_stis_f25srf2_proj.fits')
 
 
 hdu_list = fits.open(proj_filename)  # opens the FITS files, accessing data plus header info

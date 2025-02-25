@@ -74,7 +74,6 @@ if __name__ == '__main__':
 
 
 
-
     # paths = {}
     # fitspaths = [f'datasets/HST/custom/v{i:0>2}_coadded_gaussian[3_1].fits' for i in range(1, 21)]
     # print(fitspaths)

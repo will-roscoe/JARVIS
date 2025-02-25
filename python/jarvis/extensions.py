@@ -1,10 +1,12 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import time
 import cmasher as cmr
 import cv2
 
 from .transforms import fullxy_to_polar_arr
 from .utils import fitsheader, fpath, get_datetime, prepare_fits, ensure_dir, rpath, split_path
+
 from .polar import process_fits_file
 from .cvis import getcontourhdu, mk_stripped_polar, savecontour_tofits
 from astropy.io import fits
@@ -12,11 +14,15 @@ from tqdm import tqdm
 import matplotlib as mpl
 try:
     from PyQt6 import QtGui # type: ignore #
+    
 except ImportError:
     try:
         from PyQt5 import QtGui # type: ignore #
     except ImportError:
         tqdm.write('Warning: PyQt6 or PyQt5 not found, pathfinder app may not function correctly')
+
+
+
 
 class QuickPlot:
     titles = {'raw': 'Image array in fits file.',
@@ -204,9 +210,9 @@ def pathfinder(fits_dir: fits.HDUList,saveloc=None,show_tooltips=True, morphex=(
 
         These may be changed during the session using the GUI buttons.
     """
-    
+    mpl.use('QtAgg')
     global G_fits_obj
-    G_fits_obj = fits.open(fits_dir)
+    G_fits_obj = fits.open(fits_dir, mode='update')
     from matplotlib import font_manager 
     
     font_manager.fontManager.addfont(fpath('python/jarvis/resources/FiraCodeNerdFont-Regular.ttf'))
@@ -442,6 +448,11 @@ def pathfinder(fits_dir: fits.HDUList,saveloc=None,show_tooltips=True, morphex=(
                 n_fits_obj = savecontour_tofits(fits_obj=G_fits_obj, cont=pth)
                 n_fits_obj.writeto(saveloc, overwrite=True)
                 tqdm.write(f"Saved to {saveloc}, restarting viewer with new data")
+                linfax.clear()
+                linfax.text(0.5, 0.5, f"Saved to {saveloc}, restarting viewer with new data", fontsize=10, color='black', ha='center', va='center')
+                fig.canvas.blit(linfax.bbox)
+                #wait for 1 second
+                time.sleep(1)
                 plt.close()
                 G_fits_obj.close()
                 G_fits_obj = n_fits_obj
@@ -450,8 +461,10 @@ def pathfinder(fits_dir: fits.HDUList,saveloc=None,show_tooltips=True, morphex=(
             else:
                 G_fits_obj.append(getcontourhdu(pth)) 
                 G_fits_obj.flush()
-
-            
+                tqdm.write(f"Save Successful, contour added to fits file at index {len(G_fits_obj)-1}")
+                linfax.clear()
+                linfax.text(0.5, 0.5, f"Save Successful, contour added to fits file at index {len(G_fits_obj)-1}", fontsize=10, color='black', ha='center', va='center')
+                fig.canvas.blit(linfax.bbox)
         else:
             tqdm.write("Save Failed: No contour selected to save")
     bsave.on_clicked(save)

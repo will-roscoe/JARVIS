@@ -277,7 +277,7 @@ def powercalc(fits_obj:fits.HDUList, dpr_coords:np.ndarray=None)-> Tuple[float, 
     power_per_area = total_power_emitted_from_roi / area
     __print('Total power emitted from ROI in GW:\n{}'.format(total_power_emitted_from_roi))
     __print('Power per unit area in GW/km²:\n{}'.format(power_per_area))
-    __write_to_file(fitsheader(fits_obj, 'VISIT'), get_datetime(fits_obj), total_power_emitted_from_roi, power_per_area)
+    __write_to_file(fitsheader(fits_obj, 'VISIT'), get_datetime(fits_obj), total_power_emitted_from_roi, power_per_area, area)
     return total_power_emitted_from_roi, power_per_area, full_image, bimage_roi
 
 

@@ -16,7 +16,7 @@ def HMS(sec_of_day, pos):
     rsec = sec_of_day % 3600
     minutes = rsec // 60
     seconds = rsec % 60
-    return f"{hours:0>2}:{minutes:0>2}:{seconds:0>2}"
+    return datetime.datetime.strptime(f"{hours:0>2}:{minutes:0>2}:{seconds:0>2}", '%Y-%m-% T%H:%M:%S')
 
 # function to plot x-axis in hours only
 def hours_conversion(sec_of_day, pos):
@@ -80,8 +80,10 @@ def torus_plot(torus_filename):
     # codes for formatting the time axis (x-axis) in H:M:S format or integer hours only, only use one at a time 
     #ax.xaxis.set_major_formatter(plt.FuncFormatter(HMS))
     ax.xaxis.set_major_formatter(plt.FuncFormatter(hours_conversion))
-    datetime_object = datetime.strptime(datetime_object, '%Y-%m-%d + T + %H:%M:%S')
-    print(datetime_object)
+
+    
+    print(datetime.datetime.strptime(init_time, '%Y-%m-%dT%H:%M:%S'))
+
 
     plt.show()
 

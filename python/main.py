@@ -1,12 +1,15 @@
 
 
-
+import matplotlib as mpl
+mpl.use('qtagg')
 from jarvis import fpath
 from jarvis.extensions import pathfinder
 from jarvis.cvis import gaussian_coadded_fits
 from jarvis.utils import fits_from_glob, group_to_visit
+from jarvis.power import powercalc
 from tqdm import tqdm
 from astropy.io import fits
+
 #norm = mpl.colors.Normalize(vmin=0, vmax=1000)
 
 #cmap = (mpl.colors.ListedColormap(['red', 'green', 'blue', 'cyan'])
@@ -34,7 +37,7 @@ from astropy.io import fits
 
 if __name__ == '__main__':
     # # script to generate the coadded fits
-    groups = range(1,21)
+    groups = [1,2,3,4,6,7,8,9,10,11,12,13,14,15,16,17,18,19] #remove 3 (broken), 20 (southern)
     basefitpath = [fpath(f'datasets/HST/group_{i:0>2}') for i in groups]
     nfits =[]
     _mpbar = tqdm(total=len(basefitpath), desc='Generating coadded fits')
@@ -50,12 +53,14 @@ if __name__ == '__main__':
    
     paths =[]
     for fit in nfits:
-        paths.append(pathfinder(fit))
+        pt=pathfinder(fit)
+        #paths.append(pathfinder(fit))
         f = fits.open(fit, 'append')
         f.info()
         print(*[fi for fi in f], sep='\n')
         print(*[f.fileinfo(i) for i in range(len(f))], sep='\n')
-    print(paths)
+        powercalc(f,pt)
+    #print(paths)
 
 
 

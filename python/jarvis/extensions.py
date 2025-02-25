@@ -36,33 +36,33 @@ class QuickPlot:
     labelpairs= {'pixels': {'xlabel': 'pixels', 'ylabel': 'pixels'},
                 'degpixels': {'xlabel': 'longitude pixels', 'ylabel': 'co-latitude pixels'},
                 'deg': {'xlabel': 'SIII longitude [deg]', 'ylabel': 'co-latitude [deg]'}}
-
-
+    def __init__(self):
+        pass
     def __imcbar(self, ax, img, cmap='cubehelix', origin='lower', vlim=(1., 1000.), clabel='Intensity [kR]',fs=12,pad=0.05):
         im = ax.imshow(img, cmap=cmap,origin=origin, vmin=vlim[0], vmax=vlim[1])
         cbar = plt.colorbar(pad=0.05, ax=ax, mappable=im)
-        cbar.ax.set_ylabel(clabel,fontsize=fs, pad=pad)
+        cbar.ax.set_ylabel(clabel,fontsize=fs, labelpad=pad)
 
-    def _plot_(self,ax, image_data, cmap='cubehelix', origin='lower', vlim=(1., 1000.)):# make a quick-look plot to check image array content:
+    def _plot_(self,ax, image, cmap='cubehelix', origin='lower', vlim=(1., 1000.)):# make a quick-look plot to check image array content:
         ax.set(title='Image array in fits file.', **self.labelpairs['degpixels'])
-        self.__imcbar(ax, image_data, cmap=cmap, origin=origin, vlim=vlim)
+        self.__imcbar(ax, image, cmap=cmap, origin=origin, vlim=vlim)
         return ax
 
 
-    def _plot_raw_limbtrimmed(self,ax, im_clean,lons=np.arange(0,1440,1),lats=np.arange(0,720,1), cmap='cubehelix',vlim=(0.,1000.)):# Quick plot check of the centred, limb-trimmed image:
+    def _plot_raw_limbtrimmed(self,ax, image,lons=np.arange(0,1440,1),lats=np.arange(0,720,1), cmap='cubehelix',vlim=(0.,1000.)):# Quick plot check of the centred, limb-trimmed image:
         ax.set(title='Image centred, limb-trimmed.',**self.labelpairs['degpixels'])
-        ax.pcolormesh(lons,lats,np.flip(np.flip(im_clean, axis=1)),cmap=cmap,
+        ax.pcolormesh(lons,lats,np.flip(np.flip(image, axis=1)),cmap=cmap,
                     vmin=vlim[0],vmax=vlim[1])
         return ax
 
-    def _plot_extracted_wcoords(self,ax:plt.Axes, image_extract,cmap='cubehelix',vlim=(0., 1000.)):
+    def _plot_extracted_wcoords(self,ax:plt.Axes, image,cmap='cubehelix',vlim=(0., 1000.)):
         ax.set(title='Auroral region extracted.', **self.labelpairs['deg'])
-        self.__imcbar(ax, image_extract, cmap=cmap, vlim=vlim)
+        self.__imcbar(ax, image, cmap=cmap, vlim=vlim)
         ax.set_yticks(ticks=[0*4,10*4,20*4,30*4,40*4], labels=['0','10','20','30','40'])
         ax.set_xticks(ticks=[0*4,90*4,180*4,270*4,360*4], labels=['360','270','180','90','0'])
         return ax
 
-    def _plot_polar_wregions(self,ax: plt.Axes, image_extract,cpath, rho=np.linspace(0,40,num=160), theta=np.linspace(0,2*np.pi,num=1440), fs=12, cmap='cubehelix', vlim=(1.,1000.)):#?p
+    def _plot_polar_wregions(self,ax: plt.Axes, image,cpath, rho=np.linspace(0,40,num=160), theta=np.linspace(0,2*np.pi,num=1440), fs=12, cmap='cubehelix', vlim=(1.,1000.)):#?p
         # ==============================================================================
         # make polar projection plot
         # ==============================================================================
@@ -77,7 +77,7 @@ class QuickPlot:
                         fontweight='bold',fontsize=fs)
         ax.tick_params(axis='x',pad=-1.)  
         ax.fill_between(theta, 0, 40, alpha=0.2,hatch="/",color='gray')
-        cm=ax.pcolormesh(theta,rho,image_extract,cmap=cmap,vmin=vlim[0],vmax=vlim[1])
+        cm=ax.pcolormesh(theta,rho,image,cmap=cmap,vmin=vlim[0],vmax=vlim[1])
         ax.plot([np.radians(360-r) for r in dr[1]], dr[0], color='red',linewidth=3.)
         # -> OVERPLOT THE ROI IN POLAR PROJECTION HERE. <-
         # Add colourbar: ---------------------------------------------------------------
@@ -86,17 +86,17 @@ class QuickPlot:
         cbar.ax.set_ylabel('Intensity [kR]',fontsize=12)
         return ax
 
-    def _plot_sqr_wregions(self,ax,image_extract,cpath,testlons=np.arange(0,360,0.25),testcolats=np.arange(0,40,0.25),cmap='cubehelix', vlim=(1.,1000.) ):#?sq
+    def _plot_sqr_wregions(self,ax,image,cpath,testlons=np.arange(0,360,0.25),testcolats=np.arange(0,40,0.25),cmap='cubehelix', vlim=(1.,1000.) ):#?sq
         # # === Plot full image array using pcolormesh so we can understand the masking
         # # process i.e. isolating pixels that fall inside the ROI =======================
         ax.set(title='ROI', xlabel='SIII longitude [deg]', ylabel='co-latitude [deg]')
         ax.set_xticks(ticks=[0,90,180,270,360], labels=['360','270','180','90','0'])
         dr = [[i[0] for i in cpath], [i[1] for i in cpath]]
-        ax.pcolormesh(testlons,testcolats,image_extract,cmap=cmap,vmin=vlim[0],vmax=vlim[1])
+        ax.pcolormesh(testlons,testcolats,image,cmap=cmap,vmin=vlim[0],vmax=vlim[1])
         ax.plot([360-r for r in dr[1]], dr[0],color='red',linewidth=3.)
         return ax
-    def _plot_mask(self,ax,dark_mask_2d,loc='ROI'):#?
-        ax.imshow(dark_mask_2d, origin='lower')
+    def _plot_mask(self,ax,image,loc='ROI'):#?
+        ax.imshow(image, origin='lower')
         ax.set(title=f'{loc} mask in image space', xlabel='longitude pixels', ylabel='co-latitude pixels')
         return ax
     def _plot_brojected(self,ax,image,loc='ROI',cmap='cubehelix', origin='lower', vlim=(1., 1000.), saveto=None):#?

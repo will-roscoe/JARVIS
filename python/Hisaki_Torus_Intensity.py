@@ -91,5 +91,5 @@ def torus_plot(torus_filename):
     #plt.savefig(figname, bbox_inches='tight')
 
 # file of interest (assumes file is in same directory as this script - if it isn't, you need to add the path to the file)
-torus_filename = 'C:datasets\Hisaki\Torus Power\exeuv_torus_20160504_lv03_LT00-24_dt00010_vr01_00.fits'
-torus_plot(torus_filename)
+#torus_filename = 'C:datasets\Hisaki\Torus Power\exeuv_torus_20160504_lv03_LT00-24_dt00010_vr01_00.fits'
+#torus_plot(torus_filename)

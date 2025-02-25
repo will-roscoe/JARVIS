@@ -5,6 +5,9 @@ import matplotlib.pyplot as plt		#for making plots
 from pathlib import Path 
 import datetime
 import os
+import pandas as pd
+pd.options.display.max_rows = 9999
+import glob
 from jarvis import fits_from_glob
 from Hisaki_Torus_Intensity import torus_plot
 from Hisaki_Aurora_Power import aurora_plot
@@ -26,6 +29,25 @@ def hours_conversion(sec_of_day, pos):
     hours = int(sec_of_day / 3600)
     return hours
 
-for i in range(42):
-    aurora_filename = 'C:datasets\Hisaki\Aurora Power\exeuv_aurora_20160506_lv03_LT00-24_dt00010_vr01_00.fits'
-    torus_filename = 'C:datasets\Hisaki\Torus Power\exeuv_torus_20160506_lv03_LT00-24_dt00010_vr01_00.fits'
+aurora_fitspath = glob.glob("C:datasets/Hisaki/Aurora Power/*.fits")
+torus_fitspath = glob.glob("C:datasets/Hisaki/Aurora Power/*.fits")
+
+date_list = []
+for f in aurora_fitspath:
+    date = f.split("/")[-1].split("_")[2]
+    dt_date = datetime.datetime.strptime(date, "%Y%m%d")
+    date_list.append(dt_date)
+print([str(d) for d in date_list])
+
+
+#for i in range(2):
+    #aurora_filename = r'C:datasets/Hisaki/Aurora Power/exeuv_aurora_20160506_lv03_LT00-24_dt00010_vr01_00.fits'
+    #torus_filename = r'C:datasets/Hisaki/Torus Power/exeuv_torus_20160506_lv03_LT00-24_dt00010_vr01_00.fits'
+    #date = aurora_filename.split("/")[-1].split("_")[2]
+    #dt_date = datetime.datetime.strptime(date, "%Y%m%d")
+    #print(dt_date)
+    #next_date = dt_date.replace()
+
+for i in range
+
+

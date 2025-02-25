@@ -80,6 +80,8 @@ def torus_plot(torus_filename):
     # codes for formatting the time axis (x-axis) in H:M:S format or integer hours only, only use one at a time 
     #ax.xaxis.set_major_formatter(plt.FuncFormatter(HMS))
     ax.xaxis.set_major_formatter(plt.FuncFormatter(hours_conversion))
+    datetime_object = datetime.strptime(datetime_object, '%Y-%m-%d + T + %H:%M:%S')
+    print(datetime_object)
 
     plt.show()
 

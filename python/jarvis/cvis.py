@@ -7,10 +7,10 @@ import cmasher as cmr
 import cv2
 
 
-from .utils import fitsheader, fpath, mcolor_to_lum, fits_from_parent, prepare_fits,  basename, fitsdir
+from .utils import ensure_dir, fitsheader, fpath, mcolor_to_lum, fits_from_parent, prepare_fits,  basename, fitsdir
 from .polar import plot_polar, process_fits_file
 from astropy.io import fits
-import astropy as ap
+from astropy.table import Table
 from .const import  DPR_IMXY
 from typing import List, Union
 
@@ -77,9 +77,10 @@ def gaussian_coadded_fits(fits_objs,saveto=None, gaussian=(3,1), overwrite=True,
         saveto = fpath(f'datasets/HST/custom/{basename(fitsdir)}_coadded_gaussian{gaussian}.fits')
     fdatas = [gaussian_blur(fd, *gaussian) for fd in fdatas] if indiv else fdatas
     coaddg = coadd(fdatas)
-    coaddg = gaussian_blur(coadded, 3, 1) if coadded else coaddg
+    coaddg = gaussian_blur(coaddg, 3, 1) if coadded else coaddg
     cofitsd = fits_from_parent(fits_objs[0], new_data=coaddg)
     if saveto is not None:
+        #ensure_dir(saveto)
         cofitsd.writeto(saveto, overwrite=overwrite)
     return cofitsd
        
@@ -155,11 +156,11 @@ def pathtest():
     plot_pathpoints(clist)
     return clist[0]
 
-def savecontour_tofits(fits_obj: fits.HDUList, path, index=None):
+def savecontour_tofits(fits_obj: fits.HDUList, cont, index=None):
     # if no index given, use the next available index
     if index is None:
         index = len(fits_obj)
-    table = ap.table.Table(data=path, names=['colat', 'lon'])
+    table = Table(data=cont, names=['colat', 'lon'])
     # find any existing boundary HDUs
     ver = 0
     for i, hdu in enumerate(fits_obj):
@@ -171,7 +172,9 @@ def savecontour_tofits(fits_obj: fits.HDUList, path, index=None):
     curr_hdus.insert(index, newtablehdu)
     newfits = fits.HDUList(curr_hdus)
     return newfits
-
+def getcontourhdu(cont):
+    table = Table(data=cont, names=['colat', 'lon'])
+    return fits.BinTableHDU(table, name='BOUNDARY')
     
 
   

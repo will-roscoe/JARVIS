@@ -188,18 +188,29 @@ def powercalc(fits_obj:fits.HDUList, dpr_coords:np.ndarray=None)-> Tuple[float, 
     dark_mask_2d = dpr_path.contains_points(np.vstack(
         [llats.flatten(), llons.flatten()]).T).reshape(160,1440)#> mask needs to be applied to un-rolled image
     # --------------- FITS FILE HEADER INFO AND VARIABLE DEFS -----------------#
+    __print(f'{"FITS and Path Debugging":#^25}:')
     __print(str(fits_obj.info(output=False)))                  #> print file information
+    
     #> accessing specific header info entries:
     cml, dece, dist, cts2kr = fitsheader(fits_obj, 'CML','DECE','DIST','CTS2KR')
+    __print(f'CML:{cml}', f'DECE:{dece}', f'DIST:{dist}', f'CTS2KR:{cts2kr}')
+
     #> CML:       Central meridian longitude
     #> DECE:      Declination of the equator in degrees
     #> DIST:      Standard (scaled) Earth-planet distance in AU
     #> CTS2KR:    conversion factor in counts/sec/kR
     __print(1./cts2kr)        #> reciprocal of cts2kr to match in Gustin+2012 Table 1.
+
     
-    # ------------------------ IMAGE ARRAY EXTRACTION -------------------------#
+   
     image_data = fits_obj[FITSINDEX].data   
+
+    
+    
+
+
     __plot('raw_data', image_data)
+
     #//fits_obj.close()                # close file once you're done with it
     # --------------------------- LIMB TRIMMING -------------------------------#
     #> perform limb trimming based on angle of surface vector normal to the sun
@@ -249,12 +260,18 @@ def powercalc(fits_obj:fits.HDUList, dpr_coords:np.ndarray=None)-> Tuple[float, 
     #// bimage = cylbroject(image_centred,ndiv=2)
     __plot('brj', image=full_image, loc='full')
     __plot('brj', image=bimage_roi, loc='ROI')
+
+
+
+
+
+    
     #-------------------------- EMISSION POWER CALC ---------------------------#
     #> Once the back-projected image looks OK, we can proceed with the emission power calculation here.
     #> ISOLATE THE ROI INTENSITIES IN A FULL 1440*720 PROJECTED IMAGE (all other pixels set to nans/zeros)
     distance_squared = (dist * au_to_km)**2          #> AU in km
     #> calculate emitted power from ROI in GW (exposure time not required here as kR intensities are per second):
-    total_power_emitted_from_roi = (np.nansum(bimage_roi) * cts2kr * 
+    total_power_emitted_from_roi = (np.nansum(np.nan_to_num(bimage_roi)) * cts2kr * 
                                     distance_squared * gustin_conv_factor / 1e9)
     area = area_to_km2(area_calc(dpr_coords), rpeqkm+240)
     power_per_area = total_power_emitted_from_roi / area
@@ -262,10 +279,6 @@ def powercalc(fits_obj:fits.HDUList, dpr_coords:np.ndarray=None)-> Tuple[float, 
     __print('Power per unit area in GW/km²:\n{}'.format(power_per_area))
     __write_to_file(fitsheader(fits_obj, 'VISIT'), get_datetime(fits_obj), total_power_emitted_from_roi, power_per_area)
     return total_power_emitted_from_roi, power_per_area, full_image, bimage_roi
-
-
-
-
 
 
 

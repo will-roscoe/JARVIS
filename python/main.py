@@ -42,12 +42,21 @@ if __name__ == '__main__':
     nfits =[]
     _mpbar = tqdm(total=len(basefitpath), desc='Generating coadded fits')
     for i,fp in enumerate(basefitpath):
-        _mpbar.set_description(f'Generating coadded fits for group {i+1:0>2}')
+        _mpbar.set_description(f'Generating power fits for group {i+1:0>2}')
         fitsg = fits_from_glob(fp)
-        p = fpath(f'datasets/HST/custom/g{i+1:0>2},v{group_to_visit(i+1):0>2}_[3,1]gaussian-coadded.fits')
-        fit = gaussian_coadded_fits(fitsg, saveto=p, gaussian=(3,1), overwrite=True,indiv=False, coadded=True)
+        copath = fpath(f'datasets/HST/custom/g{i+1:0>2},v{group_to_visit(i+1):0>2}_[3,1]gaussian-coadded.fits')
+        fit = gaussian_coadded_fits(fitsg, saveto=copath, gaussian=(3,1), overwrite=True,indiv=False, coadded=True)
+        fit.close()
+        pt = pathfinder(copath)
+       # print(*[fi for fi in f], sep='\n')
+        #print(*[f.fileinfo(i) for i in range(len(f))], sep='\n')
+        #f.info()
+        for f in fitsg:
+            nfits.append(f)
+            pc = powercalc(fit,pt)
+            f.close()
         _mpbar.update(1)
-        nfits.append(p)
+        
     _mpbar.close()
     # script to generate the contours 
    
@@ -55,10 +64,9 @@ if __name__ == '__main__':
     for fit in nfits:
         pt=pathfinder(fit)
         #paths.append(pathfinder(fit))
-        f = fits.open(fit, 'append')
-        f.info()
-        print(*[fi for fi in f], sep='\n')
-        print(*[f.fileinfo(i) for i in range(len(f))], sep='\n')
+        
+       
+       
         powercalc(f,pt)
     #print(paths)
 

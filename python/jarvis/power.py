@@ -42,7 +42,7 @@ delrpkm = deltas['Jupiter']
 #-------------------------------- MODULE CONFIG -------------------------------#
 WRITETO = 'powers.txt' #> file to write power results to
 DISPLAY_PLOTS = False   #> whether to output plots to screen
-DISPLAY_MSGS = False    #> whether to output messages to screen
+DISPLAY_MSGS = True    #> whether to output messages to screen
 #------------------------------------------------------------------------------#
 def __null(*args, **kwargs): pass
 __write_to_file, __print, __plot = __null, __null, __null
@@ -51,20 +51,22 @@ if WRITETO:
         with open(WRITETO, 'a') as f:
             f.write(" ".join([str(x) for x in [visit,stime,tpe_roi,ppa,'\n']]))
 if DISPLAY_PLOTS:
-    from .extensions import QuickPlot as Qp
-    funcdict = {'raw_data':Qp._plot_, 'raw_limbtrim':Qp._plot_raw_limbtrimmed, 
-    'extracted':Qp._plot_extracted_wcoords, 'polar_region':Qp._plot_polar_wregions,
-    'sq_region':Qp._plot_sqr_wregions, 'mask':Qp._plot_mask, 'brj':Qp._plot_brojected}
-    def __plot(which, *args, **kwargs):
+    from .extensions import QuickPlot 
+    Qp = QuickPlot()
+    funcdict = {'raw_data':'_plot_', 'raw_limbtrim':'_plot_raw_limbtrimmed', 
+    'extracted':'_plot_extracted_wcoords', 'polar_region':'_plot_polar_wregions',
+    'sq_region':'_plot_sqr_wregions', 'mask':'_plot_mask', 'brj':'_plot_brojected'}
+    def __plot(which,image, *args, **kwargs):
         fkws = dict(figsize=kwargs.pop('figsize', (8,8)))
         if 'polar' in which:
             fkws['subplot_kw'] = dict(projection='polar')
         fig, ax = plt.subplots(**fkws)
-        funcdict[which](ax, *args, **kwargs)
+        getattr(Qp, funcdict[which])(ax=ax,image=image, *args, **kwargs)
         plt.show()
 if DISPLAY_MSGS:
     def __print(*args):
-        tqdm.write(s="/n".join(args))
+        print(*args)
+        #tqdm.write(s="\n".join(args if isinstance(args, list) else [t for t in args] if isinstance(args,tuple) else [str(arg) for arg in args]))
 #---------------------------------- MAIN BODY ---------------------------------#
 
     # Nicked from Jonny's pypline.py file: 
@@ -170,13 +172,14 @@ def powercalc(fits_obj:fits.HDUList, dpr_coords:np.ndarray=None)-> Tuple[float, 
         if isinstance(dpr_coords, int):
             dpr_coords = fits_obj[dpr_coords].data
         else:#> check in the hdulist with the name 'BOUNDARY' and take the newest one 
-            #b_inds = [i for i in range(len(fits_obj)) 
-            #          if fits_obj[i].name == 'BOUNDARY']
-            newestb = fits_obj[-1]
-            #for bo in b_inds:
-            #    if fits_obj[bo].header['EXTVER'] > newestb.header['EXTVER']:
-            #        newestb = fits_obj[bo]
-            dpr_coords = newestb.data
+            raise NotImplementedError('dpr_coords must be an array or an integer index of a fits object in the hdulist')
+            # b_inds = [i for i in range(len(fits_obj)) 
+            #           if fits_obj[i].name == 'BOUNDARY']
+            # newestb = fits_obj[b_inds[0]]
+            # for bo in b_inds:
+            #     if fits_obj[bo].header['EXTVER'] > newestb.header['EXTVER']:
+            #         newestb = fits_obj[bo]
+            # dpr_coords = newestb.data
     if dpr_coords.shape[0] == 2: 
         dpr_coords = dpr_coords.T 
     dpr_path = path.Path(dpr_coords) 
@@ -185,7 +188,7 @@ def powercalc(fits_obj:fits.HDUList, dpr_coords:np.ndarray=None)-> Tuple[float, 
     dark_mask_2d = dpr_path.contains_points(np.vstack(
         [llats.flatten(), llons.flatten()]).T).reshape(160,1440)#> mask needs to be applied to un-rolled image
     # --------------- FITS FILE HEADER INFO AND VARIABLE DEFS -----------------#
-    __print(fits_obj.info(output=False))                  #> print file information
+    __print(str(fits_obj.info(output=False)))                  #> print file information
     #> accessing specific header info entries:
     cml, dece, dist, cts2kr = fitsheader(fits_obj, 'CML','DECE','DIST','CTS2KR')
     #> CML:       Central meridian longitude
@@ -224,8 +227,8 @@ def powercalc(fits_obj:fits.HDUList, dpr_coords:np.ndarray=None)-> Tuple[float, 
         im_flip = np.flip(image_centred.copy(),0)
         image_extract = im_flip[0:160,:] # extract image in colat range 0-40 deg (4*40 = 160 pixels in image lat space):
     __plot('extracted', image_extract)
-    __plot('polar_region', image_extract, dpr_coords)
-    __plot('sq_region', image_extract, dpr_coords)
+    __plot('polar_region', image_extract, cpath=dpr_coords)
+    __plot('sq_region', image_extract, cpath=dpr_coords)
     __plot('mask', dark_mask_2d, loc='ROI')
     #> Now mask off the image by setting image regions where mask=False, to NaNs:
     image_extract[dark_mask_2d==False] = np.nan # noqa: E712
@@ -244,8 +247,8 @@ def powercalc(fits_obj:fits.HDUList, dpr_coords:np.ndarray=None)-> Tuple[float, 
     bimage_roi = cylbroject(roi_im_full,fits_obj,ndiv=2)   
     full_image = cylbroject(im_4broject,fits_obj,ndiv=2)
     #// bimage = cylbroject(image_centred,ndiv=2)
-    __plot('brj', full_image, loc='full')
-    __plot('brj', bimage_roi, loc='ROI')
+    __plot('brj', image=full_image, loc='full')
+    __plot('brj', image=bimage_roi, loc='ROI')
     #-------------------------- EMISSION POWER CALC ---------------------------#
     #> Once the back-projected image looks OK, we can proceed with the emission power calculation here.
     #> ISOLATE THE ROI INTENSITIES IN A FULL 1440*720 PROJECTED IMAGE (all other pixels set to nans/zeros)

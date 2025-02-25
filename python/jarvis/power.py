@@ -47,9 +47,9 @@ DISPLAY_MSGS = True    #> whether to output messages to screen
 def __null(*args, **kwargs): pass
 __write_to_file, __print, __plot = __null, __null, __null
 if WRITETO:
-    def __write_to_file(visit, stime, tpe_roi, ppa):
+    def __write_to_file(visit, stime, tpe_roi, ppa, area):
         with open(WRITETO, 'a') as f:
-            f.write(" ".join([str(x) for x in [visit,stime,tpe_roi,ppa,'\n']]))
+            f.write(" ".join([str(x) for x in [visit,stime,tpe_roi,ppa,area,'\n']]))
 if DISPLAY_PLOTS:
     from .extensions import QuickPlot 
     Qp = QuickPlot()

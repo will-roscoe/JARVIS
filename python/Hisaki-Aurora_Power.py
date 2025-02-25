@@ -22,6 +22,7 @@ def HMS(sec_of_day, pos):
 def hours_conversion(sec_of_day, pos):
     hours = sec_of_day / 3600
     return hours
+
 #############################################
 #### Retrieving data from the FITS file #####
 #############################################

@@ -4,6 +4,7 @@ import scipy.signal as si
 import pandas as pd
 import matplotlib.pyplot as plt
 #does all the stats we will need for analysis
+<<<<<<< HEAD
 def stats(data,mean=True,median=True,std=True,max=False,min=False):
     '''Calculates common statistcal values for a given dataset.'''
     stats = {}
@@ -34,3 +35,5 @@ def correlate(data1, data2):
 
     
     
+=======
+>>>>>>> parent of 218edd5 (test)

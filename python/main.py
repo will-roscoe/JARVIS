@@ -1,13 +1,17 @@
+
+
+
 from jarvis import fpath
 from jarvis.extensions import pathfinder
 from jarvis.cvis import gaussian_coadded_fits
 from jarvis.utils import fits_from_glob, group_to_visit
+<<<<<<< HEAD
 from jarvis.stats import stats, correlate
 from jarvis.power import powercalc
+=======
+>>>>>>> parent of 218edd5 (test)
 from tqdm import tqdm
 from astropy.io import fits
-import pandas as pd
-import matplotlib.pyplot as plt
 #norm = mpl.colors.Normalize(vmin=0, vmax=1000)
 
 #cmap = (mpl.colors.ListedColormap(['red', 'green', 'blue', 'cyan'])
@@ -35,7 +39,11 @@ import matplotlib.pyplot as plt
 
 if __name__ == '__main__':
     # # script to generate the coadded fits
+<<<<<<< HEAD
     groups = [1,2,4] #remove 3 (broken), 20 (southern)
+=======
+    groups = range(1,21)
+>>>>>>> parent of 218edd5 (test)
     basefitpath = [fpath(f'datasets/HST/group_{i:0>2}') for i in groups]
     nfits =[]
     _mpbar = tqdm(total=len(basefitpath), desc='Generating coadded fits')
@@ -51,18 +59,25 @@ if __name__ == '__main__':
    
     paths =[]
     for fit in nfits:
+<<<<<<< HEAD
         pt=pathfinder(fit)
         #paths.append(pathfinder(fit))
+=======
+        paths.append(pathfinder(fit))
+>>>>>>> parent of 218edd5 (test)
         f = fits.open(fit, 'append')
         f.info()
         print(*[fi for fi in f], sep='\n')
         print(*[f.fileinfo(i) for i in range(len(f))], sep='\n')
+<<<<<<< HEAD
         powercalc(f,pt)
+=======
+    print(paths)
 
-statsfile = 'powers.txt'
-table = pd.read_csv(statsfile, header=0,sep=r'\s+')
-print(table.columns)
+>>>>>>> parent of 218edd5 (test)
 
+
+<<<<<<< HEAD
 print(stats(table['PFlux'],mean=True,median=True,std=True))
 
 # statsfile_2 = (fpath(r'datasets\Solar_Wind.txt'))
@@ -76,6 +91,8 @@ print(stats(table['PFlux'],mean=True,median=True,std=True))
 # plt.xlabel("Time [h:m:s]")
 # plt.ylabel("Power Flux [W/m^2]")
 # plt.show()
+=======
+>>>>>>> parent of 218edd5 (test)
 
 
 

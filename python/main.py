@@ -56,13 +56,15 @@ if __name__ == '__main__':
         #f.info()
         
         
-        fit.close()
+        
         try:
             path = np.array(fit['BOUNDARY'].data.tolist())
+            fit.close()
             for f in fitsg:
                 pc = powercalc(f,path)
                 f.close()
-        except IndexError:
+        except KeyError:
+            fit.close()
             print(f'No boundary found for group {i}')
 
            

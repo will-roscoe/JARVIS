@@ -37,7 +37,7 @@ from astropy.io import fits
 
 if __name__ == '__main__':
     # # script to generate the coadded fits
-    groups = [1,2,3,4,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20]
+    groups = [1,2,3,4,6,7,8,9,10,11,12,13,14,15,16,17,18,19] #remove 3 (broken), 20 (southern)
     basefitpath = [fpath(f'datasets/HST/group_{i:0>2}') for i in groups]
     nfits =[]
     _mpbar = tqdm(total=len(basefitpath), desc='Generating coadded fits')

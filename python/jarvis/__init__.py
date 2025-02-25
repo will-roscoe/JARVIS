@@ -40,6 +40,7 @@ from .polar import (moind, make_gif, plot_moonfp, plot_regions, plot_polar,
 
 from .cvis import (pathtest, contourgen, identify_boundary, 
                 plot_pathpoints, savecontour_tofits)
+from .stats import stats
 __version__ = '0.1.0-alpha'
 __all__ = ['polar', 'const', 'utils', 'cvis', 'power', 
     'fpath', 'fitsheader', 'ensure_dir', 'fits_from_glob', 'fitsdir', 
@@ -47,7 +48,7 @@ __all__ = ['polar', 'const', 'utils', 'cvis', 'power',
     'moind', 'make_gif', 'plot_moonfp', 'plot_regions', 'plot_polar', 
     'process_fits_file', 'powercalc', 'plotcontours', 'pathtest', 'contourgen', 
     'identify_boundary', 'plot_pathpoints', 'savecontour_tofits', 'KERNELDIR', 
-    'FITSINDEX', 'GHROOT', 'DATADIR', 'PYDIR', 'PKGDIR',]
+    'FITSINDEX', 'GHROOT', 'DATADIR', 'PYDIR', 'PKGDIR','stats']
 AUTHORS = {
     'Will Roscoe': '@will-roscoe',
     'Samuel Courthold': '@samoo2000000',

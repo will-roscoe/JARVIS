@@ -1,12 +1,13 @@
-
-
-
 from jarvis import fpath
 from jarvis.extensions import pathfinder
 from jarvis.cvis import gaussian_coadded_fits
 from jarvis.utils import fits_from_glob, group_to_visit
+from jarvis.stats import stats
+from jarvis.power import powercalc
 from tqdm import tqdm
 from astropy.io import fits
+import pandas as pd
+import matplotlib.pyplot as plt
 #norm = mpl.colors.Normalize(vmin=0, vmax=1000)
 
 #cmap = (mpl.colors.ListedColormap(['red', 'green', 'blue', 'cyan'])
@@ -33,32 +34,44 @@ from astropy.io import fits
 
 
 if __name__ == '__main__':
-    # # script to generate the coadded fits
-    groups = range(1,21)
-    basefitpath = [fpath(f'datasets/HST/group_{i:0>2}') for i in groups]
-    nfits =[]
-    _mpbar = tqdm(total=len(basefitpath), desc='Generating coadded fits')
-    for i,fp in enumerate(basefitpath):
-        _mpbar.set_description(f'Generating coadded fits for group {i+1:0>2}')
-        fitsg = fits_from_glob(fp)
-        p = fpath(f'datasets/HST/custom/g{i+1:0>2},v{group_to_visit(i+1):0>2}_[3,1]gaussian-coadded.fits')
-        fit = gaussian_coadded_fits(fitsg, saveto=p, gaussian=(3,1), overwrite=True,indiv=False, coadded=True)
-        _mpbar.update(1)
-        nfits.append(p)
-    _mpbar.close()
-    # script to generate the contours 
+    # script to generate the coadded fits
+   groups = range(1,21)
+   basefitpath = [fpath(f'datasets/HST/group_{i:0>2}') for i in groups]
+   nfits =[]
+   _mpbar = tqdm(total=len(basefitpath), desc='Generating coadded fits')
+   for i,fp in enumerate(basefitpath):
+       _mpbar.set_description(f'Generating coadded fits for group {i+1:0>2}')
+       fitsg = fits_from_glob(fp)
+       p = fpath(f'datasets/HST/custom/g{i+1:0>2},v{group_to_visit(i+1):0>2}_[3,1]gaussian-coadded.fits')
+       fit = gaussian_coadded_fits(fitsg, saveto=p, gaussian=(3,1), overwrite=True,indiv=False, coadded=True)
+       _mpbar.update(1)
+       nfits.append(p)
+   _mpbar.close()
+    #script to generate the contours 
    
-    paths =[]
-    for fit in nfits:
-        paths.append(pathfinder(fit))
-        f = fits.open(fit, 'append')
-        f.info()
-        print(*[fi for fi in f], sep='\n')
-        print(*[f.fileinfo(i) for i in range(len(f))], sep='\n')
-    print(paths)
+   paths =[]
+   for fit in nfits:
+       paths.append(pathfinder(fit))
+       f = fits.open(fit, 'append')
+       f.info()
+       print(*[fi for fi in f], sep='\n')
+       print(*[f.fileinfo(i) for i in range(len(f))], sep='\n')
+   print(paths)
+
+fitslist=fits_from_glob(fpath(r'datasets/HST/group_04'))
+for f in fitslist:
+    powercalc(f,dpr_coords=paths[3])
 
 
+statsfile = 'powers.txt'
+table = pd.read_csv(statsfile, header=0,sep=r'\s+')
+print(table.columns)
 
+table.plot(x='Time', y='PFlux', title='Power Flux vs Time at Jupiter', xlabel='Time [h:m:s]', ylabel='PFlux [W/m^2]')
+plt.title("Variation in power flux")
+plt.xlabel("Time [h:m:s]")
+plt.ylabel("Power Flux [W/m^2]")
+plt.show()
 
 
 

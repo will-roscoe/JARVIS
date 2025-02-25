@@ -151,7 +151,7 @@ def generate_contourpoints(fits_obj:fits.HDUList,id_pixel=None, lrange=(0.2,0.4)
   
 
 def pathtest():
-    test = fits.open(fpath(r"datasets/HST/custom/v04_coadded_gaussian[3_1].fits"))
+    test = fits.open(fpath(r"datasets\HST\custom\g04,v04_[3,1]gaussian-coadded.fits"))
     clist = [generate_contourpoints(test, DPR_IMXY['04'], (0.25,0.35),)]
     plot_pathpoints(clist)
     return clist[0]

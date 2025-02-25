@@ -55,7 +55,7 @@ def fits_from_glob(fits_dir:str, suffix:str='/*.fits', recursive=True, sort=True
     tqdm.write(f'Found {len(fits_file_list)} files in the directory.')
     if names:
         return [fits.open(f) for f in fits_file_list] , [basename(f) for f in fits_file_list]
-    return [fits.open(f) for f in fits_file_list] 
+    return fits_file_list
 #################################################################################
 #                  HDUList/FITS object FUNCTIONS
 #################################################################################

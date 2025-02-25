@@ -41,8 +41,8 @@ delrpkm = deltas['Jupiter']
 #> If not (Saturn), it's hard-wired in here depending on the target planet (probably Saturn!):
 #-------------------------------- MODULE CONFIG -------------------------------#
 WRITETO = 'powers.txt' #> file to write power results to
-DISPLAY_PLOTS = True   #> whether to output plots to screen
-DISPLAY_MSGS = True    #> whether to output messages to screen
+DISPLAY_PLOTS = False   #> whether to output plots to screen
+DISPLAY_MSGS = False    #> whether to output messages to screen
 #------------------------------------------------------------------------------#
 def __null(*args, **kwargs): pass
 __write_to_file, __print, __plot = __null, __null, __null
@@ -64,7 +64,7 @@ if DISPLAY_PLOTS:
         plt.show()
 if DISPLAY_MSGS:
     def __print(*args):
-        tqdm.write(*args)
+        tqdm.write(s="/n".join(args))
 #---------------------------------- MAIN BODY ---------------------------------#
 
     # Nicked from Jonny's pypline.py file: 
@@ -170,12 +170,12 @@ def powercalc(fits_obj:fits.HDUList, dpr_coords:np.ndarray=None)-> Tuple[float, 
         if isinstance(dpr_coords, int):
             dpr_coords = fits_obj[dpr_coords].data
         else:#> check in the hdulist with the name 'BOUNDARY' and take the newest one 
-            b_inds = [i for i in range(len(fits_obj)) 
-                      if fits_obj[i].name == 'BOUNDARY']
-            newestb = fits_obj[b_inds[0]]
-            for bo in b_inds:
-                if fits_obj[bo].header['EXTVER'] > newestb.header['EXTVER']:
-                    newestb = fits_obj[bo]
+            #b_inds = [i for i in range(len(fits_obj)) 
+            #          if fits_obj[i].name == 'BOUNDARY']
+            newestb = fits_obj[-1]
+            #for bo in b_inds:
+            #    if fits_obj[bo].header['EXTVER'] > newestb.header['EXTVER']:
+            #        newestb = fits_obj[bo]
             dpr_coords = newestb.data
     if dpr_coords.shape[0] == 2: 
         dpr_coords = dpr_coords.T 
@@ -241,8 +241,8 @@ def powercalc(fits_obj:fits.HDUList, dpr_coords:np.ndarray=None)-> Tuple[float, 
     #> this cylbroject function definition is feeding inputs into _cylbroject - JK
 
     #> Backprojecting! Image input needs to be full [1440,720] centred projection
-    bimage_roi = cylbroject(roi_im_full ,ndiv=2)   
-    full_image = cylbroject(im_4broject, ndiv=2)
+    bimage_roi = cylbroject(roi_im_full,fits_obj,ndiv=2)   
+    full_image = cylbroject(im_4broject,fits_obj,ndiv=2)
     #// bimage = cylbroject(image_centred,ndiv=2)
     __plot('brj', full_image, loc='full')
     __plot('brj', bimage_roi, loc='ROI')

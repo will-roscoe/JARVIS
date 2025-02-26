@@ -1,4 +1,3 @@
-
 import os
 import random
 import numpy as np
@@ -22,13 +21,50 @@ def cropimg(inpath:str,outpath:str=None,ax_background=255,img_background=0)->Uni
     inpath: path to the image to crop
     outpath: path to save the cropped image
     ax_background: the luminance value of the axis background
+
+
+    MUST OUTPUT A SQUARE IMAGE, CENTRED ON THE ORIGIN OF THE CIRCLE IN THE IMAGE
     """
     img = cv2.imread(inpath,cv2.IMREAD_GRAYSCALE)
-    ax_lum, ext_lum =mcolor_to_lum(ax_background, img_background)
+    # ctr = (img.shape[0]//2, img.shape[1]//2)
+    
+    
+    # Convert to grayscale
+    # gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    
+    # Threshold the image to get the circle
+    _, thresh = cv2.threshold(img, 1, 255, cv2.THRESH_BINARY)
+    
+    # Find contours
+    contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    
+    # Get the largest contour which should be the circle
+    contour = max(contours, key=cv2.contourArea)
+    
+    # Get the bounding box of the contour
+    x, y, w, h = cv2.boundingRect(contour)
+    
+    # Determine the size of the square
+    size = max(w, h)
+    
+    # Calculate the center of the bounding box
+    center_x, center_y = x + w // 2, y + h // 2
+    
+    # Calculate the top-left corner of the square
+    start_x = max(center_x - size // 2, 0)
+    start_y = max(center_y - size // 2, 0)
+    
+    # Crop the image to the square region
+    img = img[start_y:start_y + size, start_x:start_x + size]
+    
+    #return cropped_image
+
+    #ax_lum, ext_lum =mcolor_to_lum(ax_background, img_background)
     # Find the bounding box of the non-black pixels
-    coords = cv2.findNonZero(cv2.threshold(img, max([ext_lum-1,0]), ax_lum, cv2.THRESH_BINARY)[1])
-    x, y, w, h = cv2.boundingRect(coords)
-    img = img[y:y+h, x:x+w]
+    #coords = cv2.findNonZero(cv2.threshold(img, max([ext_lum-1,0]), ax_lum, cv2.THRESH_BINARY)[1])
+    #print(start_x, start_y, center_x, center_y, size)
+    #x, y, w, h = cv2.boundingRect(coords)
+    #img = img[y:y+h, x:x+w]
     if outpath is not None:
         cv2.imwrite(outpath, img)
     else:
@@ -68,7 +104,7 @@ def mk_stripped_polar(fits_obj: fits.HDUList, ax_background='white',img_backgrou
     fig.savefig(tempdir, dpi=dpi)
     plt.close()
     img = cropimg(tempdir,ax_background=ax_background,img_background=ax_background) if crop else cv2.imread(tempdir)
-    os.remove(tempdir)
+    #os.remove(tempdir)
     return img
 
 def gaussian_coadded_fits(fits_objs,saveto=None, gaussian=(3,1), overwrite=True,indiv=True,coadded=True):
@@ -172,11 +208,11 @@ def savecontour_tofits(fits_obj: fits.HDUList, cont, index=None):
     curr_hdus.insert(index, newtablehdu)
     newfits = fits.HDUList(curr_hdus)
     return newfits
-def getcontourhdu(cont):
-    table = Table(data=cont, names=['colat', 'lon'])
-    return fits.BinTableHDU(table, name='BOUNDARY')
-    
+def getcontourhdu(cont,name='BOUNDARY',header=None):
+    table = Table(data=cont, names=['colat', 'lon'], dtype=[np.float32, np.float32])
+    return fits.BinTableHDU(table, name=name, header=header, uint=True)
 
-  
+
+
 
 

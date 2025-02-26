@@ -34,7 +34,7 @@ def aurora_plot(aurora_filename):
     # print initial and final times of observation
     init_time = hdul[1].header["DATE-OBS"]
     fin_time = hdul[1].header["DATE-END"]
-    print("From "+ init_time + " to " + fin_time)
+    #print("From "+ init_time + " to " + fin_time)
 
     # 'hdul' is a HDUList (header-data unit list) containing 3 elements; using Python indexing you can retrieve the individual elements:
     # hdul[0] contains 'metadata' - you'll rarely have to use this one
@@ -43,6 +43,7 @@ def aurora_plot(aurora_filename):
 
     # extract time series data for use on the x-axis
     time_series_data = hdul[2].data
+    print(time_series_data)
 
     #to get data from a specific column in the table, use the 'field' function; we want 'SECOFDAY', 'TPOW0710ADAWN' and 'TPOW0710ADUSK'
     time = time_series_data.field('SECOFDAY')
@@ -85,5 +86,5 @@ def aurora_plot(aurora_filename):
     #plt.savefig(figname, bbox_inches='tight')
 
 # file of interest (assumes file is in same directory as this script - if it isn't, you need to add the path to the file)
-aurora_filename = 'C:datasets\Hisaki\Aurora Power\exeuv_aurora_20160504_lv03_LT00-24_dt00010_vr01_00.fits'
-aurora_plot(aurora_filename)
+#aurora_filename = 'C:datasets\Hisaki\Aurora Power\exeuv_aurora_20160504_lv03_LT00-24_dt00010_vr01_00.fits'
+#aurora_plot(aurora_filename)

@@ -68,7 +68,7 @@ def fitsheader(fits_object, *args, ind=FITSINDEX,cust=True):
         cust: if True, returns custom values for 'south', 'fixed_lon', 'fixed', else will return the header value corresponding to the key."""
     #print(fits_object[ind].header.__dict__)
     ret = []
-    assert all(isinstance(arg, str) for arg in args), 'All arguments must be strings.'
+    #assert all(isinstance(arg, str) for arg in args), 'All arguments must be strings.'
     for arg in args:
         if arg.lower() =='south': # returns if_south as bool
             obj_l=fits_object[ind].header['HEMISPH'].lower()[0]
@@ -79,7 +79,11 @@ def fitsheader(fits_object, *args, ind=FITSINDEX,cust=True):
         elif arg.lower() in ['fixed',]: # returns fixed as so
             obj=''
         else:
-            obj=fits_object[ind].header[arg.upper()]
+            try:
+                obj=fits_object[ind].header[arg.upper()]
+            except: #noqa: E722
+                obj=fits_object[ind].header[arg]
+
         ret.append(obj)
     return ret if len(ret) > 1 else ret[0]
 def fits_from_parent(original_fits, new_data=None, **kwargs):
@@ -248,3 +252,13 @@ def fitsdir(sortby='visit', full=False):
             fitspaths[i] = [os.path.join(f, file) for file in files]
     return fitspaths
 
+def hdulinfo(fits_obj:fits.HDUList):
+    ret = []
+    for i,hdu in enumerate(fits_obj):
+        name = hdu.name
+        type = hdu.__class__.__name__
+        ret.append(dict(name=name,type=type))
+    return ret
+        
+            
+    

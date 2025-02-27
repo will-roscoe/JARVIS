@@ -37,11 +37,11 @@ import pandas as pd
 #print(d)
 
 
-
-if __name__ == '__main__':
-    # # script to generate the coadded fits
-    #remove 3 (broken), 20 (southern) #group Number
+# NOTE: we use this condition to run the code only if it is run as a script to avoid running it when imported, this is best practice.
+if __name__ == '__main__': # __name__ is a special,file-unique variable that is set to '__main__' when the script is run as a script, and set to the name of the module when imported.
     gps = [1,2,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19]
+    #remove 3 (broken), 20 (southern) #group Numbe
+# loop to generate the coadded fits, identify the boundary, and calculate the power
     for i in tqdm(gps):
         basefitpath = fpath(f'datasets/HST/group_{i:0>2}') 
         fitsg = fits_from_glob(basefitpath)
@@ -68,6 +68,35 @@ if __name__ == '__main__':
         except KeyError:
             fit.close()
             print(f'No boundary found for group {i}')
+# # loop to only generate the gaussians ----------------------------------------
+#     for i in tqdm(gps):
+#         basefitpath = fpath(f'datasets/HST/group_{i:0>2}') 
+#         fitsg = fits_from_glob(basefitpath)
+#         copath = fpath(f'datasets/HST/custom/g{i+1:0>2},v{group_to_visit(i+1):0>2}_[3,1]gaussian-coadded.fits')
+#         fit = gaussian_coadded_fits(fitsg, saveto=copath, gaussian=(3,1), overwrite=True,indiv=False, coadded=True)
+#         fit.close()
+# # loop to only run pathfinder ------------------------------------------------
+#     for i in tqdm(gps):
+#         copath = fpath(f'datasets/HST/custom/g{i+1:0>2},v{group_to_visit(i+1):0>2}_[3,1]gaussian-coadded.fits')
+#         pt = pathfinder(copath)
+# # loop to only run powercalc -------------------------------------------------
+#     for i in tqdm(gps):
+#         basefitpath = fpath(f'datasets/HST/group_{i:0>2}') 
+#         fitsg = fits_from_glob(basefitpath)
+#         copath = fpath(f'datasets/HST/custom/g{i+1:0>2},v{group_to_visit(i+1):0>2}_[3,1]gaussian-coadded.fits')
+#         fit = fits.open(copath)
+#         path = np.array(fit['BOUNDARY'].data.tolist())
+#         fit.close()
+#         pbr = tqdm(total=len(fitsg), desc=f'"powercalc"(group {i} of {len(gps)})')
+#         for j,f in enumerate(fitsg):
+#             pc = powercalc(f,path)
+#             pbr.set_postfix_str(f"P={pc[0]:.3f}GW,I={pc[1]*1e8:.3f}x10⁻⁸GW/km²")
+#             pbr.update()
+#             f.close()
+#         pbr.close()
+# #<----------------------------------------------------------------------------
+
+
 
 # statsfile = 'powers.txt'
 # table = pd.read_csv(statsfile, header=0,sep=r'\s+')

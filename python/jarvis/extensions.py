@@ -6,11 +6,9 @@ import cv2
 import os
 from astropy.io import fits
 from tqdm import tqdm
-
 from .utils import fpath, hdulinfo
-try:
+try: # this is to ensure that this file can be imported without needing PyQt6 or PyQt5, eg for QuickPlot
     from PyQt6 import QtGui # type: ignore #
-    
 except ImportError:
     try:
         from PyQt5 import QtGui # type: ignore #
@@ -119,14 +117,20 @@ for g in groups:
 
 #----------------------------- Style Definitions ------------------------------#
 _bgs ={'main':'#000','sidebar':'#fff','legend':'#000'} #> Background colors (hierarchical) based on axes labels
+CSEL = 'DEFAULT' #> Default color pallete choice
+COLORPALLETTE = {'RGB':['#FF0000FF','#00FF00FF','#FF0000FF','#0000FFFF'],
+                'DEFAULT':['#FF0000FF','#FF5500FF','#FF0000FF','#FFFF0055'],
+                'BLUE':['#0077FFFF','#7700FFFF','#0000FFFF','#00FFFF55'],
+                'GREEN':['#00FF00FF','#00FF55FF','#00FF00FF','#55FF0055'],
+                'BW':['#000','#FFF','#000000FF','#FFFFFF55']}# BASIC COLOR PALLETTE CHOICE DEPENDING ON USER CHOICE OR COLORBLINDNESS
 def get_bg(ax):
     return _bgs.get(ax.get_label(), _bgs.get('sidebar', _bgs.get('main', '#fff')))
 _legendkws =dict(loc='lower left', fontsize=8, labelcolor='linecolor', frameon=False, mode='expand', ncol=3) #> active contour list styling
-_idpxkws = dict(s=20, color='#ff0000ff', zorder=12, marker='x') # Identifier Pixel scatter style
-_clickedkws = dict(s=20, color='#ff5500', zorder=12, marker='x') # Clicked Pixel scatter style
-_selectclinekws = dict(s=0.3, color='#ff0000ff', zorder=10) # Selected Contour line style
+_idpxkws = dict(s=20, color=COLORPALLETTE[CSEL][0], zorder=12, marker='x') # Identifier Pixel scatter style 
+_clickedkws = dict(s=20, color=COLORPALLETTE[CSEL][1], zorder=12, marker='x') # Clicked Pixel scatter style   
+_selectclinekws = dict(s=0.3, color=COLORPALLETTE[CSEL][2], zorder=10) # Selected Contour line style
 _selectctextkws = dict(fontsize=8, color=_selectclinekws['color']) # Selected Contour text style
-_otherclinekws = dict(s=0.2, color='#ffff0055', zorder=10) # Other Contour line style
+_otherclinekws = dict(s=0.2, color=COLORPALLETTE[CSEL][3], zorder=10) # Other Contour line style
 _otherctextkws = dict(fontsize=8, color=_otherclinekws['color']) # Other Contour text style
 _defclinekws = dict(s=_selectclinekws['s'], color=_selectclinekws['color'], zorder=_selectclinekws['zorder']) # Default Contour line style
 _defctextkws = dict(fontsize=8, color=_defclinekws['color']) # Default Contour text style
@@ -165,7 +169,7 @@ if FIRST_RUN:
 
 
 # ------------------------- pathfinder (Function) -----------------------------#
-def pathfinder(fits_dir: fits.HDUList,saveloc=None,show_tooltips=True, headername='BOUNDARY',morphex=(cv2.MORPH_CLOSE,cv2.MORPH_OPEN), fcmode=cv2.RETR_EXTERNAL, fcmethod=cv2.CHAIN_APPROX_SIMPLE, cvh=False, ksize=5,**persists):
+def pathfinder(fits_dir: fits.HDUList,saveloc=None,show_tooltips=True, headername='BOUNDARY',morphex=(cv2.MORPH_CLOSE,cv2.MORPH_OPEN),FIXEDRANGE=None, fcmode=cv2.RETR_EXTERNAL, fcmethod=cv2.CHAIN_APPROX_SIMPLE, cvh=False, ksize=5,**persists):
     """### *JAR:VIS* Pathfinder
     > ***Requires PyQt6 (or PyQt5)***
 
@@ -195,7 +199,7 @@ def pathfinder(fits_dir: fits.HDUList,saveloc=None,show_tooltips=True, headernam
         #generate a stripped down, grey scale image of the fits file, and make normalised imagempl.rcParams['toolbar'] = 'None'
         proc =process_fits_file(prepare_fits(G_fits_obj, fixed='LON', full=True))
         img = mk_stripped_polar(proc, cmap=cmr.neutral, ax_background='white', img_background='black') 
-        global show_mask, G_clicktype, G_path, G_headername, G_show_tooltips, G_morphex, G_fcmode, G_fcmethod, G_cvh, G_ksize, falsecolor
+        global show_mask, G_clicktype, G_path, G_headername, G_show_tooltips, G_morphex, G_fcmode, G_fcmethod, G_cvh, G_ksize, falsecolor, G_fixrange
         global FIRST_RUN
         if FIRST_RUN:
             tqdm.write('(Press # to print keybindings)')
@@ -209,7 +213,10 @@ def pathfinder(fits_dir: fits.HDUList,saveloc=None,show_tooltips=True, headernam
             G_ksize = ksize
             falsecolor = 0
             G_headername = 'BOUNDARY' if headername is None else headername
+            G_fixrange = FIXEDRANGE if FIXEDRANGE is not None else G_fixrange if G_fixrange is not None else None
             FIRST_RUN = False
+
+        
         normed = cv2.normalize(img, None, 0, 255, cv2.NORM_MINMAX)
         #set up global variables needed for the click event and configuration options
         global imarea
@@ -314,7 +321,6 @@ def pathfinder(fits_dir: fits.HDUList,saveloc=None,show_tooltips=True, headernam
         update_fitsinfo()
         def binopts():
             global G_morphex, G_fcmode, G_fcmethod, G_cvh, G_ksize
-
             m_ = [0,]*8
             for m in G_morphex:
                 m_[m]=1
@@ -322,7 +328,7 @@ def pathfinder(fits_dir: fits.HDUList,saveloc=None,show_tooltips=True, headernam
             return dict(MORPH=m_, RETR=G_fcmode, CHAIN=G_fcmethod, CVH=int(G_cvh), KSIZE=G_ksize, CONTTIME=datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
         #main update function
         def update_fig(cl):
-            global id_pixels, G_clicked_coords, G_morphex, G_fcmode, G_fcmethod, G_cvh, G_ksize, G_path, retattrs,  show_mask, falsecolor
+            global id_pixels, G_clicked_coords, G_morphex, G_fcmode, G_fcmethod, G_cvh, G_ksize, G_path, retattrs,  show_mask, falsecolor, G_fixrange
             for a in [ax, lax]:
                 a.clear()
                 a.set_facecolor(get_bg(a))
@@ -333,8 +339,11 @@ def pathfinder(fits_dir: fits.HDUList,saveloc=None,show_tooltips=True, headernam
             if len(clicked_coords) > 0:
                 scpc = [c[1][0] for c in clicked_coords], [c[1][1] for c in clicked_coords]
                 ax.scatter(*scpc, **_clickedkws)
-            if len(clicked_coords) >1:
-                lrange = [min(c[0] for c in clicked_coords), max(c[0] for c in clicked_coords)]
+            if len(clicked_coords) >1 or G_fixrange is not None:
+                if len(clicked_coords) >1:
+                    lrange = [min(c[0] for c in clicked_coords), max(c[0] for c in clicked_coords)]
+                else:
+                    lrange = G_fixrange
                 mask = cv2.inRange(normed, lrange[0]*255, lrange[1]*255)
                 retattrs.update({'LMIN':lrange[0], 'LMAX':lrange[1]})
                 # smooth out the mask to remove noise

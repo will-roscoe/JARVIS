@@ -104,7 +104,7 @@ def mk_stripped_polar(fits_obj: fits.HDUList, ax_background='white',img_backgrou
     fig.savefig(tempdir, dpi=dpi)
     plt.close()
     img = cropimg(tempdir,ax_background=ax_background,img_background=ax_background) if crop else cv2.imread(tempdir)
-    #os.remove(tempdir)
+    os.remove(tempdir)
     return img
 
 def gaussian_coadded_fits(fits_objs,saveto=None, gaussian=(3,1), overwrite=True,indiv=True,coadded=True):

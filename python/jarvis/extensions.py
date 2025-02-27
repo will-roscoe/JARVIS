@@ -213,8 +213,10 @@ def pathfinder(fits_dir: fits.HDUList,saveloc=None,show_tooltips=True, headernam
             G_ksize = ksize
             falsecolor = 0
             G_headername = 'BOUNDARY' if headername is None else headername
-            G_fixrange = FIXEDRANGE if FIXEDRANGE is not None else G_fixrange if G_fixrange is not None else None
+            G_fixrange = FIXEDRANGE if FIXEDRANGE is not None else None
             FIRST_RUN = False
+  
+
 
         
         normed = cv2.normalize(img, None, 0, 255, cv2.NORM_MINMAX)

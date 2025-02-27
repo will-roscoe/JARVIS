@@ -9,35 +9,95 @@ import pandas as pd
 pd.options.display.max_rows = 9999
 import glob
 from jarvis import fits_from_glob
-from Hisaki_Aurora_Power import HMS
+
 GHROOT = Path(__file__).parents[1]
 def fpath(x):
     return os.path.join(GHROOT, x)
 
+def HMS(sec_of_day, pos):
+    sec_of_day = int(sec_of_day)
+    hours = sec_of_day // 3600
+    rsec = sec_of_day % 3600
+    minutes = rsec // 60
+    seconds = rsec % 60
+    return f"{hours:0>2}:{minutes:0>2}:{seconds:0>2}"
 
+def hours_conversion(sec_of_day, pos):
+    hours = sec_of_day / 3600
+    return hours
 
+def days_conversion(sec_of_day, pos):
+    days = sec_of_day/ 86400
+    return days
+
+aurora_counter = 0
+torus_counter = 0
 
 aurora_fitspath = glob.glob(r"C:datasets/Hisaki/Aurora Power/*.fits")
 torus_fitspath = glob.glob(r"C:datasets/Hisaki/Torus Power/*.fits")
 aurora_groups_list = aurora_fitspath[2:43]
 torus_groups_list = torus_fitspath[2:43]
 
-power_dawn_all = ([])
-power_dusk_all = ([])
-testlist = np.array([r"C:datasets\Hisaki\Torus Power\exeuv_torus_20160615_lv03_LT00-24_dt00010_vr01_00.fits"])
+aurora_power_all = np.array([])
+aurora_time_all = np.array([])
+power_dawn_all = np.array([])
+power_dusk_all = np.array([])
+torus_time_all = ([])
 
-for i in torus_groups_list:
+testlist = np.array([r"C:datasets\Hisaki\Aurora Power\exeuv_aurora_20160506_lv03_LT00-24_dt00010_vr01_00.fits"])
+
+for i in aurora_groups_list:
     hdul = fits.open(fpath(i))
     time_series_data = hdul[2].data
-    time = time_series_data.field('SECOFDAY')
+    aurora_time = time_series_data.field('SECOFDAY') +86400 * aurora_counter
+    aurora_counter = aurora_counter + 1
+    aurora_power = time_series_data.field('TPOW1190A')
+    for j in aurora_power:
+        aurora_power_all = np.append(aurora_power_all, j)   
+    for k in aurora_time:
+        aurora_time_all = np.append(aurora_time_all, k)
+
+
+
+for l in torus_groups_list:
+    torus_counter = 0
+    hdul = fits.open(fpath(l))
+    time_series_data = hdul[2].data
+    torus_time = time_series_data.field('SECOFDAY') + 86400 * torus_counter
+    torus_counter = torus_counter + 1
     power_dawn = time_series_data.field('TPOW0710ADAWN')
     power_dusk = time_series_data.field('TPOW0710ADUSK')
-    for j in power_dawn:
-        power_dawn_all = np.append(power_dawn_all, j)
-    for k in power_dusk:
-        power_dusk_all = np.append(power_dusk_all, k)
+    for m in power_dawn:
+        power_dawn_all = np.append(power_dawn_all, m)
+    for n in power_dusk:
+        power_dusk_all = np.append(power_dusk_all, n)
+    for o in torus_time:
+        torus_time_all = np.append(torus_time_all, o)
+        
+f, ax = plt.subplots(2)
 
-print(power_dawn_all)
+ax[0].set_xlabel('Time (Days)')
+ax[0].set_ylabel('Aurora Power (GW)')
+
+ax[1].set_xlabel('Time (Days)')
+ax[1].set_ylabel('Torus Power (GW)')
+
+ax[0].plot(aurora_time_all, aurora_power_all, label = 'Aurora Power')
+ax[1].plot(torus_time_all, power_dawn_all, label = 'Dawn')
+ax[1].plot(torus_time_all, power_dusk_all, label = 'Dusk')
+
+ax[0].legend()
+ax[1].legend()
+
+plt.tight_layout
+
+plt.xticks(np.arange(0, 86400 * 43 + 1, step = 86400 * 4))
+
+ax[0].xaxis.set_major_formatter(plt.FuncFormatter(days_conversion))
+ax[1].xaxis.set_major_formatter(plt.FuncFormatter(days_conversion))
+
+
+plt.show()
 
 #date_list = []
 #for f in aurora_fitspath:

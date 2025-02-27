@@ -34,16 +34,15 @@ def aurora_plot(aurora_filename):
     # print initial and final times of observation
     init_time = hdul[1].header["DATE-OBS"]
     fin_time = hdul[1].header["DATE-END"]
-    #print("From "+ init_time + " to " + fin_time)
+    print("From "+ init_time + " to " + fin_time)
 
     # 'hdul' is a HDUList (header-data unit list) containing 3 elements; using Python indexing you can retrieve the individual elements:
     # hdul[0] contains 'metadata' - you'll rarely have to use this one
     # hdul[1] contains image data, stored as a 2D array where each element is a value corresponding to a specific pixel in the image
     # hdul[2] is a table containing the time series data, and we can retrieve the data using hdul[2].data
 
-    # extract time series data for use on the x-axis
+    # extract time series data for use on the both axis
     time_series_data = hdul[2].data
-    print(time_series_data)
 
     #to get data from a specific column in the table, use the 'field' function; we want 'SECOFDAY', 'TPOW0710ADAWN' and 'TPOW0710ADUSK'
     time = time_series_data.field('SECOFDAY')
@@ -74,11 +73,11 @@ def aurora_plot(aurora_filename):
     figname = 'Tot._auroral_power_vs_time.pdf'
 
     # spaces x-axis ticks to be every 2 hours
-    plt.xticks(np.arange(0, 86401, step = 7200))
+    plt.xticks(np.arange(0, 86401, step = 14400))
 
     # codes for formatting the time axis (x-axis) in H:M:S format or integer hours only, only use one at a time
-    #ax.xaxis.set_major_formatter(plt.FuncFormatter(HMS))
-    ax.xaxis.set_major_formatter(plt.FuncFormatter(hours_conversion))
+    ax.xaxis.set_major_formatter(plt.FuncFormatter(HMS))
+    #ax.xaxis.set_major_formatter(plt.FuncFormatter(hours_conversion))
 
     plt.show()
 

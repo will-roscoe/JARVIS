@@ -1,0 +1,5 @@
+import numpy as np
+test = np.array([])
+for i in range(10):
+   test = np.append(test, i)
+print(test)

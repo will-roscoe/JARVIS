@@ -9,35 +9,43 @@ import pandas as pd
 pd.options.display.max_rows = 9999
 import glob
 from jarvis import fits_from_glob
-from Hisaki_Torus_Intensity import torus_plot
-from Hisaki_Aurora_Power import aurora_plot
+from Hisaki_Aurora_Power import HMS
 GHROOT = Path(__file__).parents[1]
 def fpath(x):
     return os.path.join(GHROOT, x)
 
-# function to plot x-axis in H:M:S format
-def HMS(sec_of_day, pos):
-    sec_of_day = int(sec_of_day)
-    hours = sec_of_day // 3600
-    rsec = sec_of_day % 3600
-    minutes = rsec // 60
-    seconds = rsec % 60
-    return f"{hours:0>2}:{minutes:0>2}:{seconds:0>2}"
 
-# function to plot x-axis in hours only
-def hours_conversion(sec_of_day, pos):
-    hours = int(sec_of_day / 3600)
-    return hours
 
-aurora_fitspath = glob.glob("C:datasets/Hisaki/Aurora Power/*.fits")
-torus_fitspath = glob.glob("C:datasets/Hisaki/Aurora Power/*.fits")
 
-date_list = []
-for f in aurora_fitspath:
-    date = f.split("/")[-1].split("_")[2]
-    dt_date = datetime.datetime.strptime(date, "%Y%m%d")
-    date_list.append(dt_date)
-print([str(d) for d in date_list])
+aurora_fitspath = glob.glob(r"C:datasets/Hisaki/Aurora Power/*.fits")
+torus_fitspath = glob.glob(r"C:datasets/Hisaki/Torus Power/*.fits")
+aurora_groups_list = aurora_fitspath[2:43]
+torus_groups_list = torus_fitspath[2:43]
+
+power_dawn_all = ([])
+power_dusk_all = ([])
+testlist = np.array([r"C:datasets\Hisaki\Torus Power\exeuv_torus_20160615_lv03_LT00-24_dt00010_vr01_00.fits"])
+
+for i in torus_groups_list:
+    hdul = fits.open(fpath(i))
+    time_series_data = hdul[2].data
+    time = time_series_data.field('SECOFDAY')
+    power_dawn = time_series_data.field('TPOW0710ADAWN')
+    power_dusk = time_series_data.field('TPOW0710ADUSK')
+    for j in power_dawn:
+        power_dawn_all = np.append(power_dawn_all, j)
+    for k in power_dusk:
+        power_dusk_all = np.append(power_dusk_all, k)
+
+print(power_dawn_all)
+
+#date_list = []
+#for f in aurora_fitspath:
+    #date = f.split("/")[-1].split("_")[2]
+    #dt_date = datetime.datetime.strptime(date, "%Y%m%d")
+    #date_list.append(dt_date)
+#print([str(d) for d in date_list])
+
 
 
 #for i in range(2):
@@ -48,6 +56,16 @@ print([str(d) for d in date_list])
     #print(dt_date)
     #next_date = dt_date.replace()
 
-for i in range
+#torus_hdul = fits.open(torus_fitspath)
+#aurora_hdul = fits.open(aurora_fitspath)
+#intensity_dawn_all = []
+#intensity_dusk_all = []
 
+#torus_time_series_data = fits.open(fpath(torus_hdul[2].data))
+#aurora_time_series_data = fits.open(fpath(aurora_fitspath[2].data))
+#time = torus_time_series_data.field('SECOFDAY')
+#intensity_dawn_all = torus_time_series_data.field('TPOW0710ADAWN')
+#intensity_dusk_all = torus_time_series_data.field('TPOW0710ADUSK')
+#aurora_power = aurora_time_series_data.field('TPOW1190A')
+#print(intensity_dawn_all)
 

@@ -47,6 +47,8 @@ def aurora_plot(aurora_filename):
     #to get data from a specific column in the table, use the 'field' function; we want 'SECOFDAY', 'TPOW0710ADAWN' and 'TPOW0710ADUSK'
     time = time_series_data.field('SECOFDAY')
     aurora_power = time_series_data.field('TPOW1190A')
+    #print(aurora_power)
+    print(time)
 
     ############################
     #### Plotting the data #####
@@ -85,5 +87,5 @@ def aurora_plot(aurora_filename):
     #plt.savefig(figname, bbox_inches='tight')
 
 # file of interest (assumes file is in same directory as this script - if it isn't, you need to add the path to the file)
-#aurora_filename = 'C:datasets\Hisaki\Aurora Power\exeuv_aurora_20160504_lv03_LT00-24_dt00010_vr01_00.fits'
-#aurora_plot(aurora_filename)
+aurora_filename = 'C:datasets\Hisaki\Aurora Power\exeuv_aurora_20160508_lv03_LT00-24_dt00010_vr01_00.fits'
+aurora_plot(aurora_filename)

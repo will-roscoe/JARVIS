@@ -1,5 +1,9 @@
 import numpy as np
-test = np.array([])
-for i in range(10):
-   test = np.append(test, i)
-print(test)
+counter = 0
+list = ([])
+a = np.array([[2,4,6],[7,8,9],[10,11,12]])
+for i in a:
+    list = np.append(list, i + 2 * counter)
+    counter = counter + 1
+print(list)
+    

@@ -25,11 +25,11 @@ from .const import KERNELDIR, FITSINDEX, GHROOT, DATADIR, PYDIR, PKGDIR
 try:
     spice.furnsh(KERNELDIR+'jupiter.mk')
     from .power import powercalc
-    print('Kernel may need to be extracted for full functionality')
+    
 except:  #noqa: E722
     def powercalc(*args, **kwargs):
         raise NotImplementedError('Power calculations require SPICE kernels to be loaded.')
-
+    print('Kernel may need to be extracted for full functionality')
 
 import logging
 import os

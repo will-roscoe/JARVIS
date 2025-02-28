@@ -31,5 +31,28 @@ def correlate(data1, data2):
     print (regression)
     return correlation
 
+# Not sure but log or gamma (with θ/α >2) distribution may match data? ~~Will
+def get_statstext(hist, mode, symb, skewed=False): # Function i pulled out of another project with skewed distribution analysis. kurtosis only works if there are two sides of the distribution though, not maximum at one of the extrema.
+    """Returns a string with the mode, average, standard deviation, kurtosis and skewness of a histogram.
+    Args:
+    hist: A histogram tuple. (generate from np.histogram)
+    mode: The mode of the histogram.
+    symb: symbol representing the quantity.
+    skewed: If True, returns kurtosis and skewness.
+    
+    """
+    freqs, bins = hist[:2]
+    mids = 0.5*(bins[1:] + bins[:-1]).flatten()
+    x=[mids[i] for i in range(int(len(mids))) for _ in range(int(freqs[i]))]
+    if skewed:
+        return ",\n".join([f"Mo[{symb}]: {mode:.1f}",f"Avg[{symb}]: {np.mean(x):.1f}",f"$\kappa$: {st.kurtosis(x):.1f}",f"$\gamma$: {st.skew(x):.1f}"])
+    else:
+        return ",\n".join([f"Mo[{symb}]: {mode:.1f}",f"Avg[{symb}]: {np.mean(x)::.1f}",f"$\sigma$: {std_dev(hist)::.1f}"])
 
+def std_dev(hist):
+    counts, bins = hist[:2]
+    mids = 0.5*(bins[1:] + bins[:-1])
+    probs = counts / np.sum(counts)
+    mean = np.sum(probs * mids)  
+    return np.sqrt(np.sum(probs * (mids - mean)**2))
     

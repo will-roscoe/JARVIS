@@ -1,13 +1,14 @@
-import os
+
 import random
+
 import numpy as np
 import matplotlib.pyplot as plt
 import cmasher as cmr
 import cv2
 
 
-from .utils import ensure_dir, fitsheader, fpath, mcolor_to_lum, fits_from_parent, prepare_fits,  basename, fitsdir
-from .polar import plot_polar, process_fits_file
+from .utils import fitsheader, fpath, mcolor_to_lum, adapted_fits, assign_params,  basename, hst_fitsfile_paths
+from .polar import plot_polar, prep_polarfits
 from astropy.io import fits
 from astropy.table import Table
 from .const import  DPR_IMXY
@@ -16,7 +17,7 @@ from typing import List, Union
 from .transforms import  coadd,gaussian_blur,fullxy_to_polar_arr
 
 
-def cropimg(inpath:str,outpath:str=None,ax_background=255,img_background=0)->Union[None,np.ndarray]: 
+def crop_to_axes(inpath:str,outpath:str=None,ax_background=255,img_background=0)->Union[None,np.ndarray]: 
     """Crop an image to the bounding box of the non 'image_background' pixels.
     inpath: path to the image to crop
     outpath: path to save the cropped image
@@ -88,7 +89,7 @@ def mask_top_stripe(img:np.ndarray,threshold=0.01, trimfrac=0.3, bg_color=0, fac
     mask[:datai,:] = 0
     return cv2.bitwise_and(img, mask)
 
-def mk_stripped_polar(fits_obj: fits.HDUList, ax_background='white',img_background='black',crop=True, cmap=cmr.neutral, dpi=300,**kwargs)->np.ndarray:
+def imagexy(fits_obj: fits.HDUList, ax_background='white',img_background='black',crop=True, cmap=cmr.neutral, dpi=300,**kwargs)->np.ndarray:
     full = fitsheader(fits_obj, 'full')
     # do normal plotting with no decorations, just the circle
     fig= plt.figure(figsize=(6,6 if full else 3) , dpi=dpi,layout='none' )
@@ -103,27 +104,27 @@ def mk_stripped_polar(fits_obj: fits.HDUList, ax_background='white',img_backgrou
     tempdir = fpath(r"temp/"+f"temp_stripped_{random.randint(0,99999999):0<8}.png")
     fig.savefig(tempdir, dpi=dpi)
     plt.close()
-    img = cropimg(tempdir,ax_background=ax_background,img_background=ax_background) if crop else cv2.imread(tempdir)
-    os.remove(tempdir)
+    img = crop_to_axes(tempdir,ax_background=ax_background,img_background=ax_background) if crop else cv2.imread(tempdir)
+    #os.remove(tempdir)
     return img
 
-def gaussian_coadded_fits(fits_objs,saveto=None, gaussian=(3,1), overwrite=True,indiv=True,coadded=True):
+def generate_coadded_fits(fits_objs,saveto=None, gaussian=(3,1), overwrite=True,indiv=True,coadded=True):
     fdatas = [fits_objs[i][1].data for i in range(len(fits_objs))]
     if saveto == 'auto':
-        saveto = fpath(f'datasets/HST/custom/{basename(fitsdir)}_coadded_gaussian{gaussian}.fits')
+        saveto = fpath(f'datasets/HST/custom/{basename(hst_fitsfile_paths)}_coadded_gaussian{gaussian}.fits')
     fdatas = [gaussian_blur(fd, *gaussian) for fd in fdatas] if indiv else fdatas
     coaddg = coadd(fdatas)
     coaddg = gaussian_blur(coaddg, 3, 1) if coadded else coaddg
-    cofitsd = fits_from_parent(fits_objs[0], new_data=coaddg)
+    cofitsd = adapted_fits(fits_objs[0], new_data=coaddg)
     if saveto is not None:
         #ensure_dir(saveto)
         cofitsd.writeto(saveto, overwrite=overwrite)
     return cofitsd
        
-def contourgen(fits_obj:fits.HDUList, lrange=(0.2,0.4), morphex=(cv2.MORPH_CLOSE,cv2.MORPH_OPEN), fcmode=cv2.RETR_EXTERNAL, fcmethod=cv2.CHAIN_APPROX_SIMPLE, cvh=False)->List[List[float]]:
+def generate_contours(fits_obj:fits.HDUList, lrange=(0.2,0.4), morphex=(cv2.MORPH_CLOSE,cv2.MORPH_OPEN), fcmode=cv2.RETR_EXTERNAL, fcmethod=cv2.CHAIN_APPROX_SIMPLE, cvh=False)->List[List[float]]:
     # generate a stripped down, grey scale image of the fits file
-    proc =process_fits_file(prepare_fits(fits_obj, fixed='LON', full=True))
-    img = mk_stripped_polar(proc, cmap=cmr.neutral, ax_background='white', img_background='black') 
+    proc =prep_polarfits(assign_params(fits_obj, fixed='LON', full=True))
+    img = imagexy(proc, cmap=cmr.neutral, ax_background='white', img_background='black') 
     # if a pixel is not provided, ask the user to provide one, and show the image
     # normalize image
     normed = cv2.normalize(img, None, 0, 255, cv2.NORM_MINMAX)
@@ -140,7 +141,7 @@ def contourgen(fits_obj:fits.HDUList, lrange=(0.2,0.4), morphex=(cv2.MORPH_CLOSE
     # Find the contour that encloses the given point
     return contours, hierarchy, img
 
-def identify_boundary(contours, hierarchy, img:np.ndarray, id_pixel=None):
+def identify_contour(contours, hierarchy, img:np.ndarray, id_pixel=None):
     if id_pixel is None or isinstance(id_pixel, str):
         def on_click(event):
             global click_coords
@@ -168,7 +169,7 @@ def identify_boundary(contours, hierarchy, img:np.ndarray, id_pixel=None):
 
 
 
-def plot_pathpoints(clist):
+def plot_contourpoints(clist):
     fig = plt.figure(figsize=(12, 6))
     ax = fig.add_subplot(121, polar=True)
     ax2 = fig.add_subplot(122)
@@ -181,18 +182,19 @@ def plot_pathpoints(clist):
     ax2.invert_yaxis()
     ax2.invert_xaxis()
     plt.show()       
-def generate_contourpoints(fits_obj:fits.HDUList,id_pixel=None, lrange=(0.2,0.4), ):
-    contours, hierarchy, img = contourgen(fits_obj, lrange)
-    return identify_boundary(contours, hierarchy, img, id_pixel)
+def find_contour_basic(fits_obj:fits.HDUList,id_pixel=None, lrange=(0.2,0.4), ):
+    contours, hierarchy, img = generate_contours(fits_obj, lrange)
+    return identify_contour(contours, hierarchy, img, id_pixel)
   
 
-def pathtest():
+def pathtest(lrange=(0.25,0.35)):
+    """Headless generation of contour points for testing."""
     test = fits.open(fpath(r"datasets/HST/custom/v04_coadded_gaussian[3_1].fits"))
-    clist = [generate_contourpoints(test, DPR_IMXY['04'], (0.25,0.35),)]
-    plot_pathpoints(clist)
+    clist = [find_contour_basic(test, DPR_IMXY['04'], lrange,)]
+    plot_contourpoints(clist)
     return clist[0]
 
-def savecontour_tofits(fits_obj: fits.HDUList, cont, index=None):
+def save_contour(fits_obj: fits.HDUList, cont, index=None):
     # if no index given, use the next available index
     if index is None:
         index = len(fits_obj)
@@ -208,10 +210,22 @@ def savecontour_tofits(fits_obj: fits.HDUList, cont, index=None):
     curr_hdus.insert(index, newtablehdu)
     newfits = fits.HDUList(curr_hdus)
     return newfits
-def getcontourhdu(cont,name='BOUNDARY',header=None):
+def contourhdu(cont,name='BOUNDARY',header=None):
     table = Table(data=cont, names=['colat', 'lon'], dtype=[np.float32, np.float32])
     return fits.BinTableHDU(table, name=name, header=header, uint=True)
-
+def contourid(fits_obj:fits.HDUList, name=None):
+    if name is None:
+        name = 'BOUNDARY'
+        if len(fits_obj) >2:
+            return 2
+    for hdu in fits_obj:
+        if hdu.name == name:
+            return name
+    else:
+        raise ValueError(f"No contour found with the name {name}, and no default contour found.")
+def getcontour(fits_obj:fits.HDUList, name=None):
+    name = contourid(fits_obj, name)
+    return np.array(fits_obj[name].data.tolist())
 
 
 

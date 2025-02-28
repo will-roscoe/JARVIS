@@ -14,7 +14,7 @@ import spiceypy as spice
 from matplotlib import path
 from .const import KERNELDIR, FITSINDEX
 from .utils import fitsheader, get_datetime
-from tqdm import tqdm
+
 from typing import Tuple
 #--------------------------------- CONSTANTS ----------------------------------#
 # Nichols constants:
@@ -262,7 +262,9 @@ def powercalc(fits_obj:fits.HDUList, dpr_coords:np.ndarray=None)-> Tuple[float, 
 
 
 
-
+def avg_intensity(img:np.ndarray)->float:
+    '''Return the average intensity of the image.'''
+    return np.nanmean(img), np.nanstd(img)
 
 
 

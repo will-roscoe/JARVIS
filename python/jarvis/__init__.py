@@ -33,20 +33,20 @@ except:  #noqa: E722
 
 import logging
 import os
-from .utils import (fpath, fitsheader, ensure_dir, fits_from_glob, fitsdir, 
-                prepare_fits, fits_from_parent, group_to_visit, visit_to_group)
+from .utils import (fpath, fitsheader, ensure_dir, fits_from_glob, hst_fitsfile_paths, 
+                assign_params, adapted_fits, group_to_visit, visit_to_group)
 from .polar import (moind, make_gif, plot_moonfp, plot_regions, plot_polar, 
-                    process_fits_file)
+                    prep_polarfits)
 
-from .cvis import (pathtest, contourgen, identify_boundary, 
-                plot_pathpoints, savecontour_tofits)
+from .cvis import (pathtest, generate_contours, identify_contour, 
+                plot_contourpoints, save_contour)
 __version__ = '0.1.0-alpha'
 __all__ = ['polar', 'const', 'utils', 'cvis', 'power', 
-    'fpath', 'fitsheader', 'ensure_dir', 'fits_from_glob', 'fitsdir', 
-    'prepare_fits', 'fits_from_parent', 'group_to_visit', 'visit_to_group',
+    'fpath', 'fitsheader', 'ensure_dir', 'fits_from_glob', 'hst_fitsfile_paths', 
+    'assign_params', 'adapted_fits', 'group_to_visit', 'visit_to_group',
     'moind', 'make_gif', 'plot_moonfp', 'plot_regions', 'plot_polar', 
-    'process_fits_file', 'powercalc', 'plotcontours', 'pathtest', 'contourgen', 
-    'identify_boundary', 'plot_pathpoints', 'savecontour_tofits', 'KERNELDIR', 
+    'prep_polarfits', 'powercalc', 'plotcontours', 'pathtest', 'generate_contours', 
+    'identify_contour', 'plot_contourpoints', 'save_contour', 'KERNELDIR', 
     'FITSINDEX', 'GHROOT', 'DATADIR', 'PYDIR', 'PKGDIR',]
 AUTHORS = {
     'Will Roscoe': '@will-roscoe',

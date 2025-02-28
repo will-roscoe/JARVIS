@@ -10,28 +10,25 @@ import os
 from dateutil.parser import parse
 import datetime as dt
 import glob
-
-
-from typing import Tuple, Dict, Union, Callable
 import fastgif
 
 #third party libraries
 from astropy.io import fits
 import imageio
 import matplotlib as mpl
-from matplotlib.ticker import FuncFormatter, MultipleLocator, ScalarFormatter
+from matplotlib.ticker import FuncFormatter, MultipleLocator
 from matplotlib import patheffects as mpl_patheffects
 import matplotlib.pyplot as plt
 import numpy as np
 from tqdm import tqdm 
 # local modules
 from .const import FITSINDEX
-from .utils import fpath, fitsheader, fits_from_parent, get_datetime, clock_format, ensure_dir, prepare_fits, make_filename, fits_from_glob, basename
+from .utils import fpath, fitsheader, adapted_fits, get_datetime, clock_format, ensure_dir, assign_params, filename_from_fits, fits_from_glob
 from .reading_mfp import moonfploc
 
 
    
-def process_fits_file(fitsobj: fits.HDUList) -> fits.HDUList:
+def prep_polarfits(fitsobj: fits.HDUList) -> fits.HDUList:
     """
     Processes a FITS file to apply transformations for polar plotting of a hemisphere. Uses header information to adjust the image data.
     Args:
@@ -73,7 +70,7 @@ def process_fits_file(fitsobj: fits.HDUList) -> fits.HDUList:
     cliplim = np.cos(np.radians(89))
     clipind = np.squeeze([mask >= cliplim])
     image_data[clipind == False] = np.nan # noqa: E712
-    return fits_from_parent(fitsobj, new_data=image_data, FIXED='LT' if not is_lon else 'LON')
+    return adapted_fits(fitsobj, new_data=image_data, FIXED='LT' if not is_lon else 'LON')
         
 
 def plot_polar(fitsobj:fits.HDUList, ax:mpl.projections.polar.PolarAxes,**kwargs)-> mpl.projections.polar.PolarAxes:
@@ -99,7 +96,7 @@ def plot_polar(fitsobj:fits.HDUList, ax:mpl.projections.polar.PolarAxes,**kwargs
     cml, is_south, fixed_lon,crop, full, rlim = fitsheader(fitsobj, 'CML', 'south', 'fixed_lon', 'CROP', 'FULL', 'RLIM')
     if kwargs.pop('nodec', False):
         kwargs.update({'draw_cbar': False, 'draw_grid': False, 'draw_ticks': False, 'ax_params': False, 'ml': False, 'hemis': False, 'title':False, 'cax':True})
-    draw_ticks,ax_params = kwargs.pop('draw_ticks', True), kwargs.pop('ax_params', True)
+    draw_ticks,ax_params = kwargs.pop('draw_ticks', True), kwargs.pop('ax_params', True)#TODO: remove ax_params OR implement it #noqa: F841 
     ax.set(**dict(theta_zero_location="N", facecolor='k',rlabel_position=0 if full else 0, 
             thetalim=[np.pi/2,3*np.pi/2] if not full else None, 
             rlim=[0,rlim], rgrids=np.arange(0,rlim,10,dtype='int')) ) #set the polar plot
@@ -302,7 +299,7 @@ def moind(fitsobj:fits.HDUList, crop:float = 1, rlim:float = 40, fixed:str= 'lon
     Returns:
     Union[None, mpl.figure.Figure]: The matplotlib figure and axis objects if successful, otherwise None.
     """
-    fits_obj = process_fits_file(prepare_fits(fitsobj, crop=crop, rlim=rlim, fixed=fixed, full=full, regions=regions, moonfp=moonfp))                                     
+    fits_obj = prep_polarfits(assign_params(fitsobj, crop=crop, rlim=rlim, fixed=fixed, full=full, regions=regions, moonfp=moonfp))                                     
     fig =plt.figure(figsize=(7,6))
     ax = plt.subplot(projection='polar')
     plot_polar(fits_obj, ax, **kwargs)
@@ -346,7 +343,7 @@ def make_gif(fits_dir,fps=5,remove_temp=False,savelocation='auto',filename='auto
         savelocation = fpath('pictures/gifs/')
     ensure_dir(savelocation)
     if filename == 'auto':
-        filename = make_filename(f)+f'{len(fitslist)}fr_{fps}fps' +'.gif'
+        filename = filename_from_fits(f)+f'{len(fitslist)}fr_{fps}fps' +'.gif'
     imageio.mimsave(savelocation+filename, imagesgif, fps=fps)
     if remove_temp:
         for file in glob.glob(fpath('temp/')+'*'):
@@ -371,7 +368,7 @@ def makefast_gif(fitsobjs,initfunc=None,fps=5,showprogress=True,**kwargs)->None:
     """
     if initfunc is None:
         def initfunc(idx):
-            fits_obj = process_fits_file(prepare_fits(fitsobjs[idx], **kwargs.pop('fits',{})))                                     
+            fits_obj = prep_polarfits(assign_params(fitsobjs[idx], **kwargs.pop('fits',{})))                                     
             fig =plt.figure(figsize=(7,6))
             ax = plt.subplot(projection='polar')
             plot_polar(fits_obj, ax, **kwargs)
@@ -383,6 +380,6 @@ def makefast_gif(fitsobjs,initfunc=None,fps=5,showprogress=True,**kwargs)->None:
     if 'saveto' in kwargs:
         savelocation = kwargs.pop('saveto')
     else:
-        savelocation = fpath('figures/gifs/')+make_filename(prepare_fits(fitsobjs[0], **kwargs))+'.gif'
+        savelocation = fpath('figures/gifs/')+filename_from_fits(assign_params(fitsobjs[0], **kwargs))+'.gif'
     fastgif.make_gif(initfunc,num_calls=len(fitsobjs),filename=savelocation,show_progress=showprogress,writer_kwargs={'duration':1/fps})
     

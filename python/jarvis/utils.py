@@ -86,7 +86,7 @@ def fitsheader(fits_object, *args, ind=FITSINDEX,cust=True):
 
         ret.append(obj)
     return ret if len(ret) > 1 else ret[0]
-def fits_from_parent(original_fits, new_data=None, **kwargs):
+def adapted_fits(original_fits, new_data=None, **kwargs):
     """Returns a new fits object with the same header as the original fits object, but with new data and/or new header values."""
     orig_header = [original_fits[i].header.copy() for i in [0,1]]
     orig_data = [original_fits[i].data for i in [0,1]]
@@ -108,11 +108,11 @@ def get_datetime(fits_object):
     """Returns a datetime object from the fits header."""
     udate = fitsheader(fits_object, 'UDATE')         
     return datetime.datetime.strptime(udate, '%Y-%m-%d %H:%M:%S') # '2016-05-19 20:48:59'                     
-def prepare_fits(fits_obj:fits.HDUList, regions=False, moonfp=False, fixed='lon', rlim=40,full=True, crop=1, **kwargs)->fits.HDUList:
+def assign_params(fits_obj:fits.HDUList, regions=False, moonfp=False, fixed='lon', rlim=40,full=True, crop=1, **kwargs)->fits.HDUList:
     """Returns a fits object with specified header values, which can be used for processing."""
     kwargs.update({'REGIONS':bool(regions), 'MOONFP':bool(moonfp), 'FIXED':str(fixed).upper(), 'RLIM':int(rlim), 'FULL':bool(full), 'CROP': float(crop) if abs(float(crop)) <=1 else 1}) 
-    return fits_from_parent(fits_obj,  **kwargs)
-def make_filename(fits_obj:fits.HDUList):
+    return adapted_fits(fits_obj,  **kwargs)
+def filename_from_fits(fits_obj:fits.HDUList):
     """Returns a filename based on the fits header values."""
     # might be better to alter the filename each time we process or plot something.
     args = ['CML', 'HEMISPH', 'FIXED', 'RLIM', 'FULL', 'CROP', 'REGIONS', 'MOONFP', 'VISIT', 'DOY', 'YEAR', 'EXPTIME']
@@ -197,9 +197,9 @@ class Jfits:
         return self.hdul[self.ind].header
     def update(self,data=None, **kwargs):
         if data is not None:
-            self.hdul = fits_from_parent(self.hdul, new_data=data)
+            self.hdul = adapted_fits(self.hdul, new_data=data)
         for k,v in kwargs.items():
-            self.hdul = fits_from_parent(self.hdul, **{k:v})
+            self.hdul = adapted_fits(self.hdul, **{k:v})
     def writeto(self, path:str):
         self.hdul.writeto(path)
     def close(self):
@@ -239,7 +239,7 @@ def visit_to_group(*args):
         return ret[0]
     return ret
 
-def fitsdir(sortby='visit', full=False):
+def hst_fitsfile_paths(sortby='visit', full=False):
     fitspaths = []
     for g in gv_translation['group']:
         fitspaths.append(fpath(f'datasets/HST/group_{g:0>2}'))

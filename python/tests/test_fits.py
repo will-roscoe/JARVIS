@@ -1,18 +1,18 @@
 
 import pytest
-from jarvis.utils import fpath, fits_from_parent, fitsheader, prepare_fits, get_datetime, make_filename, update_history, debug_fitsheader, debug_fitsdata
+from jarvis.utils import fpath, adapted_fits, fitsheader, assign_params, get_datetime, filename_from_fits, update_history, debug_fitsheader, debug_fitsdata
 from astropy.io import fits
 import numpy as np
 
 fits_obj= fits.open(fpath(r'datasets\HST\v04\jup_16-140-20-48-59_0103_v04_stis_f25srf2_proj.fits'))
 
-prepared_fits= prepare_fits(fits_obj, regions=False, moonfp=False, fixed='lon', rlim=40,full=True, crop=1)
+prepared_fits= assign_params(fits_obj, regions=False, moonfp=False, fixed='lon', rlim=40,full=True, crop=1)
 
 def test_fits_from_parent():
-    new_fits = fits_from_parent(fits_obj, new_data=np.ones_like(fits_obj[1].data))
+    new_fits = adapted_fits(fits_obj, new_data=np.ones_like(fits_obj[1].data))
     assert new_fits[1].data.shape == fits_obj[1].data.shape
 def test_prepare_fits():
-    new_fits = prepare_fits(fits_obj, regions=False, moonfp=False, fixed='lon', rlim=40,full=True, crop=1)
+    new_fits = assign_params(fits_obj, regions=False, moonfp=False, fixed='lon', rlim=40,full=True, crop=1)
     assert new_fits[1].header['FIXED'] == 'LON'
     assert new_fits[1].header['RLIM'] == 40
     assert new_fits[1].header['FULL'] 
@@ -34,7 +34,7 @@ def test_get_datetime():
 
 def test_make_filename():
     expect = 'jup_v04_140_2016_204859_0103'
-    assert make_filename(prepared_fits)[0:len(expect)] == expect
+    assert filename_from_fits(prepared_fits)[0:len(expect)] == expect
 
 def test_update_history():
     assert update_history(prepared_fits, 'test1', 'test2')[0:13] == 'test1@test2@'

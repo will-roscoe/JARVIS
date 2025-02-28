@@ -36,7 +36,7 @@ if __name__ == "__main__":
 
     if args.command == "gifs":
         from jarvis.polar import make_gif
-        from jarvis.utils import make_filename, ensure_dir
+        from jarvis.utils import filename_from_fits, ensure_dir
         ddir = fpath('datasets/HST')
         #find all directories in the HST directory, as absolute paths
         dirs = [f for f in os.listdir(ddir) if os.path.isdir(os.path.join(ddir, f))] if args.dir == 'NONE' else [fpath(a) for a in args.dir]
@@ -48,7 +48,7 @@ if __name__ == "__main__":
     elif args.command == "imgs":
         from jarvis.polar import moind
         from matplotlib import pyplot as plt
-        from jarvis.utils import make_filename, ensure_dir
+        from jarvis.utils import filename_from_fits, ensure_dir
         ddir = fpath('datasets/HST')
         #find all directories in the HST directory, as absolute paths
         files_dir = [f for f in os.listdir(ddir) if os.path.isdir(os.path.join(ddir, f))] if args.dir == 'NONE' else [args.dir]
@@ -64,11 +64,17 @@ if __name__ == "__main__":
             pbar.set_postfix(file=files_dir[i])
             for f in d:
                 fig,ax,fo = moind(f, **{k:v for k,v in vars(args).items() if v is not None})
-                plt.savefig(fpath(f"figures/imgs/{files_dir[i]}/{make_filename(fo)}.png"))
+                plt.savefig(fpath(f"figures/imgs/{files_dir[i]}/{filename_from_fits(fo)}.png"))
                 pbar.update(1)
                 plt.close(fig)
          
     elif args.command == "gaussians":
-        from jarvis.cvis import gen_gaussian_coadded_fits
-        gen_gaussian_coadded_fits()
+        from jarvis.cvis import generate_coadded_fits
+        from jarvis.utils import hst_fitsfile_paths
+        fpaths = hst_fitsfile_paths()
+        for i in tqdm(fpaths):
+            fitsg = fits_from_glob(i)
+            copath = fpath(f'datasets/HST/custom/{filename_from_fits(i)}_coadded_gaussian.fits')
+            fit = generate_coadded_fits(fitsg, saveto=copath, gaussian=(3,1), overwrite=False,indiv=False, coadded=True)
+            fit.close()
     

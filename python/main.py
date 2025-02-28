@@ -1,17 +1,17 @@
 
 
 import matplotlib as mpl
-mpl.use('qtagg')
+mpl.use('qtagg') # forces the use of the Qt5/6 backend, neccessary for pathfinder
 from jarvis import fpath
 from jarvis.extensions import pathfinder
-from jarvis.cvis import gaussian_coadded_fits
+from jarvis.cvis import generate_coadded_fits
 from jarvis.utils import fits_from_glob, group_to_visit
 from jarvis.power import powercalc
-from jarvis.stats import stats, correlate
+from jarvis.stats import stats, correlate #noqa: F401
 from tqdm import tqdm
 from astropy.io import fits
 import numpy as np
-import pandas as pd
+import pandas as pd #noqa: F401
 #norm = mpl.colors.Normalize(vmin=0, vmax=1000)
 
 #cmap = (mpl.colors.ListedColormap(['red', 'green', 'blue', 'cyan'])
@@ -46,7 +46,7 @@ if __name__ == '__main__': # __name__ is a special,file-unique variable that is 
         basefitpath = fpath(f'datasets/HST/group_{i:0>2}') 
         fitsg = fits_from_glob(basefitpath)
         copath = fpath(f'datasets/HST/custom/g{i+1:0>2},v{group_to_visit(i+1):0>2}_[3,1]gaussian-coadded.fits')
-        fit = gaussian_coadded_fits(fitsg, saveto=copath, gaussian=(3,1), overwrite=True,indiv=False, coadded=True)
+        fit = generate_coadded_fits(fitsg, saveto=copath, gaussian=(3,1), overwrite=True,indiv=False, coadded=True)
         #fit.info()
         fit.close()
         pt = pathfinder(copath)

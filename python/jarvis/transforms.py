@@ -3,7 +3,7 @@ import numpy as np
 import scipy
 import astropy.io.fits as fits
 from .const import FITSINDEX
-from .utils import fitsheader, fits_from_parent
+from .utils import fitsheader, adapted_fits
 
 ##########################################################################################################
 #                            COORDINATE SYSTEM TRANSFORMS
@@ -119,4 +119,4 @@ def align_cmls(input_fits:List[fits.HDUList], primary_index:int)-> List[fits.HDU
       diffs = [cml0 - fitsheader(f,'CML') for f in input_fits] # angle differences
       dwidths =[int(d/360*width) for d in diffs] # index/pixel differences
       aligned = [np.roll(f[FITSINDEX].data, d, axis=1) for f,d in zip(input_fits,dwidths)] # roll each image
-      return [fits_from_parent(f,new_data=arr) for f,arr in zip(input_fits,aligned)] # return new fits objects.
+      return [adapted_fits(f,new_data=arr) for f,arr in zip(input_fits,aligned)] # return new fits objects.

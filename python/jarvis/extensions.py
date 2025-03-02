@@ -63,53 +63,119 @@ TWOCOLS = True
 #    - trans: a list of the values in the order they should be displayed in the GUI, if not present, it is assumed to be values [0,1,2,3,....].
 
 _cvtrans = {
-    'RETR':{'info':'modes to find the contours',
-    'EXTERNAL': [cv2.RETR_EXTERNAL, 'retrieves only the extreme outer contours'], #0
-    'LIST': [cv2.RETR_LIST, 'retrieves all of the contours without establishing any hierarchical relationships'], #1
-    'CCOMP': [cv2.RETR_CCOMP, 'retrieves all of the contours and organizes them into a two-level hierarchy, where external contours are on the top level and internal contours are on the second level'], #2
-    'TREE': [cv2.RETR_TREE, 'retrieves all of the contours and reconstructs a full hierarchy of nested contours'] #3
+
+'RETR':{
+    'info':'modes to find the contours',
+    'kbtemplate': '$flag mode: $label',
+        'EXTERNAL':         [cv2.RETR_EXTERNAL,         'a', 'retrieves only the extreme outer contours'], #0
+        'LIST':             [cv2.RETR_LIST,             's', 'retrieves all of the contours without establishing any hierarchical relationships'], #1
+        'CCOMP':            [cv2.RETR_CCOMP,            'd', 'retrieves all of the contours and organizes them into a two-level hierarchy, where external contours are on the top level and internal contours are on the second level'], #2
+        'TREE':             [cv2.RETR_TREE,             'f', 'retrieves all of the contours and reconstructs a full hierarchy of nested contours'] #3
     },
-    'CHAIN':{'info':'methods to approximate the contours', #0 is floodfill, but not used here
-    'NONE': [cv2.CHAIN_APPROX_NONE, 'stores absolutely all the contour points. That is, any 2 subsequent points (x1,y1) and (x2,y2) of the contour will be either horizontal, vertical or diagonal neighbors, that is, max(abs(x1-x2),abs(y2-y1))==1.'], #1
-    'SIMPLE': [cv2.CHAIN_APPROX_SIMPLE, 'compresses horizontal, vertical, and diagonal segments and leaves only their end points. For example, an up-right rectangular contour is encoded with 4 points.'], #2
-    'TC89_L1': [cv2.CHAIN_APPROX_TC89_L1, 'applies one of the flavors of the Teh-Chin chain approximation algorithm.'], #3
-    'TC89_KCOS': [cv2.CHAIN_APPROX_TC89_KCOS, 'applies one of the flavors of the Teh-Chin chain approximation algorithm.'], #4
-    'trans':(1,2,3,4)
+'CHAIN':{
+    'info':'methods to approximate the contours',
+    'kbtemplate': '$flag mode: $label',
+    'trans':(1,2,3,4), #0 is floodfill, but not used here
+        'NONE':             [cv2.CHAIN_APPROX_NONE,     'z','stores absolutely all the contour points. That is, any 2 subsequent points (x1,y1) and (x2,y2) of the contour will be either horizontal, vertical or diagonal neighbors, that is, max(abs(x1-x2),abs(y2-y1))==1.'], #1
+        'SIMPLE':           [cv2.CHAIN_APPROX_SIMPLE,   'x','compresses horizontal, vertical, and diagonal segments and leaves only their end points. For example, an up-right rectangular contour is encoded with 4 points.'], #2
+        'TC89_L1':          [cv2.CHAIN_APPROX_TC89_L1,  'c','applies one of the flavors of the Teh-Chin chain approximation algorithm.'], #3
+        'TC89_KCOS':        [cv2.CHAIN_APPROX_TC89_KCOS,'v','applies one of the flavors of the Teh-Chin chain approximation algorithm.'], #4
     },
-    'MORPH':{'info':'morphological operations to apply to the mask before finding the contours', 
-    'ERODE': [cv2.MORPH_ERODE, 'Erodes away the boundaries of foreground object'], #0
-    'DILATE': [cv2.MORPH_DILATE, 'Increases the object area'], #1
-    'OPEN': [cv2.MORPH_OPEN, 'Remove small noise'], #2
-    'CLOSE': [cv2.MORPH_CLOSE, 'Fill small holes'], #3
-    'GRADIENT': [cv2.MORPH_GRADIENT, 'Difference between dilation and erosion of an image.'], #4
-    'TOPHAT': [cv2.MORPH_TOPHAT, 'Difference between input image and Opening of the image'],    #5
-    'BLACKHAT': [cv2.MORPH_BLACKHAT, 'Difference between the closing of the input image and input image'], #6
-    'HITMISS': [cv2.MORPH_HITMISS, 'Extracts a particular structure from the image'], #7
+'MORPH':{
+    'info':'morphological operations to apply to the mask before finding the contours',
+    "kbtemplate":"$flag: toggle $label",
+        'ERODE':            [cv2.MORPH_ERODE,           'q','Erodes away the boundaries of foreground object'], #0
+        'DILATE':           [cv2.MORPH_DILATE,          'w', 'Increases the object area'], #1
+        'OPEN':             [cv2.MORPH_OPEN,            'e','Remove small noise'], #2
+        'CLOSE':            [cv2.MORPH_CLOSE,           'r', 'Fill small holes'], #3
+        'GRADIENT':         [cv2.MORPH_GRADIENT,        't','Difference between dilation and erosion of an image.'], #4
+        'TOPHAT':           [cv2.MORPH_TOPHAT,          'y', 'Difference between input image and Opening of the image'],    #5
+        'BLACKHAT':         [cv2.MORPH_BLACKHAT,        'u', 'Difference between the closing of the input image and input image'], #6
+        'HITMISS':          [cv2.MORPH_HITMISS,         'i', 'Extracts a particular structure from the image'], #7
     },
-    'KSIZE':{'info':'kernel size for the morphological operations. Larger values will smooth out the contours more',
+'KSIZE':{
+    'info':'kernel size for the morphological operations. Larger values will smooth out the contours more',
+    'kbtemplate': 'Change kernel size: $label',
+        "Increase":         [True,                      '=', 'Increase the kernel size'], #0
+        "Decrease":         [False,                     '-','Decrease the kernel size'],
     },
-    'CVH':{'info':'whether to use convex hulls of the contours. Reduces the complexity of the contours',
-    'Convex Hull':[True, 'whether to use convex hulls of the contours. Reduces the complexity of the contours'],
+'CVH':{
+    'info':'whether to use convex hulls of the contours. Reduces the complexity of the contours',
+    'kbtemplate': 'Toggle $label',
+        'Convex Hull':      [0,                         'f7', 'whether to use convex hulls of the contours. Reduces the complexity of the contours'],
     },
-    'ACTION':{'info':'Select the action when clicking on a point in the image',
-    'None':[0,''],
-    'Add Luminosity':[1, 'Add a luminosity sample at the clicked point'],
-    'Remove Luminosity':[-1, 'Remove a luminosity sample closest to the clicked point'],
-    'Add IDPX':[2, 'Add an ID pixel at the clicked point'],
-    'Remove IDPX':[-2, 'Remove an ID pixel closest to the clicked point'],
-    'trans':(0,1,-1,2,-2)
+'ACTION':{
+    'info':'Select the action when clicking on a point in the image', 
+    'kbtemplate': 'Click mode: $label',
+    'trans':(0,1,-1,2,-2),
+        'None':             [0,                         '0',''],
+        'Add Luminosity':   [1,                         '1', 'Add a luminosity sample at the clicked point'],
+        'Remove Luminosity':[-1,                        '2', 'Remove a luminosity sample closest to the clicked point'],
+        'Add IDPX':         [2,                         '3','Add an ID pixel at the clicked point'],
+        'Remove IDPX':      [-2,                        '4','Remove an ID pixel closest to the clicked point'],
     },
-    'CLOSE':{'info':'Close the viewer'
+'CLOSE':{
+    'info':'Close the viewer',
+    'kbtemplate': '$info',
+        "CLOSE":            [0,                    'escape', 'Close the viewer']
     },
-    'SAVE':{'info':'Save the selected contour, either to the current fits file or to a new file if a path has been provided.'
+'SAVE':{
+    'info':'Save the selected contour, either to the current fits file or to a new file if a path has been provided.',
+    'kbtemplate':'$tooltip',
+        "SAVE":             [0,                     'enter', 'Save the selected contour']
     },
-    'RESET':{'info':'Reset the viewer pixel selections'
+'RESET':{
+    'info':'Reset the viewer pixel selections',
+    'kbtemplate': 'Reset selections',
+        "RESET":            [0,                       'f10', 'Reset the viewer pixel selections']
     },
-    'FSCRN':{'info':'Toggle fullscreen mode'}}
-def getflaglabels(flag:str):
+'FSCRN':{
+    'info':'Toggle fullscreen mode', 
+    'kbtemplate': 'Toggle Fullscreen',
+        "FULLSCREEN":       [0,                       'f11', 'Toggle Fullscreen']
+    } ,
+'KILL':{
+    'info':'Kill the current process', 
+    'kbtemplate': '$tooltip',
+        "KILL":             [0,                    'delete','Kill the current process']
+    },
+'MASK':{
+    'info':'Cycle mask display', 
+    'kbtemplate': '$tooltip',
+        "MASK":             [0,                         'f3','Cycle mask display']
+    },
+'CMAP':{
+    'info':'Cycle colormap', 
+    'kbtemplate': '$tooltip',
+        "CMAP":             [0,                         'f4','Cycle colormap']
+    },
+'NOTES':{
+    'info':'Toggle note textbox', 
+    'kbtemplate': '$tooltip',
+        "NOTES":            [0,                        'f1','Toggle note textbox']
+    },
+'TOOLTIP':{
+    'info':'Toggle tooltips', 
+    'kbtemplate': '$tooltip',
+        "TOOLTIP":          [0,                        'f2','Toggle tooltips']
+    },
+'FIXLRANGE':{'info':'Controls for altering the fixed luminance range, which is the lower and upper limit of valid luminances', 'kbtemplate':'$flag: $tooltip',
+             "Lower+":          [0,                      ']','Increase lower limit'],
+             "Lower-":          [1,                     '[','Decrease lower limit'],
+             "Upper+":          [2,                      '#','Increase upper limit'],
+             "Upper-":          [3,                     '\'','Decrease upper limit '],
+             "Reset":           [4,                         'f6','Reset range to initial'],
+             "Toggle":          [5,                         'f5','Toggle fixed luminance range'],
+             "Cycle":           [6,                         'f8','Cycle through steps'],}, 
+}      
+stepmap = [0.1,0.05,0.01,0.005,0.001,0.0005,0.0001]        
+def __getflaglabels(flag:str):
     '''Returns the ordered list of labels for a given flag'''
     ident= list(_cvtrans[flag].keys())
     ident.remove('info')
+    ident.remove('kbtemplate')
+    if len(ident) == 1:
+        return [ident[0]]
     
     if 'trans' not in ident:
         ret =['' for _ in range(len(ident))]
@@ -131,33 +197,35 @@ def __getflagindex(flag:str,label:str):
         return v
 
 #--------------------------------- Keybindings --------------------------------#
-groups = [
-{k:('ACTION',v) for k,v in zip('01234',getflaglabels('ACTION'))},
-{k:('MORPH',v) for k,v in zip('qwertyui',getflaglabels('MORPH'))},
-{k:('RETR',v) for k,v in zip('asdf',getflaglabels('RETR'))},
-{k:('CHAIN',v) for k,v in zip('zxcv',getflaglabels('CHAIN'))},
-{k:('KSIZE',v) for k,v in zip('=-',[True,False])},
-{k:('CVH',v) for k,v in zip('`','Convex Hull')},
-{'enter':('save', 'Save to file'),
- 'f10':('reset', 'Reset selections'),
- 'f11':('fscreen', 'Toggle Fullscreen'),
- 'escape':('close', 'Close the viewer'),
- '/' : ('tooltip', 'Show Tooltips'),
- 'delete':('kill', 'Kill the current process'),
- 'm':('mask', 'cycle mask display'),
- 'n':('cmap', 'cycle colormap')},
- #'b':('bgnd','Toggle Black/White Background')
-]
-for g in groups:
-    _keybindings.update(g)
 def __evalkbt(flag,label=None):
+    '''Evaluates the keybinding tooltip template for a given flag dictionary'''
+    temp = _cvtrans[flag].get('kbtemplate',None)
+    if '$label' in temp:
+        if label is None:
+            label = flag
+        temp = temp.replace('$label',label)
+    if '$flag' in temp:
+        temp = temp.replace('$flag',flag)
+    if '$extension' in temp:
+        temp = temp.replace('$extension',_cvtrans[flag][label][-1] if len(_cvtrans[flag][label])>3 else "")
+    if '$tooltip' in temp:
+        temp = temp.replace('$tooltip',_cvtrans[flag][label][2])
+    if '$info' in temp:
+        temp = temp.replace('$info',_cvtrans[flag]['info'])
+    return temp
 
-def tooltip(flag, value=None, label=None):
+_keybindings = {} # Structure: {'key':('flag',value,'tooltip')}
+for k,v in _cvtrans.items():
+    for label in __getflaglabels(k):
+        _keybindings[v[label][1]] = (k,v[label][0],__evalkbt(k,label))
+                # 'key':('flag',value,'kb_tooltip')
+
+def __gettooltip(flag, value=None, label=None):
     '''Returns the tooltip for a flag (and/or label/value combination), along with the correct keybinding, if available'''
     if label is not None:
-        tt = _cvtrans[flag][label][1]
+        tt = _cvtrans[flag][label][2]
     elif value is not None:
-        tt = _cvtrans[flag][getflaglabels(flag)[value]][1]
+        tt = _cvtrans[flag][__getflaglabels(flag)[value]][2]
     else:
         tt = _cvtrans[flag]['info']
     kb = [k for k,v in _keybindings.items() if v[0] == flag and (label is None or v[1] == label) and (value is None or v[1] == value)] 
@@ -683,92 +751,92 @@ def pathfinder(fits_dir: fits.HDUList,saveloc=None,show_tooltips=True, headernam
             global REGISTER_KEYS
             if REGISTER_KEYS:
                 if event.key in _keybindings:
-                    action, val = _keybindings[event.key]
+                    action, val,_ = _keybindings[event.key]
                     if action == 'ACTION':
-                        selradio.set_active(getflagindex('ACTION', val))
+                        selradio.set_active(__getflagindex('ACTION', val))
                     elif action == 'RETR':
-                        retrbts.set_active(getflagindex('RETR', val))
+                        retrbts.set_active(__getflagindex('RETR', val))
                     elif action == 'MORPH':
-                        morphbts.set_active(getflagindex('MORPH', val))
+                        morphbts.set_active(__getflagindex('MORPH', val))
                     elif action == 'CHAIN':
-                        chainbts.set_active(getflagindex('CHAIN', val))
+                        chainbts.set_active(__getflagindex('CHAIN', val))
                     elif action == 'CVH':
                         cvhbts.set_active(0)
                     elif action == 'KSIZE':
                         ksizeslider.set_val(min(max(G_ksize+(2 if val else -2),1),11))
-                    elif action in ['save', 'reset', 'fscreen', 'close']:
-                        exec(action+'(None)')
-                    elif action == 'tooltip':
+                    elif action == 'SAVE':
+                        __event_save(None)
+                    elif action == 'RESET':
+                        __event_reset(None)
+                    elif action == 'FSCRN':
+                        __event_fullscreen(None)
+                    elif action == 'CLOSE':
+                        __event_close(None)
+                    elif action == 'TOOLTIP':
                         global G_show_tooltips
                         G_show_tooltips = not G_show_tooltips
-                    elif action == 'kill':
-                        tqdm.write(f'PATHFINDER: {str(key)} pressed, closing process.')
+                    elif action == 'KILL':
+                        tqdm.write('PATHFINDER: closing process.')
                         plt.close()
                         exit()
-                    elif action == 'mask':
+                    elif action == 'MASK':
                         global show_mask
                         show_mask += 1
                         if show_mask >= 7:
                             show_mask = 0
-                    
-                    elif action == 'cmap':
+                    elif action == 'CMAP':
                         global falsecolor
                         falsecolor+= 1
                         if falsecolor >= len(cmap_cycler):
                             falsecolor = 0
-                        
                             
-                elif event.key == '#':
-                    tt = []
-                    for k,v in _keybindings.items():
-                        if v[0] == 'tooltip':
-                            tt.append((k, 'Toggle Tooltips'))
-                        elif v[0] == 'kill':
-                            tt.append((k, 'Force Quit Python'))
-                        elif v[0] == 'RETR':
-                            tt.append((k, f'Select RETR Mode: {v[1]}'))
-                        elif v[0] == 'MORPH':
-                            tt.append((k, f'Toggle Morphology: {v[1]}'))
-                        elif v[0] == 'CHAIN':
-                            tt.append((k, f'Select Approximation Mode: {v[1]}'))
-                        elif v[0] == 'CVH':
-                            tt.append((k, 'Toggle Convex Hull'))
-                        elif v[0] == 'KSIZE':
-                            tt.append((k, f'Change Kernel Size: {"Increase" if v[1] else "Decrease"}'))
-                        elif v[0] == 'save':
-                            tt.append((k, 'Save Contour'))
-                        elif v[0] == 'reset':
-                            tt.append((k, 'Reset'))
-                        elif v[0] == 'fscreen':
-                            tt.append((k, 'Toggle Fullscreen'))
-                        elif v[0] == 'close':
-                            tt.append((k, 'Close Viewer'))
-                        elif v[0] =='ACTION':
-                            tt.append((k, f'Select Mode: {v[1]}'))
-                        else:
-                            tt.append((k, str(v[0])+": "+str(v[1])))
                     maxlenk = max([len(t[0]) for t in tt])
                     maxlenv = max([len(t[1]) for t in tt])
                     template = f'║ {{k:^{maxlenk+2}}} ║ {{action:<{maxlenv+2}}} ║'
                     top =      f'╔═{"═"*(maxlenk+2) }═╦═{"═"*(maxlenv+2)      }═╗'  
                     bottom =   f'╚═{"═"*(maxlenk+2) }═╩═{"═"*(maxlenv+2)      }═╝'
                     mid =      f'╠═{"═"*(maxlenk+2) }═╬═{"═"*(maxlenv+2)      }═╣'
-                    tqdm.write(top)
-                    tqdm.write(template.format(k='Key', action='Action'))
-                    tqdm.write(mid)
-                    for k, action in tt:
-                        tqdm.write(template.format(k=k, action=action))
-                    tqdm.write(bottom)
-                update_fig(None)    
-
-        key_event = fig.canvas.mpl_connect('key_press_event', on_key) #noqa: F841
+                    if TWOCOLS:
+                        lenh = len(tt)//2
+                        tt1 = tt[:lenh]
+                        tt2 = tt[lenh:]
+                        sep = "\t"
+                        while len(tt1) != len(tt2):
+                            if len(tt1) > len(tt2):
+                                tt2.append(('',''))
+                            elif len(tt1) < len(tt2):
+                                tt1.append(('',''))
+                            else:
+                                break
+                        title = template.format(k='Key', action='Action')
+                        forms = [p+sep+p for p in [top, title, mid]]
+                        for i in range((len(tt1))):
+                            forms.append(template.format(k=tt1[i][0], action=tt1[i][1]) + sep + template.format(k=tt2[i][0], action=tt2[i][1]))
+                        forms.append(bottom)
+                        for f in forms:
+                            tqdm.write(f)
+                    else:
+                        tqdm.write(top)
+                        tqdm.write(template.format(k='Key', action='Action'))
+                        tqdm.write(mid)
+                        for k, action in tt:
+                            tqdm.write(template.format(k=k, action=action))
+                        tqdm.write(bottom+sep+bottom)
+                __redraw_main(None)    
+        def __on_key_release_event(event):
+            global modifiers
+            if event.key in __modind:
+                __setmod(__modind(event.key), False)
         
+        key_events = [fig.canvas.mpl_connect('key_press_event', __on_key_press_event),fig.canvas.mpl_connect('key_release_event', __on_key_release_event)] #noqa: F841
         plt.show()
         if G_path is not None:
             pth = G_path.reshape(-1, 2)
             ret= fullxy_to_polar_arr(pth, normed, 40)
         else:
             ret= None
+        if G_notes not in ['', None]:
+            tqdm.write(f'{filename_from_path(fits_dir)}:\n {G_notes}')
         return ret
 
 #------------ QuickPlot Class (for power.py optional plotting) ----------------#

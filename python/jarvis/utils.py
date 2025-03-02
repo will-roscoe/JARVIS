@@ -335,6 +335,39 @@ def yrdoysod_to_datetime(year:int, doy:int, sod:int)->datetime.datetime:
     return datetime.datetime(year, 1, 1) + datetime.timedelta(days=doy-1, seconds=sod)
 
 
+def get_data_over_interval(fitsobjs, chosen_interval:list[datetime.datetime], data_index=2,include_parts=False)->astropy.table.Table:
+    """Combines the data from the fits objects, and returns a table with the data over the given interval.
+    fitsobjs: list of fits objects
+    chosen_interval: list of two datetime objects, the interval to extract the data from
+    data_index: the index of the data table in the fits object
+    include_parts: if True, includes the parts of the each dataset that overlap with the interval, if False, only includes the data from fits that are completely within the interval."""
+    valids = []
+    interval_yds = {k: (st, en) for k, st, en in zip(['YEAR', 'DAYOFYEAR','SECOFDAY'], *[datetime_to_yrdoysod(i) for i in chosen_interval])}
+    # sort fitsobjs by datetime (not strictly necessary, but means this might be able to be improved by a bisecting approach)
+    fitsobjs = sorted(fitsobjs, key=lambda x: get_datetime_interval(x)[0])
+    # first pick the fits objects with an interval that overlaps with the given interval
+    # then extract the data.
+    if include_parts:
+        for f in fitsobjs:
+            segment_interval = get_datetime_interval(f)
+            if segment_interval[0] <= chosen_interval[1] and segment_interval[1] >= chosen_interval[0]:
+                valids.append(f)
+    else:
+        for f in fitsobjs:
+            segment_interval = get_datetime_interval(f)
+            if segment_interval[0] >= chosen_interval[0] and segment_interval[1] <= chosen_interval[1]:
+                valids.append(f)
+    assert all([isinstance(f[data_index], (fits.BinTableHDU, fits.TableHDU))]), f"The HDU at index {data_index} is not a BinTableHDU or TableHDU for all fits objects."
+    data = vstack([Table(f[data_index].data) for f in valids])
+    if len(data) == 0:
+        return None
+    if include_parts:
+        for key,(minv, maxv) in interval_yds.items(): # filter the data by the interval given
+            data = data[(data[key]>=minv) & (data[key]<=maxv)]
+    data.sort(list(interval_yds.keys()))   
+    # finally add the epoch collumn, 0 = J2000
+    data['EPOCH'] = data['YEAR'] + (data['DAYOFYEAR'] + data['SECOFDAY']/86400)/365.25
+    return data
 
 
 

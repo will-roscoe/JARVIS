@@ -90,8 +90,42 @@ def fits_from_glob(fits_dir:str, suffix:str='/*.fits', recursive=True, sort=True
         fits_file_list.sort()   
     tqdm.write(f'Found {len(fits_file_list)} files in the directory.')
     if names:
-        return [fits.open(f) for f in fits_file_list] , [basename(f) for f in fits_file_list]
-    return [fits.open(f) for f in fits_file_list] 
+        return [fits.open(f) for f in fits_file_list] , [filename_from_path(f) for f in fits_file_list]
+    return [fits.open(f) for f in fits_file_list]
+
+
+def hst_fitsfile_paths(sortby='visit', full=False):
+    """Convienence function to return a list of file paths for the HST fits files.
+    if full is True, returns a list of lists of file paths, else returns a list of file paths."""
+    fitspaths = []
+    for g in gv_translation['group']:
+        fitspaths.append(fpath(f'datasets/HST/group_{g:0>2}'))
+    if sortby == 'visit':
+        # sort the file paths by their respective visit number
+        fitspaths = [fitspaths[i] for i in np.argsort(gv_translation['visit'])]
+    if full:
+        for i, f in enumerate(fitspaths):
+            files = os.listdir(f)
+            fitspaths[i] = [os.path.join(f, file) for file in files if file.endswith('.fits')]
+    return fitspaths
+
+
+def hst_segmented_paths(segments=4,byvisit=True):
+    """Returns a dictionary of file paths for the HST fits files, segmented into the specified number subgroups."""
+    fitspaths = hst_fitsfile_paths(full=True)
+    fdict = {}
+    for i,f in enumerate(fitspaths,1):
+        parts = np.array_split(f, segments)
+        if not byvisit:
+            for j,p in enumerate(parts):
+                fdict[f'g{i:0>2}s{chr(65+j)}'] = p
+        else:
+            for j,p in enumerate(parts):
+                fdict[f'v{group_to_visit(i):0>2}s{chr(65+j)}'] = p
+    return fdict
+
+
+
 #################################################################################
 #                  HDUList/FITS object FUNCTIONS
 #################################################################################
@@ -157,10 +191,8 @@ def adapted_fits(original_fits, new_data=None, **kwargs):
     fits_new = fits.HDUList([fits.PrimaryHDU(orig_data[0], header=orig_header[0]), fits.ImageHDU(new_data, header=orig_header[1])])
     #print(fits_new.info(), original_fits.info())
     return fits_new          
-def get_datetime(fits_object):
-    """Returns a datetime object from the fits header."""
-    udate = fitsheader(fits_object, 'UDATE')         
-    return datetime.datetime.strptime(udate, '%Y-%m-%d %H:%M:%S') # '2016-05-19 20:48:59'                     
+
+
 def assign_params(fits_obj:fits.HDUList, regions=False, moonfp=False, fixed='lon', rlim=40,full=True, crop=1, **kwargs)->fits.HDUList:
     """Returns a fits object with specified header values, which can be used for processing."""
     kwargs.update({'REGIONS':bool(regions), 'MOONFP':bool(moonfp), 'FIXED':str(fixed).upper(), 'RLIM':int(rlim), 'FULL':bool(full), 'CROP': float(crop) if abs(float(crop)) <=1 else 1}) 
@@ -241,6 +273,68 @@ def mcolor_to_lum(*colors):
 
 
 
+################################################################################
+#                         TIME (SERIES) UTILITIES
+################################################################################
+
+
+
+def get_obs_interval(fits_dirs):
+    """Returns the observation interval from a list of fits directories or filepaths"""
+    if isinstance(fits_dirs, str):
+        fits_dirs = [fits_dirs,]
+    fobjs = []
+    for f in fits_dirs:
+        if os.path.isfile(f):
+            fit = fits.open(f)
+            fobjs.append(fit)
+        else:
+            ffits = fits_from_glob(f)
+            fobjs.extend(ffits)
+    dates = [get_datetime(f) for f in fobjs]
+    for f in fobjs:
+        f.close
+    return min(dates), max(dates)
+        
+
+def get_datetime(fits_object: fits.HDUList)->datetime.datetime:
+    """Returns a datetime object from the fits header."""
+    udate = fitsheader(fits_object, 'UDATE')         
+    return datetime.datetime.strptime(udate, '%Y-%m-%d %H:%M:%S') # '2016-05-19 20:48:59'
+    
+
+
+def get_datetime_interval(fits_object: fits.HDUList)->tuple[datetime.datetime]:
+    """Returns a tuple of the start and end datetimes of the observation interval from the fits header."""
+    date_obs = fitsheader(fits_object, 'DATE-OBS')
+    if len(date_obs)<19:
+        date_obs += f"T{fitsheader(fits_object, 'TIME-OBS')}" 
+    mindate = datetime.datetime.strptime(date_obs, '%Y-%m-%dT%H:%M:%S')
+    try:
+     date_end = fitsheader(fits_object, 'DATE-END')
+     maxdate = datetime.datetime.strptime(date_end, '%Y-%m-%dT%H:%M:%S')
+    except KeyError:
+        maxdate = mindate + datetime.timedelta(seconds=fitsheader(fits_object,'EXPT'))    
+    return mindate, maxdate
+
+
+def get_timedelta(fits_object:fits.HDUList)->datetime.timedelta:
+    """Returns the timedelta of the observation interval from the fits header."""
+    start_time, end_time = get_datetime_interval(fits_object)
+    return end_time - start_time
+
+
+def datetime_to_yrdoysod(dt:datetime.datetime)-> tuple[int]:
+    """Converts a datetime object to a tuple of year, day of year, and seconds of day."""
+    dtt = dt.timetuple()
+    return (dtt.tm_year, dtt.tm_yday, dtt.tm_hour*3600 + dtt.tm_min*60 + dtt.tm_sec)
+
+
+def yrdoysod_to_datetime(year:int, doy:int, sod:int)->datetime.datetime:
+    """Converts a tuple of year, day of year, and seconds of day to a datetime object."""
+    return datetime.datetime(year, 1, 1) + datetime.timedelta(days=doy-1, seconds=sod)
+
+
 
 
 
@@ -294,26 +388,3 @@ def visit_to_group(*args):
         return ret[0]
     return ret
 
-def hst_fitsfile_paths(sortby='visit', full=False):
-    fitspaths = []
-    for g in gv_translation['group']:
-        fitspaths.append(fpath(f'datasets/HST/group_{g:0>2}'))
-    if sortby == 'visit':
-        # sort the file paths by their respective visit number
-        fitspaths = [fitspaths[i] for i in np.argsort(gv_translation['visit'])]
-    if full:
-        for i, f in enumerate(fitspaths):
-            files = os.listdir(f)
-            fitspaths[i] = [os.path.join(f, file) for file in files]
-    return fitspaths
-
-def hdulinfo(fits_obj:fits.HDUList):
-    ret = []
-    for i,hdu in enumerate(fits_obj):
-        name = hdu.name
-        type = hdu.__class__.__name__
-        ret.append(dict(name=name,type=type))
-    return ret
-        
-            
-    

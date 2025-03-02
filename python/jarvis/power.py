@@ -155,6 +155,7 @@ def area_to_km2(area_deg,rad_km):
     '''Converts the area from degrees^2 to km^2'''
     return area_deg * (np.pi/180.)**2 * rad_km**2
 def cylbroject(img,fits_obj, ndiv=2):
+    '''Back-projects the image array.'''
     #// self._check_image_loaded(proj=True)      # commented out JK
     __print(f'Brojecting with ndiv = {ndiv}')
     #> PCX,PCY:  Planet centre pixel

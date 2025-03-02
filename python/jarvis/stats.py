@@ -1,7 +1,9 @@
+"""This module contains functions for statistical analysis of data."""
+
 import numpy as np
 from scipy import stats as st
 import scipy.signal as si
-import pandas as pd
+#import pandas as pd
 import matplotlib.pyplot as plt
 #does all the stats we will need for analysis
 def stats(data,mean=True,median=True,std=True,max=False,min=False):
@@ -45,11 +47,12 @@ def get_statstext(hist, mode, symb, skewed=False): # Function i pulled out of an
     mids = 0.5*(bins[1:] + bins[:-1]).flatten()
     x=[mids[i] for i in range(int(len(mids))) for _ in range(int(freqs[i]))]
     if skewed:
-        return ",\n".join([f"Mo[{symb}]: {mode:.1f}",f"Avg[{symb}]: {np.mean(x):.1f}",f"$\kappa$: {st.kurtosis(x):.1f}",f"$\gamma$: {st.skew(x):.1f}"])
+        return ",\n".join([f"Mo[{symb}]: {mode:.1f}",f"Avg[{symb}]: {np.mean(x):.1f}",f"$\\kappa$: {st.kurtosis(x):.1f}",f"$\\gamma$: {st.skew(x):.1f}"])
     else:
-        return ",\n".join([f"Mo[{symb}]: {mode:.1f}",f"Avg[{symb}]: {np.mean(x)::.1f}",f"$\sigma$: {std_dev(hist)::.1f}"])
+        return ",\n".join([f"Mo[{symb}]: {mode:.1f}",f"Avg[{symb}]: {np.mean(x)::.1f}",f"$\\sigma$: {std_dev(hist)::.1f}"])
 
 def std_dev(hist):
+    """Returns the standard deviation of a histogram. (normally distributed)"""
     counts, bins = hist[:2]
     mids = 0.5*(bins[1:] + bins[:-1])
     probs = counts / np.sum(counts)

@@ -1,4 +1,8 @@
-install necessary packages: 
+# `jarvis` (JAR:VIS)
+
+Scripts
+
+install necessary packages:
 
 - type command into cmd prompt or terminal:  ``pip install -r python/requirements.txt``
 

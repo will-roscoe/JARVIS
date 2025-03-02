@@ -28,6 +28,7 @@ try:
     
 except:  #noqa: E722
     def powercalc(*args, **kwargs):
+        """Function requires SPICE kernels to be loaded."""
         raise NotImplementedError('Power calculations require SPICE kernels to be loaded.')
     print('Kernel may need to be extracted for full functionality')
 

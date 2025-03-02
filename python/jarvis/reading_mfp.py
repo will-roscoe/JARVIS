@@ -10,10 +10,13 @@ expected latitude and longitude of the four Galilean moons.
 @author: diegomp
 """
 import numpy as np
-from scipy import stats
+#from scipy import stats
 from .utils import fpath
 
 def moonfploc(iolon, eulon, galon):
+    """uses both the Hess 2011 table of ephemeris and the longitude of
+each Jovian moon (read in the header of every fits file) to output the 
+expected latitude and longitude of the four Galilean moons."""
     
     tablename = fpath('datasets/hess2011_table1.txt')
     table = open(tablename, 'r')
@@ -31,11 +34,11 @@ def moonfploc(iolon, eulon, galon):
     satlon = [iolon, eulon, galon]
     
     for n,i in enumerate(satlon):
-        for l in lon:
-            if i > lista[l][0]:
-                pre = l
-                pos = l+1
-                if l == lon[-1]:
+        for lo in lon:
+            if i > lista[lo][0]:
+                pre = lo
+                pos = lo+1
+                if lo == lon[-1]:
                     pos = 0
                 sat_i = lista[pre][0]
                 sat_f = lista[pos][0]

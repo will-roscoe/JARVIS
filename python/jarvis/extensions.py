@@ -267,21 +267,25 @@ FIRST_RUN = True
 def __validatecfg():
     """"""
     for k, v in _cvtrans.items():
-        if len(v) > 2:
-            trans = v.get('trans')
-            if trans is not None:
-                assert len(v) - 2 == len(trans), f'{k}\'s index translation length does not match the number of flags: "trans": {trans}, flags: {list(v.keys())}'
-            else:
-                maxflag = max(val[0] for label, val in v.items() if label != 'info')
-                lenflags = len(v) - 2  # zero indexed, and accounting for`info' and no `trans'
-                assert lenflags == maxflag, f'{k}\'s index translation length does not match the number of flags, highest flag value: {maxflag}, flags: {list(v.keys())} (length: {lenflags})'
+        assert 'info' in v, f'{k} must have an info key'
+        assert 'kbtemplate' in v, f'{k} must have a kbtemplate key'
+        trans = v.get('trans',False)
+        if trans:
+            assert len(v) - 3 == len(trans), f'{k}\'s index translation length does not match the number of flags: "trans": {trans}, flags: {list(v.keys())}'
+        else:
+            maxflag = max(val[0] for label, val in v.items() if label not in ['info','kbtemplate'])
+            lenflags = len(v) - 3  # zero indexed, and accounting for`info','kbtemplate' and no `trans'
+            assert lenflags == maxflag, f'{k}\'s index translation length does not match the number of flags, highest flag value: {maxflag}, flags: {list(v.keys())} (length: {lenflags}+2)'
         for label, val in v.items():
-            if label not in ['trans', 'info']:
-                assert len(val) == 2, f'{k}\'s index translation values must be a list of length 2, containing the flag value (or index) and description'
-                assert isinstance(val[0], (int, bool)), f'{k}\'s index translation values must be integers or booleans'
-                assert isinstance(val[1], str), f'{k}\'s index translation descriptions must be strings'
+            if label not in ['trans', 'info', 'kbtemplate']:
+                assert len(val) >=3, f'{k}\'s index translation values must be a list of length 3 or more, containing the flag value (or index),keybinding, and description'
+                assert isinstance(val[0], (int, bool)), f'{k}\'s index translation values must be integers or booleans, not {type(val[0])}: {val[0]}'
+                assert isinstance(val[1], str), f'{k}\'s index translation keybindings must be strings, not {type(val[1])}: {val[1]}'
+                assert isinstance(val[2], str), f'{k}\'s index translation descriptions must be strings, not {type(val[2])}: {val[2]}'
+                if len(val) > 3:
+                    assert isinstance(val[3], str), f'{k}\'s index translation extensions must be strings, not {type(val[3])}: {val[3]}'
     for k, v in _keybindings.items():
-        assert len(v) == 2, f'{k}\'s keybinding must be a tuple of length 2'
+        assert len(v) == 3, f'{k}\'s keybinding must be a tuple of length 3 containing the flag, value, and a short description'
     assert os.path.exists(_iconpath), 'Icon file not found'
     assert os.path.exists(_fontpath), 'Font file not found'
 if FIRST_RUN:

@@ -3,3 +3,30 @@ include = ["python/**/*.py"]
 line-length = 120
 [tool.ruff.lint]
 select = ["E4", "E7", "E9", "F", "N"]
+
+[tool.interrogate] 
+# command : interrogate -vvv -c .\.github\pyproject.toml .\\python\\jarvis\
+ignore-init-method = false
+ignore-init-module = false
+ignore-magic = false
+ignore-semiprivate = true
+ignore-private = true
+ignore-property-decorators = false
+ignore-module = false
+ignore-nested-functions = true
+ignore-nested-classes = false
+ignore-setters = false
+ignore-overloaded-functions = false
+fail-under = 80
+exclude = ["*tests/*.py", "*resources/*.py"]
+ignore-regex=["^debug_.*", "^.*test.*"]
+# possible values: sphinx (default), google
+style = "sphinx"
+# possible values: 0 (minimal output), 1 (-v), 2 (-vv)
+verbose = 0
+quiet = false
+color = true
+omit-covered-files = false
+# output file logation
+generate-badge = "./.github/badges/interrogate.svg"
+badge-format = "svg"

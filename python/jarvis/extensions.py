@@ -121,7 +121,7 @@ def getflaglabels(flag:str):
         for k,v in zip(ident,[_cvtrans[flag][i][0] for i in ident]):
             ret[_cvtrans[flag]['trans'].index(v)]=k
     return ret
-def getflagindex(flag:str,label:str):
+def __getflagindex(flag:str,label:str):
     '''Returns the correct index of a given label for a given flag'''
     ident = _cvtrans[flag]
     if ident.get('trans',None) is None:
@@ -131,7 +131,6 @@ def getflagindex(flag:str,label:str):
         return v
 
 #--------------------------------- Keybindings --------------------------------#
-_keybindings = {}
 groups = [
 {k:('ACTION',v) for k,v in zip('01234',getflaglabels('ACTION'))},
 {k:('MORPH',v) for k,v in zip('qwertyui',getflaglabels('MORPH'))},
@@ -151,6 +150,7 @@ groups = [
 ]
 for g in groups:
     _keybindings.update(g)
+def __evalkbt(flag,label=None):
 
 def tooltip(flag, value=None, label=None):
     '''Returns the tooltip for a flag (and/or label/value combination), along with the correct keybinding, if available'''
@@ -173,7 +173,8 @@ COLORPALLETTE = {'RGB':['#FF0000FF','#00FF00FF','#FF0000FF','#0000FFFF'],
                 'BLUE':['#0077FFFF','#7700FFFF','#0000FFFF','#00FFFF55'],
                 'GREEN':['#00FF00FF','#00FF55FF','#00FF00FF','#55FF0055'],
                 'BW':['#000','#FFF','#000000FF','#FFFFFF55']}
-def get_bg(ax):
+def __get_bg(ax):
+    """Returns the background color for a given axes"""
     return _bgs.get(ax.get_label(), _bgs.get('sidebar', _bgs.get('main', '#fff')))
 _legendkws =dict(loc='lower left', fontsize=8, labelcolor='linecolor', frameon=False, mode='expand', ncol=3) #> active contour list styling
 _idpxkws = dict(s=20, color=COLORPALLETTE[CSEL][0], zorder=12, marker='x') # Identifier Pixel scatter style 
@@ -195,7 +196,8 @@ _fontpath = fpath('python/jarvis/resources/FiraCodeNerdFont-Regular.ttf')
 global FIRST_RUN
 FIRST_RUN = True    
 #----------------------------- Configuration Validation ------------------------#
-def validatecfg():
+def __validatecfg():
+    """"""
     for k, v in _cvtrans.items():
         if len(v) > 2:
             trans = v.get('trans')
@@ -215,7 +217,7 @@ def validatecfg():
     assert os.path.exists(_iconpath), 'Icon file not found'
     assert os.path.exists(_fontpath), 'Font file not found'
 if FIRST_RUN:
-    validatecfg()
+    __validatecfg()
 
 
 # ------------------------- pathfinder (Function) -----------------------------#
@@ -249,11 +251,12 @@ def pathfinder(fits_dir: fits.HDUList,saveloc=None,show_tooltips=True, headernam
         #generate a stripped down, grey scale image of the fits file, and make normalised imagempl.rcParams['toolbar'] = 'None'
         proc =prep_polarfits(assign_params(G_fits_obj, fixed='LON', full=True))
         img = imagexy(proc, cmap=cmr.neutral, ax_background='white', img_background='black') 
+        #G_fits_obj.close()
         global show_mask, G_clicktype, G_path, G_headername, G_show_tooltips, G_morphex, G_fcmode, G_fcmethod, G_cvh, G_ksize, falsecolor, G_fixrange, REGISTER_KEYS
         REGISTER_KEYS = True # control whether to listen for keypresses and run each key's function, set to False when we are in a text box.
         global FIRST_RUN
         if FIRST_RUN:
-            tqdm.write('(Press # to print keybindings)')
+            _get_pathfinderhead()# tqdm.write('(Press # to print keybindings)')
             G_show_tooltips = show_tooltips #:bool # whether to show tooltips
             G_clicktype =persists.get('G_clicktype', 0) #:int # the type of click event, [0,1,2,3,4]
             G_morphex= [m for m in morphex] #:list[int] # list of activated morphological operations
@@ -281,7 +284,7 @@ def pathfinder(fits_dir: fits.HDUList,saveloc=None,show_tooltips=True, headernam
         G_path = persists.get('G_path', None)
         global retattrs#:dict
         retattrs = dict(LMIN =-np.inf, LMAX=np.inf, NUMPTS=np.nan, XYA_CT=np.nan, XYA_CTP=np.nan, XYA_IMG=imarea)
-        def getareapct(contourarea):
+        def __approx_contour_area_pct(contourarea):
             num = contourarea/imarea * 100
             if num < 0.01:
                 return f'{num:.2e}%'
@@ -321,6 +324,7 @@ def pathfinder(fits_dir: fits.HDUList,saveloc=None,show_tooltips=True, headernam
         axgroups ={'buttons':[rbax, sbax, clax, fsax],'textboxes':[linfax, fitinfoax],'options':[retrax, morphax, chainax, cvhax, ksizeax, ksizesubax, flax],'legends':[lax]}
         global lastax
         lastax = None
+        
         linfax.text(0.5, 0.5, 'Select at least 2 or more\nLuminosity Samples', fontsize=8, color='black', ha='center', va='center')    
         #final plot initialisation
         ksizeax.set_facecolor('#fff')
@@ -330,7 +334,7 @@ def pathfinder(fits_dir: fits.HDUList,saveloc=None,show_tooltips=True, headernam
         #fig.canvas.setWindowTitle('Luminance Viewer')
         fig.set_facecolor('black')
         ax.imshow(normed, cmap=cmap_cycler[falsecolor], zorder=0)
-        def update_fitsinfo():
+        def __redraw_displayed_attrs():
             global G_fits_obj
             visit, tel, inst, filt, pln, hem,cml,doy  = *fitsheader(G_fits_obj, 'VISIT', 'TELESCOP', 'INSTRUME', 'FILTER', 'PLANET', 'HEMISPH', 'CML', 'DOY'), 
             dt = get_datetime(G_fits_obj)
@@ -371,8 +375,8 @@ def pathfinder(fits_dir: fits.HDUList,saveloc=None,show_tooltips=True, headernam
                 if key[0]>=len(pthparts)+5 and key[1] == 1:
                     cell.set_fontsize(max(8-len(hdulinf)+1,5))
             fig.canvas.blit(fitinfoax.bbox)
-        update_fitsinfo()
-        def binopts():
+        __redraw_displayed_attrs()
+        def __generate_conf_output():
             """Returns the current configuration options in a dictionary, encoding the values as integers or binary strings to save to the fits file."""
             global G_morphex, G_fcmode, G_fcmethod, G_cvh, G_ksize
             m_ = [0,]*8
@@ -380,7 +384,7 @@ def pathfinder(fits_dir: fits.HDUList,saveloc=None,show_tooltips=True, headernam
                 m_[m]=1
             m_ = "".join([str(i) for i in m_])
             return dict(MORPH=m_, RETR=G_fcmode, CHAIN=G_fcmethod, CVH=int(G_cvh), KSIZE=G_ksize, CONTTIME=datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
-        def coordopts():
+        def __generate_coord_output():
             """Returns the current selected coordinates to save to the fits file."""
             global clicked_coords, id_pixels
             ret = dict()
@@ -390,11 +394,11 @@ def pathfinder(fits_dir: fits.HDUList,saveloc=None,show_tooltips=True, headernam
                 ret[f'IDXY_{i}'] = f"({coord[0]},{coord[1]})"
             return ret
         #main update function
-        def update_fig(cl):
+        def __redraw_main(cl):
             global id_pixels, G_clicked_coords, G_morphex, G_fcmode, G_fcmethod, G_cvh, G_ksize, G_path, retattrs,  show_mask, falsecolor, G_fixrange
             for a in [ax, lax]:
                 a.clear()
-                a.set_facecolor(get_bg(a))
+                a.set_facecolor(__get_bg(a))
             ax.imshow(normed, cmap=cmap_cycler[falsecolor], zorder=0)
             if len (id_pixels) > 0:
                 pxsc = [idpixels[0] for idpixels in id_pixels], [idpixels[1] for idpixels in id_pixels]
@@ -448,7 +452,7 @@ def pathfinder(fits_dir: fits.HDUList,saveloc=None,show_tooltips=True, headernam
                     linfax.text(0.5, 0.5, f'Contours: {len(selected_contours)}({len(other_contours)} invalid)', fontsize=8, color='black', ha='center', va='center')
                     if len(selected_contours) >0:
                         G_path = selected_contours[0][1]
-                        retattrs.update({'NUMPTS':len(G_path), 'XYA_CT':cv2.contourArea(G_path), 'XYA_CTP':getareapct(cv2.contourArea(G_path))})
+                        retattrs.update({'NUMPTS':len(G_path), 'XYA_CT':cv2.contourArea(G_path), 'XYA_CTP':__approx_contour_area_pct(cv2.contourArea(G_path))})
                         linfax.text(0.5, 0.25, f'Area: {retattrs["XYA_CTP"]}, N:{retattrs['NUMPTS']}', fontsize=10, color='black', ha='center', va='center')
 
                     selectedhandles = [mpl.lines.Line2D([0], [0], label=f'{i}, {getareapct(cv2.contourArea(sortedcs[i]))}', **_handles['selectedc']) for i in [c[0] for c in selected_contours]]
@@ -464,30 +468,31 @@ def pathfinder(fits_dir: fits.HDUList,saveloc=None,show_tooltips=True, headernam
                     linfax.text(0.5, 0.5, f'Contours: {len(sortedcs)}', fontsize=8, color='black', ha='center', va='center')
                     handles = [mpl.lines.Line2D([0], [0], label=f'{i}, {getareapct(cv2.contourArea(sortedcs[i]))}',**_handles['defc'] ) for i in range(len(sortedcs))][:min(50,len(sortedcs)-1)]
                     lax.legend(handles=handles, **_legendkws)
-                    lax.set_facecolor(get_bg(lax))
+                    lax.set_facecolor(__get_bg(lax))
             else:
                 linfax.clear()
                 linfax.text(0.5, 0.5, 'Select at least 2 or more\nLuminosity Samples', fontsize=8, color='black', ha='center', va='center')
-                lax.set_facecolor(get_bg(ax))
+                lax.set_facecolor(__get_bg(ax))
             fig.canvas.draw()
             fig.canvas.flush_events()
         #config gui elements
         #---- RESET button ----#
         breset = mpl.widgets.Button(rbax, "Reset      "+u'\uF0E2')
-        def reset(event):
+        def __event_reset(event):
             global clicked_coords, id_pixels
             clicked_coords = []
             id_pixels = []
-            update_fig(None)
-        breset.on_clicked(reset)
+            __redraw_main(None)
+        breset.on_clicked(__event_reset)
         #---- SAVE button ----#
         bsave = mpl.widgets.Button(sbax, "Save       "+u'\uEB4B')
-        def save(event):
+        def __event_save(event):
             global G_path, G_fits_obj,retattrs,G_headername
             if G_path is not None:
                 pth = G_path.reshape(-1, 2)
                 pth = fullxy_to_polar_arr(pth, normed, 40)
                 if saveloc is not None:
+                    raise NotImplementedError("Saving to a new fits file is not yet implemented") #todo
                     n_fits_obj = save_contour(fits_obj=G_fits_obj, cont=pth)
                     n_fits_obj.writeto(saveloc, overwrite=True)
                     tqdm.write(f"Saved to {saveloc}, restarting viewer with new data")
@@ -504,72 +509,69 @@ def pathfinder(fits_dir: fits.HDUList,saveloc=None,show_tooltips=True, headernam
                 else:
                     nhattr = retattrs
                     nhattr |=dict()
-                    nhattr |= binopts()
-                    nhattr |= coordopts()
+                    nhattr |= __generate_conf_output()
+                    nhattr |= __generate_coord_output()
                     nhattr |= {m:fitsheader(G_fits_obj,m) for m in ['UDATE','YEAR','VISIT','DOY']}
-                    print(nhattr)
                     for k,v in nhattr.items():
                         if v in [np.nan, np.inf, -np.inf]:
                             raise KeyError(f'Key Mismatch: {v} is not a valid number, please check the value of {k}')
-
                     header = fits.Header(nhattr)
-                    print(header)
                     G_fits_obj.append(contourhdu(pth, name=G_headername.upper(), header=header))
-                    repr(G_fits_obj[-1])
+                    #repr(G_fits_obj[-1])
                     G_fits_obj.flush()
                     tqdm.write(f"Save Successful, contour added to fits file at index {len(G_fits_obj)-1}")
                     linfax.clear()
                     linfax.text(0.5, 0.5, "Save Successful, contour added\n to fits file at index"+str(len(G_fits_obj)-1), fontsize=8, color='black', ha='center', va='center')
                     fig.canvas.blit(linfax.bbox)
-                    update_fitsinfo()
+                    __redraw_displayed_attrs()
             else:
                 tqdm.write("Save Failed: No contour selected to save")
-        bsave.on_clicked(save)
+        bsave.on_clicked(__event_save)
         #---- RETR options ----#
-        retrbts = mpl.widgets.RadioButtons(retrax,getflaglabels('RETR'), active=0)
-        def retrfunc(label):
+        retrbts = mpl.widgets.RadioButtons(retrax,__getflaglabels('RETR'), active=0)
+        def __event_retr(label):
             """set the global variable G_fcmode to the correct value based on the label"""
             global G_fcmode
             G_fcmode = _cvtrans['RETR'][label][0]
-        retrbts.on_clicked(retrfunc)
+        retrbts.on_clicked(__event_retr)
         #---- MORPH options ----#
-        bopts = getflaglabels('MORPH')
+        bopts = __getflaglabels('MORPH')
         acts = [True if _cvtrans['MORPH'][b][0] in G_morphex else False for b in bopts]
         morphbts = mpl.widgets.CheckButtons(morphax, bopts, acts)
-        def morphfunc(lb):
+        def __event_morphex(lb):
             """toggle the morphological operations in G_morphex based on the label, add if not present, remove if present"""
             global G_morphex
             if _cvtrans['MORPH'][lb][0] in G_morphex:
                 G_morphex.remove(_cvtrans['MORPH'][lb][0])
             else:
                 G_morphex.append(_cvtrans['MORPH'][lb][0])
-        morphbts.on_clicked(morphfunc)
+        morphbts.on_clicked(__event_morphex)
         #---- CHAIN options ----#
-        chainbts = mpl.widgets.RadioButtons(chainax,getflaglabels('CHAIN'), active=1)
-        def chainfunc(label):
+        chainbts = mpl.widgets.RadioButtons(chainax,__getflaglabels('CHAIN'), active=1)
+        def __event_chain(label):
             """set the global variable G_fcmethod to the correct value based on the label"""
             global G_fcmethod
             G_fcmethod = _cvtrans['CHAIN'][label][0]
-        chainbts.on_clicked(chainfunc)
+        chainbts.on_clicked(__event_chain)
         #---- CLOSE button ----#
         bclose = mpl.widgets.Button(clax, "Close      "+u'\uE20D', color='#ffaaaa', hovercolor='#ff6666')
         #bclose.label.set(fontsize=14)
-        def close(event):
+        def __event_close(event):
             """close the figure"""
             plt.close()
-        bclose.on_clicked(close)
+        bclose.on_clicked(__event_close)
         #---- CVH options ----#
         cvhbts = mpl.widgets.CheckButtons(cvhax, ['Convex Hull'], [G_cvh],)
-        def cvhfunc(label):
+        def __event_cvh(label):
             """toggle the G_cvh variable"""
             global G_cvh
             G_cvh = not G_cvh
-        cvhbts.on_clicked(cvhfunc)
+        cvhbts.on_clicked(__event_cvh)
         #---- KSIZE options ----#
         ksizeslider = mpl.widgets.Slider(ksizeax,"", valmin=1, valmax=11, valinit=G_ksize, valstep=2, color='orange', initcolor='None')
         ksizeax.add_patch(mpl.patches.Rectangle((0,0), 1, 1, facecolor='#fff', lw=1, zorder=-1, transform=ksizeax.transAxes, edgecolor='black'))
         ksizeax.add_patch(mpl.patches.Rectangle((0,0.995), 5/12, 1.005, facecolor='#fff', lw=0, zorder=10, transform=ksizeax.transAxes))
-        def ksizefunc(val):
+        def __event_ksize(val):
             """set the global variable G_ksize to the slider value, and update the displayed value"""
             global G_ksize
             global clicked_coords
@@ -578,16 +580,16 @@ def pathfinder(fits_dir: fits.HDUList,saveloc=None,show_tooltips=True, headernam
             ksizesubax.clear()
             ksizesubax.text(0.1, 0.45, f'ksize: {G_ksize}', fontsize=8, color='black', ha='left', va='center')
             fig.canvas.blit(ksizesubax.bbox)
-            update_fig(clicked_coords)
-        ksizefunc(G_ksize)
-        ksizeslider.on_changed(ksizefunc)
+            __redraw_main(clicked_coords)
+        __event_ksize(G_ksize)
+        ksizeslider.on_changed(__event_ksize)
         #---- SELECTMODE options ----#
         _radioprops={'facecolor':['#000', _clickedkws['color'], _clickedkws['color'], _idpxkws['color'], _idpxkws['color']], 
                     'edgecolor':['#000', _clickedkws['color'], _clickedkws['color'], _idpxkws['color'], _idpxkws['color']],
                     'marker': ['o','o','X','o','X']}
         _labelprops = {'color': ['#000', _clickedkws['color'], _clickedkws['color'], _idpxkws['color'], _idpxkws['color']]}
         selradio =  mpl.widgets.RadioButtons(flax, ['None', 'Add Luminosity', 'Remove Luminosity', 'Add IDPX', 'Remove IDPX'], active=0, radio_props=_radioprops, label_props=_labelprops) 
-        def selfunc(label):
+        def __event_select(label):
             """set the global variable G_clicktype to the correct value based on the label"""
             global G_clicktype
             global clicked_coords
@@ -599,16 +601,16 @@ def pathfinder(fits_dir: fits.HDUList,saveloc=None,show_tooltips=True, headernam
             if 'Remove' in label:
                 ret = -ret
             G_clicktype = ret
-        selradio.on_clicked(selfunc)
+        selradio.on_clicked(__event_select)
         #---- FULLSCREEN button ----#
         bfullscreen = mpl.widgets.Button(fsax, 'Fullscreen '+u'\uF50C')
         #bfullscreen.label.set(fontsize=14)  
-        def fullscreen(event):
+        def __event_fullscreen(event):
             fig.canvas.manager.full_screen_toggle()
-        bfullscreen.on_clicked(fullscreen)
+        bfullscreen.on_clicked(__event_fullscreen)
 
         #---- CLICK options ----#
-        def on_click(event):
+        def __on_click_event(event):
             global clicked_coords, id_pixels, G_clicktype, REGISTER_KEYS
             if event.inaxes == headernameax:
                 REGISTER_KEYS = False
@@ -628,10 +630,10 @@ def pathfinder(fits_dir: fits.HDUList,saveloc=None,show_tooltips=True, headernam
                     elif G_clicktype == -2:
                         if len(id_pixels) > 0:
                             id_pixels.pop(np.argmin([np.linalg.norm(np.array(c)-np.array(click_coords)) for c in id_pixels]))   
-            update_fig(clicked_coords)
         click_event = fig.canvas.mpl_connect('button_press_event', on_click) #noqa: F841
+            __redraw_main(clicked_coords)
         #---- HOVER options ----#
-        def on_hover(event):
+        def __on_mouse_move_event(event):
             global lastax
             inax = event.inaxes
             global G_show_tooltips    
@@ -666,12 +668,12 @@ def pathfinder(fits_dir: fits.HDUList,saveloc=None,show_tooltips=True, headernam
                 fig.canvas.set_cursor(2)
             else:
                 fig.canvas.set_cursor(1)
-        hover_event = fig.canvas.mpl_connect('motion_notify_event', on_hover) #noqa: F841
+        hover_event = fig.canvas.mpl_connect('motion_notify_event', __on_mouse_move_event) #noqa: F841
         #----TEXTENTRY----#
         textbox = mpl.widgets.TextBox(headernameax, 'Header Name:', initial=G_headername)
         delchars = ''.join(c for c in map(chr, range(1114111)) if not c.isalnum() and c not in [' ','_','-'])
         delmap = str.maketrans("", "", delchars)
-        def on_textchange(text:str):
+        def __on_headername_text_change(text:str):
             global G_headername
             text = text.translate(delmap)
             G_headername = text.replace(" ","_").replace()

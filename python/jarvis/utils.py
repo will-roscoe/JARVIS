@@ -1,47 +1,83 @@
+"""
+This module provides various utility functions for managing paths and directories, interfacing with FITS files, 
+handling FITS headers and data, and performing time series operations.
+"""
 import os
 import datetime
-#import re
 import numpy as np
 import astropy.io.fits as fits
+from astropy.table import Table, vstack
 from typing import List
 import glob
-
-#from regex import P
-from .const import GHROOT, FITSINDEX
+import astropy
 from matplotlib import colors as mcolors
 from tqdm import tqdm
 from pathlib import Path
+from .const import GHROOT, FITSINDEX
+
 
 #################################################################################
 #                   PATH/DIRECTORY MANAGMENT
 #################################################################################
+
+
+
 def ensure_dir(file_path):
     '''this function checks if the file path exists, if not it will create one'''
+    if file_path[-1] != os.sep:
+        file_path += os.sep
     if not os.path.exists(file_path):
             os.makedirs(file_path)
+
+
+def ensure_file(file_path):
+    '''this function checks if the file path exists, if not it will create one'''
+    if file_path[-1] == os.sep:
+        file_path = file_path[:-1]
+    if not os.path.isfile(file_path):
+            with open(file_path, 'w') as f:
+                f.write('')
+
 
 # test, prints the README at the root of the project
 def __testpaths():
     for x in os.listdir(GHROOT):
         print(x)
+
+
 def fpath(x):
+    """Returns the absolute path of a file or directory in the project root."""
     return os.path.join(GHROOT, x)
+
+
 def rpath(x):
+    """Returns the relative path of a file or directory in the project root."""
     return os.path.relpath(x, GHROOT)
-def basename(x, ext=False):
+
+
+def filename_from_path(x, ext=False):
+    """Returns the filename from a path, if ext is True, returns the filename with the extension, else returns the base filename."""
     parts = x.split('/') 
     parts = parts[-1].split('\\') if '\\' in parts[-1] else parts
     base = parts[-1].split('.')[0] if not ext else parts[-1]
     return base
+
+
 def split_path(x, include_sep=True):
+    """Splits a path into its parts, returns a list of the parts."""
     parts = Path(x).parts
     if include_sep:
         parts = [p + os.sep for p in parts[0:-1]] + [parts[-1]]
     return parts
+
+
     
 #################################################################################
 #                   FITS FILE INTERFACING
 #################################################################################
+
+
+
 def fits_from_glob(fits_dir:str, suffix:str='/*.fits', recursive=True, sort=True, names=False)->List[fits.HDUList]:
     """Returns a list of fits objects from a directory."""
     if isinstance(fits_dir,str):
@@ -59,6 +95,9 @@ def fits_from_glob(fits_dir:str, suffix:str='/*.fits', recursive=True, sort=True
 #################################################################################
 #                  HDUList/FITS object FUNCTIONS
 #################################################################################
+
+
+
 def fitsheader(fits_object, *args, ind=FITSINDEX,cust=True):
     """Returns the header value of a fits object.
     Args:
@@ -77,15 +116,30 @@ def fitsheader(fits_object, *args, ind=FITSINDEX,cust=True):
             obj_=fits_object[ind].header['FIXED']
             obj = False if obj_.lower() == 'lt' else True if obj_.lower() == 'lon' else ''
         elif arg.lower() in ['fixed',]: # returns fixed as so
-            obj=''
+            obj='' #TODO: implement this
         else:
             try:
                 obj=fits_object[ind].header[arg.upper()]
             except: #noqa: E722
                 obj=fits_object[ind].header[arg]
-
         ret.append(obj)
     return ret if len(ret) > 1 else ret[0]
+
+
+def silent_fitsheader(fits_object, *args, ind=FITSINDEX):
+    """Returns the header value of a fits object, if the key does not exist, returns an empty string. This method does not raise an error if the key does not exist."""
+    try:
+        return fitsheader(fits_object, *args, ind=ind)
+    except KeyError:
+        ret = []
+        for arg in args:
+            try:
+                ret.append(fitsheader(fits_object, arg, ind=ind))
+            except KeyError:
+                ret.append('')
+        return ret if len(ret) > 1 else ret[0]
+    
+
 def adapted_fits(original_fits, new_data=None, **kwargs):
     """Returns a new fits object with the same header as the original fits object, but with new data and/or new header values."""
     orig_header = [original_fits[i].header.copy() for i in [0,1]]
@@ -102,7 +156,6 @@ def adapted_fits(original_fits, new_data=None, **kwargs):
         new_data = orig_data[FITSINDEX]
     fits_new = fits.HDUList([fits.PrimaryHDU(orig_data[0], header=orig_header[0]), fits.ImageHDU(new_data, header=orig_header[1])])
     #print(fits_new.info(), original_fits.info())
-   
     return fits_new          
 def get_datetime(fits_object):
     """Returns a datetime object from the fits header."""
@@ -112,6 +165,8 @@ def assign_params(fits_obj:fits.HDUList, regions=False, moonfp=False, fixed='lon
     """Returns a fits object with specified header values, which can be used for processing."""
     kwargs.update({'REGIONS':bool(regions), 'MOONFP':bool(moonfp), 'FIXED':str(fixed).upper(), 'RLIM':int(rlim), 'FULL':bool(full), 'CROP': float(crop) if abs(float(crop)) <=1 else 1}) 
     return adapted_fits(fits_obj,  **kwargs)
+
+
 def filename_from_fits(fits_obj:fits.HDUList):
     """Returns a filename based on the fits header values."""
     # might be better to alter the filename each time we process or plot something.
@@ -128,6 +183,8 @@ def filename_from_fits(fits_obj:fits.HDUList):
     'moonfp' if moonfp else ""] if m != ""])
     filename = f'jup_v{visit:0<2}_{doy:0<3}_{year}_{udate.strftime("%H%M%S")}_{expt:0>4}({extras})'
     return filename
+
+
 def update_history(fits_object, *args):
     """Updates the HISTORY field of the fits header with the current time."""
     curr_hist=fitsheader(fits_object, 'HISTORY')
@@ -137,18 +194,38 @@ def update_history(fits_object, *args):
         for arg in args:
             fits_object[FITSINDEX].header['HISTORY'] = arg + '@' + datetime.datetime.now().strftime('%y%m%d_%H%M%S') 
         
+
 def debug_fitsheader(fits_obj:fits.HDUList):
     header = fits_obj[FITSINDEX].header
     print("\n".join([f"{k}: {v}"for k,v in header.items()]))
+
+
 def debug_fitsdata(fits_obj:fits.HDUList):
     data = fits_obj[FITSINDEX].data
     print(data.shape)
     print(f"[0,:]:{data[0].shape} {data[0]}")
     print(f"[1,:]: {data[1].shape} {','.join([str(round(d,3)) for d in data[1,:5]])} ... {','.join([str(round(d,3)) for d in data[1,-5:]])}")
+
+
+def hdulinfo(fits_obj:fits.HDUList):
+    """Returns a list of dictionaries containing the name and type of each HDU in the fits object."""
+    ret = []
+    for i,hdu in enumerate(fits_obj):
+        name = hdu.name
+        type = hdu.__class__.__name__
+        ret.append(dict(name=name,type=type))
+    return ret
+
+
+
 #################################################################################
-#                    IMAGE UTILITIES
+#                            IMAGE UTILITIES
 #################################################################################
+
+
+
 def mcolor_to_lum(*colors):
+    """Converts color(s) to luminance values using matplotlib's color converter."""
     col = []
     for i,c in enumerate(colors):
         if not isinstance(c, int):
@@ -171,6 +248,8 @@ def mcolor_to_lum(*colors):
 #                   MISC/UNUSED FUNCTIONS
 #################################################################################
 
+
+
 def clock_format(x_rads, pos=None):
     """Converts radians to clock format."""
     # x_rads => 0, pi/4, pi/2, 3pi/4, pi, 5pi/4, 3pi/2, 7pi/4, ...
@@ -180,42 +259,15 @@ def clock_format(x_rads, pos=None):
 
 
 
-class Jfits:
-    ind = FITSINDEX
-    def __init__(self, fits_loc:str=None, fits_obj: fits.HDUList=None, **kwargs):
-        if fits_loc is not None:
-            self.loc = fits_loc
-            self.hdul= fits.open(fits_loc)
-        else:
-            self.hdul = fits_obj
-        self.header.update(kwargs)
-    @property
-    def data(self):
-        return self.hdul[self.ind].data
-    @property
-    def header(self):
-        return self.hdul[self.ind].header
-    def update(self,data=None, **kwargs):
-        if data is not None:
-            self.hdul = adapted_fits(self.hdul, new_data=data)
-        for k,v in kwargs.items():
-            self.hdul = adapted_fits(self.hdul, **{k:v})
-    def writeto(self, path:str):
-        self.hdul.writeto(path)
-    def close(self):
-        self.hdul.close()
-    def data_apply(self, func, *args, **kwargs):
-        self.update(data=func(self.data, *args, **kwargs))
-    def apply(self, func, *args, **kwargs):
-        self = func(self, *args, **kwargs)
-    def __del__(self):
-        self.close()
 
 gv_translation = dict(
  group =  [ 1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20], #group numbers
  visit =  [ 1,  2,  5,  4,  3,  8,  9, 10, 13, 15, 11, 12, 16, 18, 19, 20, 21, 23, 24, 29])
 
+
+
 def group_to_visit(*args):
+    """Converts group number to visit number. If multiple arguments are passed, returns a list of visit numbers."""
     ret = []
     for arg in args:
         arg = int(arg) 
@@ -225,9 +277,12 @@ def group_to_visit(*args):
             ret.append(None)
     if len(ret) == 1:
         return ret[0]
+    elif len(ret) == 0:
+        raise ValueError(f'None found for {args}')
     return ret
 
 def visit_to_group(*args):
+    """Converts visit number to group number. If multiple arguments are passed, returns a list of group numbers."""
     ret = []
     for arg in args:
         arg = int(arg) 

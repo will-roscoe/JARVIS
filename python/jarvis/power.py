@@ -1,12 +1,16 @@
 #--------------- HST_emission_power.py->power.py->jarvis.power ----------------#
-#> Translation between unprojected/projected images is partly handled by IDL pipeline legacy code from Boston University, and partly from python code provided by Jonny Nichols at Leicester. (broject function)
-#> Emission power computed as per Gustin+ 2012.
-#> Should allow e.g., calculation of total auroral oval UV emission power using statistical auroral boundaries, planetary auroral comparisons, or application to Voronoi image segmentations, etc.
-# Contributors:
-# J Nichols
-# Juwhan Kim, 03 / 01 / 2005
-# Joe Kinrade - 08 / 01 /2025
-# JAR:VIS team - 21 / 02 / 2025
+"""
+This module contains functions for calculating the total power emitted from an auroral region in GW and the power per unit area in GW/km².
+
+Translation between unprojected/projected images is partly handled by IDL pipeline legacy code from Boston University, and partly from python code provided by Jonny Nichols at Leicester. (broject function)
+Emission power computed as per Gustin+ 2012.
+Should allow e.g., calculation of total auroral oval UV emission power using statistical auroral boundaries, planetary auroral comparisons, or application to Voronoi image segmentations, etc.
+
+Contributors:
+J Nichols;
+Juwhan Kim, 03 / 01 / 2005;
+Joe Kinrade - 08 / 01 /2025;
+JAR:VIS team - 21 / 02 / 2025;"""
 from astropy.io import fits
 import matplotlib.pyplot as plt
 import numpy as np
@@ -47,8 +51,8 @@ DISPLAY_MSGS = False    #> whether to output messages to screen
 def __null(*args, **kwargs): pass
 __write_to_file, __print, __plot = __null, __null, __null
 if WRITETO:
-    def __write_to_file(visit, stime, tpe_roi, ppa, area):
-        with open(WRITETO, 'a') as f:
+    def __write_to_file(visit, stime, tpe_roi, ppa, area, writeto=WRITETO):
+        with open(writeto, 'a') as f:
             f.write(" ".join([str(x) for x in [visit,stime,tpe_roi,ppa,area,'\n']]))
 if DISPLAY_PLOTS:
     from .extensions import QuickPlot as Qp
@@ -163,8 +167,21 @@ def cylbroject(img,fits_obj, ndiv=2):
     return bimage
 
 
-def powercalc(fits_obj:fits.HDUList, dpr_coords:np.ndarray=None)-> Tuple[float, float, np.ndarray, np.ndarray]:
-    
+def powercalc(fits_obj:fits.HDUList, dpr_coords:np.ndarray=None, **kwargs)-> Tuple[float, float, np.ndarray, np.ndarray]:
+    """ Calculate the total power emitted from the ROI in GW and the power per unit area in GW/km².
+    Args:
+    fits_obj (fits.HDUList): The fits object.
+    dpr_coords (np.ndarray): The DPR coordinates.
+    Returns:
+    Tuple[float, float, np.ndarray, np.ndarray]: 
+    - The total power emitted from the ROI in GW, 
+    - the power per unit area in GW/km², 
+    - the area, 
+    - and the full image.
+    kwargs:
+    - writeto (str): The file to write the power results to.
+    """
+
     #-------------------- FUNC INPUT CHECKS & PREPROCESSING -------------------#
     if not isinstance(dpr_coords, np.ndarray):
         if isinstance(dpr_coords, int):
@@ -257,7 +274,7 @@ def powercalc(fits_obj:fits.HDUList, dpr_coords:np.ndarray=None)-> Tuple[float, 
     power_per_area = total_power_emitted_from_roi / area
     __print('Total power emitted from ROI in GW:\n{}'.format(total_power_emitted_from_roi))
     __print('Power per unit area in GW/km²:\n{}'.format(power_per_area))
-    __write_to_file(fitsheader(fits_obj, 'VISIT'), get_datetime(fits_obj), total_power_emitted_from_roi, power_per_area,area)
+    __write_to_file(fitsheader(fits_obj, 'VISIT'), get_datetime(fits_obj), total_power_emitted_from_roi, power_per_area,area, writeto=kwargs.get('writeto',WRITETO))
     return total_power_emitted_from_roi, power_per_area,area, full_image, bimage_roi
 
 

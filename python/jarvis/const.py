@@ -1,5 +1,9 @@
-from pathlib import Path
+"""
+This module contains constants and default values used throughout the project. 
+"""
 
+
+from pathlib import Path
 #! defines the project root directory (as the root of the gh repo) 
 GHROOT = Path(__file__).parents[2]
 #! if you move this file/folder, you need to change this line to match the new location. 
@@ -9,7 +13,10 @@ DATADIR = GHROOT / 'datasets'
 PYDIR = GHROOT / 'python'
 PKGDIR = PYDIR / 'jarvis' 
 KERNELDIR = "datasets/kernels/"
-
+HST_DIR = DATADIR / 'HST'
+HISAKI_DIR = DATADIR / 'Hisaki'
+TORUS_DIR = HISAKI_DIR/'Torus Power'
+AURORA_DIR = HISAKI_DIR/'Aurora Power'
 # DEFAULT FITSINDEX: the default target HDU within a fits file.
 FITSINDEX = 1 
 # XY COORDS FOR IN DPR REGION OF IMAGES 
@@ -20,18 +27,4 @@ DPR_IMXY  = {'01':(584,1098), '02':(592,1150), '03':(742,1413), '04':(600,1233),
              '17':(750,1391), '18':(614,971), '19':(607,1159), '20':('','')}
 DPR_JSON = DATADIR / 'HST' / 'custom' / 'boundarypaths.json'
 
-
-
-# plot_defaults = dict(
-# figure = dict(figsize=(7,6)),
-# moonfp = dict(
-#     colkey=lambda i: (('gold','IO'), ('aquamarine','EUR'), ('w','GAN'))[i],
-#     text= dict(fontsize=10,alpha=0.5,path_effects=[mpl_patheffects.withStroke(linewidth=1, foreground='black')],horizontalalignment='center', verticalalignment='center', fontweight='bold'),
-#     p1 = dict(color='k', linestyle='-', lw=4),
-#     p2 = dict( linestyle='-', lw=2.5)),
-# cml = dict(plot=dict(color='r', linestyle='--', lw=1.2), text=dict(fontsize=11, color='r', horizontalalignment='center', verticalalignment='center', fontweight='bold')),
-
-
-
-# )
 

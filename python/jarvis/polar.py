@@ -1,4 +1,4 @@
-__doc__="""
+"""
 This module contains functions to generate polar projection plots of Jupiter's image data from FITS files. 
 The main function, moind(), generates a polar projection plot of Jupiter's image data from a FITS file. 
 The make_gif() function creates a GIF from a directory of FITS files.

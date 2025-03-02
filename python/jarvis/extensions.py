@@ -1,5 +1,15 @@
-from pydoc import text
-from anyio import key
+"""jarvis.extensions
+- This module contains functions and classes that extend the functionality of the jarvis package.
+- The functions and classes in this module are designed to be used in conjunction with the core functionality of the jarvis package.
+
+Functions:
+- pathfinder: A GUI tool to select contours from a fits file, for use in defining auroral boundaries.
+
+Classes:
+- QuickPlot: Predefined plotting functions for quick visualization of data in power.py [internal]
+"""
+
+
 import numpy as np
 import matplotlib.pyplot as plt
 import time
@@ -8,7 +18,7 @@ import cv2
 import os
 from astropy.io import fits
 from tqdm import tqdm
-from .utils import fpath, hdulinfo
+from .utils import filename_from_path, fpath, hdulinfo
 try: # this is to ensure that this file can be imported without needing PyQt6 or PyQt5, eg for QuickPlot
     from PyQt6 import QtGui # type: ignore #
 except ImportError:
@@ -27,13 +37,30 @@ from .polar import prep_polarfits
 from .cvis import contourhdu, imagexy, save_contour
 
 import matplotlib as mpl
-
+HELPKEY = '`' # below the escape key
+MAXPOINTSPERCONTOUR = 2000
+MAXCONTOURDRAWS = 125
+MAXLEGENDITEMS = 50
+TWOCOLS = True
 #------------------- Tooltips and Info about Config Flags ---------------------#
 #  naming convention:
 #    - flag (RETR, CHAIN, MORPH, KSIZE, ...) -> axes label name, configuration parameter
 #    - label (EXTERNAL, LIST, SIMPLE, ...) -> value name, configuration option
 #    - value -> the value of the configuration option, at [0] in _cvtrans[flag][label]
 #    - index -> the index of the configuration option, usually the same as value, otherwise the index of the value in the translation list, trans
+#  
+# required for each configuration flag dictionary:
+#    - info: a description of the flag
+#    - 'FLAG' : for each flag option, a list of the form [value, keybinding,description, extension], where:
+#      if the flag is a boolean, or otherwise has no labels, use the flag name as the label
+#    - kbtemplate: a string template for the keybinding tooltip, opitionally using the variables 
+#                   - flag, 
+#                   - label,
+#                   - extension (extension being an optional index 3 value in each label list),
+#                   - tooltip (the entire tooltip string),
+#                   - info (the flag info).
+# not required:
+#    - trans: a list of the values in the order they should be displayed in the GUI, if not present, it is assumed to be values [0,1,2,3,....].
 
 _cvtrans = {
     'RETR':{'info':'modes to find the contours',

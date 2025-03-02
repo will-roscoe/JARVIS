@@ -5,8 +5,8 @@ mpl.use('qtagg') # forces the use of the Qt5/6 backend, neccessary for pathfinde
 from jarvis import fpath
 from jarvis.extensions import pathfinder
 from jarvis.cvis import generate_coadded_fits
-from jarvis.utils import fits_from_glob, group_to_visit
-from jarvis.power import powercalc
+from jarvis.utils import fits_from_glob, group_to_visit, hst_segmented_paths
+from jarvis.power import powercalc, WRITETO
 from jarvis.stats import stats, correlate #noqa: F401
 from tqdm import tqdm
 from astropy.io import fits

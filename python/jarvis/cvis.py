@@ -1,3 +1,8 @@
+"""
+This module contains the headless functions to generate contour paths from fits files via openCV.
+"""
+
+
 
 import random
 
@@ -7,7 +12,7 @@ import cmasher as cmr
 import cv2
 
 
-from .utils import fitsheader, fpath, mcolor_to_lum, adapted_fits, assign_params,  basename, hst_fitsfile_paths
+from .utils import fitsheader, fpath, mcolor_to_lum, adapted_fits, assign_params,  filename_from_path, hst_fitsfile_paths
 from .polar import plot_polar, prep_polarfits
 from astropy.io import fits
 from astropy.table import Table
@@ -16,56 +21,33 @@ from typing import List, Union
 
 from .transforms import  coadd,gaussian_blur,fullxy_to_polar_arr
 
-
 def crop_to_axes(inpath:str,outpath:str=None,ax_background=255,img_background=0)->Union[None,np.ndarray]: 
     """Crop an image to the bounding box of the non 'image_background' pixels.
     inpath: path to the image to crop
     outpath: path to save the cropped image
     ax_background: the luminance value of the axis background
-
-
     MUST OUTPUT A SQUARE IMAGE, CENTRED ON THE ORIGIN OF THE CIRCLE IN THE IMAGE
     """
     img = cv2.imread(inpath,cv2.IMREAD_GRAYSCALE)
-    # ctr = (img.shape[0]//2, img.shape[1]//2)
-    
-    
     # Convert to grayscale
-    # gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    
     # Threshold the image to get the circle
     _, thresh = cv2.threshold(img, 1, 255, cv2.THRESH_BINARY)
-    
     # Find contours
     contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    
     # Get the largest contour which should be the circle
     contour = max(contours, key=cv2.contourArea)
-    
     # Get the bounding box of the contour
     x, y, w, h = cv2.boundingRect(contour)
-    
     # Determine the size of the square
     size = max(w, h)
-    
     # Calculate the center of the bounding box
     center_x, center_y = x + w // 2, y + h // 2
-    
     # Calculate the top-left corner of the square
     start_x = max(center_x - size // 2, 0)
     start_y = max(center_y - size // 2, 0)
-    
     # Crop the image to the square region
     img = img[start_y:start_y + size, start_x:start_x + size]
-    
     #return cropped_image
-
-    #ax_lum, ext_lum =mcolor_to_lum(ax_background, img_background)
-    # Find the bounding box of the non-black pixels
-    #coords = cv2.findNonZero(cv2.threshold(img, max([ext_lum-1,0]), ax_lum, cv2.THRESH_BINARY)[1])
-    #print(start_x, start_y, center_x, center_y, size)
-    #x, y, w, h = cv2.boundingRect(coords)
-    #img = img[y:y+h, x:x+w]
     if outpath is not None:
         cv2.imwrite(outpath, img)
     else:
@@ -90,6 +72,18 @@ def mask_top_stripe(img:np.ndarray,threshold=0.01, trimfrac=0.3, bg_color=0, fac
     return cv2.bitwise_and(img, mask)
 
 def imagexy(fits_obj: fits.HDUList, ax_background='white',img_background='black',crop=True, cmap=cmr.neutral, dpi=300,**kwargs)->np.ndarray:
+    """Generate a stripped down, grey scale image of the fits file. 
+    Args:
+    fits_obj: the fits object to generate the image
+    ax_background: the background color of the axis
+    img_background: the background color of the image
+    crop: whether to crop the image to the bounding box of the circle
+    cmap: the colormap to use
+    dpi: the resolution of the image
+    kwargs: additional arguments to pass to plot_polar
+    Returns:
+    np.ndarray: the image as a numpy array
+    """
     full = fitsheader(fits_obj, 'full')
     # do normal plotting with no decorations, just the circle
     fig= plt.figure(figsize=(6,6 if full else 3) , dpi=dpi,layout='none' )
@@ -109,9 +103,20 @@ def imagexy(fits_obj: fits.HDUList, ax_background='white',img_background='black'
     return img
 
 def generate_coadded_fits(fits_objs,saveto=None, gaussian=(3,1), overwrite=True,indiv=True,coadded=True):
+    """Generate a coadded fits file from a list of fits files.
+    Args:
+    fits_objs: a list of fits objects to coadd
+    saveto: the path to save the coadded fits file
+    gaussian: the parameters for the gaussian blur
+    overwrite: whether to overwrite the file if it already exists
+    indiv: whether to blur the individual fits files
+    coadded: whether to blur the coadded fits file
+    Returns:
+    fits.HDUList: the coadded fits file
+    """
     fdatas = [fits_objs[i][1].data for i in range(len(fits_objs))]
     if saveto == 'auto':
-        saveto = fpath(f'datasets/HST/custom/{basename(hst_fitsfile_paths)}_coadded_gaussian{gaussian}.fits')
+        saveto = fpath(f'datasets/HST/custom/{filename_from_path(hst_fitsfile_paths)}_coadded_gaussian{gaussian}.fits')
     fdatas = [gaussian_blur(fd, *gaussian) for fd in fdatas] if indiv else fdatas
     coaddg = coadd(fdatas)
     coaddg = gaussian_blur(coaddg, 3, 1) if coadded else coaddg
@@ -122,6 +127,16 @@ def generate_coadded_fits(fits_objs,saveto=None, gaussian=(3,1), overwrite=True,
     return cofitsd
        
 def generate_contours(fits_obj:fits.HDUList, lrange=(0.2,0.4), morphex=(cv2.MORPH_CLOSE,cv2.MORPH_OPEN), fcmode=cv2.RETR_EXTERNAL, fcmethod=cv2.CHAIN_APPROX_SIMPLE, cvh=False)->List[List[float]]:
+    """Generate contours from a fits file.
+    Args:
+    fits_obj: the fits object to generate the contours from
+    lrange: the luminance range to use for the mask
+    morphex: the morphological operations to use
+    fcmode: the mode to use for finding contours
+    fcmethod: the method to use for finding contours
+    cvh: whether to use convex hulls
+    Returns:
+    List[List[float]]: the contours in image coordinates"""
     # generate a stripped down, grey scale image of the fits file
     proc =prep_polarfits(assign_params(fits_obj, fixed='LON', full=True))
     img = imagexy(proc, cmap=cmr.neutral, ax_background='white', img_background='black') 
@@ -142,6 +157,14 @@ def generate_contours(fits_obj:fits.HDUList, lrange=(0.2,0.4), morphex=(cv2.MORP
     return contours, hierarchy, img
 
 def identify_contour(contours, hierarchy, img:np.ndarray, id_pixel=None):
+    """Identify the contour that contains a given pixel. will open a plot if no pixel is provided.
+    Args:
+    contours: the contours to search
+    hierarchy: the hierarchy of the contours
+    img: the image the contours were generated from
+    id_pixel: the pixel to search for
+    Returns:
+    List[float]: the contour in polar coordinates"""
     if id_pixel is None or isinstance(id_pixel, str):
         def on_click(event):
             global click_coords
@@ -170,6 +193,9 @@ def identify_contour(contours, hierarchy, img:np.ndarray, id_pixel=None):
 
 
 def plot_contourpoints(clist):
+    """Plot the contour points in both polar and cartesian coordinates.
+    Args:
+    clist: the list of contours to plot (in polar coordinates)"""
     fig = plt.figure(figsize=(12, 6))
     ax = fig.add_subplot(121, polar=True)
     ax2 = fig.add_subplot(122)
@@ -183,18 +209,36 @@ def plot_contourpoints(clist):
     ax2.invert_xaxis()
     plt.show()       
 def find_contour_basic(fits_obj:fits.HDUList,id_pixel=None, lrange=(0.2,0.4), ):
+    """Basic convenience function to generate contours and identify a contour from a fits file.
+    Args:
+    fits_obj: the fits object to generate the contours
+    id_pixel: the pixel to identify the contour for
+    lrange: the luminance range to use for the mask
+    Returns:
+    List[float]: the contour in polar coordinates"""
     contours, hierarchy, img = generate_contours(fits_obj, lrange)
     return identify_contour(contours, hierarchy, img, id_pixel)
   
 
 def pathtest(lrange=(0.25,0.35)):
-    """Headless generation of contour points for testing."""
+    """Headless generation of contour points for testing.
+    Args:
+    lrange: the luminance range to use for the mask
+    Returns:
+    List[float]: the contour in polar coordinates"""
     test = fits.open(fpath(r"datasets/HST/custom/v04_coadded_gaussian[3_1].fits"))
     clist = [find_contour_basic(test, DPR_IMXY['04'], lrange,)]
     plot_contourpoints(clist)
     return clist[0]
 
 def save_contour(fits_obj: fits.HDUList, cont, index=None):
+    """Save a contour to a fits file.
+    Args:
+    fits_obj: the fits object to save the contour to
+    cont: the contour to save
+    index: the index to save the contour at
+    Returns:
+    fits.HDUList: the fits object with the contour added"""
     # if no index given, use the next available index
     if index is None:
         index = len(fits_obj)
@@ -211,9 +255,22 @@ def save_contour(fits_obj: fits.HDUList, cont, index=None):
     newfits = fits.HDUList(curr_hdus)
     return newfits
 def contourhdu(cont,name='BOUNDARY',header=None):
+    """Generate a fits BinTableHDU from a contour.
+    Args:
+    cont: the contour to generate the HDU from
+    name: the name of the HDU
+    header: the header to use
+    Returns:
+    fits.BinTableHDU: the HDU generated from the contour"""
     table = Table(data=cont, names=['colat', 'lon'], dtype=[np.float32, np.float32])
     return fits.BinTableHDU(table, name=name, header=header, uint=True)
 def contourid(fits_obj:fits.HDUList, name=None):
+    """Find the ID of a contour in a fits file.
+    Args:
+    fits_obj: the fits object to search
+    name: the name of the contour to search for
+    Returns:
+    str: the name of the contour"""
     if name is None:
         name = 'BOUNDARY'
         if len(fits_obj) >2:
@@ -224,6 +281,13 @@ def contourid(fits_obj:fits.HDUList, name=None):
     else:
         raise ValueError(f"No contour found with the name {name}, and no default contour found.")
 def getcontour(fits_obj:fits.HDUList, name=None):
+    """Get the contour from a fits file.
+    Args:
+    fits_obj: the fits object to get the contour from
+    name: the name of the contour to get
+    Returns:
+    np.ndarray
+    """
     name = contourid(fits_obj, name)
     return np.array(fits_obj[name].data.tolist())
 

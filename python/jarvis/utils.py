@@ -399,10 +399,10 @@ def get_data_over_interval(fitsobjs, chosen_interval:list[datetime], data_index=
             segment_interval = get_datetime_interval(f)
             if segment_interval[0] >= chosen_interval[0] and segment_interval[1] <= chosen_interval[1]:
                 valids.append(f)
-    #assert all([isinstance(f[data_index], (BinTableHDU, TableHDU))]), f"The HDU at index {data_index} is not a BinTableHDU or TableHDU for all fits objects."
-    data = vstack([Table(f[data_index].data) for f in valids])
-    if len(data) == 0:
+    assert all([isinstance(f[data_index], (BinTableHDU, TableHDU)) for f in fitsobjs]), f"The HDU at index {data_index} is not a BinTableHDU or TableHDU for all fits objects."
+    if len(valids) == 0:
         return None
+    data = vstack([Table(f[data_index].data) for f in valids])
     if include_parts:
         for key,(minv, maxv) in interval_yds.items(): # filter the data by the interval given
             data = data[(data[key]>=minv) & (data[key]<=maxv)]

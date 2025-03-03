@@ -239,11 +239,11 @@ def debug_fitsdata(fits_obj:fits.HDUList):
     print(f"[1,:]: {data[1].shape} {','.join([str(round(d,3)) for d in data[1,:5]])} ... {','.join([str(round(d,3)) for d in data[1,-5:]])}")
 
 
-def hdulinfo(fits_obj:fits.HDUList):
+def hdulinfo(fits_obj:fits.HDUList, include_ver=False):
     """Returns a list of dictionaries containing the name and type of each HDU in the fits object."""
     ret = []
     for i,hdu in enumerate(fits_obj):
-        name = hdu.name
+        name = (hdu.name + f"v{hdu.ver}") if include_ver else hdu.name
         type = hdu.__class__.__name__
         ret.append(dict(name=name,type=type))
     return ret

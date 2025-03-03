@@ -9,7 +9,8 @@ Classes:
 - QuickPlot: Predefined plotting functions for quick visualization of data in power.py [internal]
 """
 
-
+from multiprocessing import context
+import cli
 import numpy as np
 import matplotlib.pyplot as plt
 import time
@@ -17,6 +18,7 @@ import cmasher as cmr
 import cv2
 import os
 from astropy.io import fits
+from regex import T
 from tqdm import tqdm
 from .utils import filename_from_path, fpath, hdulinfo
 try: # this is to ensure that this file can be imported without needing PyQt6 or PyQt5, eg for QuickPlot
@@ -37,7 +39,7 @@ from .polar import prep_polarfits
 from .cvis import contourhdu, imagexy, save_contour
 
 import matplotlib as mpl
-HELPKEY = '`' # below the escape key
+
 MAXPOINTSPERCONTOUR = 2000
 MAXCONTOURDRAWS = 125
 MAXLEGENDITEMS = 50
@@ -157,7 +159,10 @@ _cvtrans = {
 'TOOLTIP':{
     'info':'Toggle tooltips', 
     'kbtemplate': '$tooltip',
-        "TOOLTIP":          [0,                        'f2','Toggle tooltips']
+        "TOOLTIP":          [0,                        'f2','Toggle tooltips'],
+        "ONSCREEN":         [1,                        'f12','Toggle onscreen tooltips'],
+        "CLI":              [2,                        '`','Print CLI help']
+
     },
 'FIXLRANGE':{'info':'Controls for altering the fixed luminance range, which is the lower and upper limit of valid luminances', 'kbtemplate':'$flag: $tooltip',
              "Lower+":          [0,                      ']','Increase lower limit'],
@@ -168,7 +173,8 @@ _cvtrans = {
              "Toggle":          [5,                         'f5','Toggle fixed luminance range'],
              "Cycle":           [6,                         'f8','Cycle through steps'],}, 
 }      
-stepmap = [0.1,0.05,0.01,0.005,0.001,0.0005,0.0001]        
+stepmap = [0.1,0.05,0.01,0.005,0.001,0.0005,0.0001]     
+HELPKEYS = [k for k in [_cvtrans['TOOLTIP'].get(k,[None,None])[1] for k in ['ONSCREEN','CLI']] if k is not None]
 def __getflaglabels(flag:str):
     '''Returns the ordered list of labels for a given flag'''
     ident= list(_cvtrans[flag].keys())
@@ -293,6 +299,26 @@ if FIRST_RUN:
 
 
 # ------------------------- pathfinder (Function) -----------------------------#
+#changelog
+# - port over cvis functions and params, ksize,morphex,fcmethod,cvh,lrange,fcmode
+# - matplotlib figure and axes setup
+# add in interactive elements
+# add in pathsaving and button funcs
+# add in tooltips
+# add in clicktype
+# add in keybindings
+# add in fits descriptor
+# add in persistence between consecutive runs
+# add in falsecolor, mask
+# add in saving of config to fits file
+# add ability to change headername
+# add in notes
+# unify the config flags and keybindings with tooltips
+# add in the ability to change the fixed luminance range [current]
+# add in autoselect contour [current]
+#FUTURE
+# integrate the hierarchy into the gui
+
 def pathfinder(fits_dir: fits.HDUList,saveloc=None,show_tooltips=True, headername='BOUNDARY',morphex=(cv2.MORPH_CLOSE,cv2.MORPH_OPEN),fixlrange=None, fcmode=cv2.RETR_EXTERNAL, fcmethod=cv2.CHAIN_APPROX_SIMPLE, cvh=False, ksize=5,writeresult=True,**persists):
     """### *JAR:VIS* Pathfinder
     > ***Requires PyQt6 (or PyQt5)***
@@ -314,7 +340,7 @@ def pathfinder(fits_dir: fits.HDUList,saveloc=None,show_tooltips=True, headernam
     """
     mpl.use('QtAgg')
     global G_fits_obj#:fits.HDUList
-    G_fits_obj = fits.open(fits_dir, mode='update')
+    G_fits_obj = fits.open(fits_dir, 'update')
     font_manager.fontManager.addfont(fpath('python/jarvis/resources/FiraCodeNerdFont-Regular.ttf'))
     with mpl.rc_context(rc={'font.family': 'FiraCode Nerd Font', 'axes.unicode_minus': False, 'toolbar': 'None', 'font.size': 8,
                             'keymap.fullscreen': '', 'keymap.home': '', 'keymap.back': '', 'keymap.forward': '', 'keymap.pan': '',
@@ -323,8 +349,8 @@ def pathfinder(fits_dir: fits.HDUList,saveloc=None,show_tooltips=True, headernam
         #generate a stripped down, grey scale image of the fits file, and make normalised imagempl.rcParams['toolbar'] = 'None'
         proc =prep_polarfits(assign_params(G_fits_obj, fixed='LON', full=True))
         img = imagexy(proc, cmap=cmr.neutral, ax_background='white', img_background='black') 
-        #G_fits_obj.close()
-        global show_mask, G_clicktype, G_path, G_headername, G_show_tooltips, G_morphex, G_fcmode, G_fcmethod, G_cvh, G_ksize, falsecolor, G_fixrange, REGISTER_KEYS
+        oldlen = len(G_fits_obj)
+        global show_mask, G_clicktype, G_path, G_headername, G_show_tooltips, G_morphex, G_fcmode, G_fcmethod, G_cvh, G_ksize, falsecolor, G_fixrange, REGISTER_KEYS,cl
         REGISTER_KEYS = True # control whether to listen for keypresses and run each key's function, set to False when we are in a text box.
         global FIRST_RUN
         if FIRST_RUN:
@@ -340,6 +366,7 @@ def pathfinder(fits_dir: fits.HDUList,saveloc=None,show_tooltips=True, headernam
             falsecolor = 0 #:int # what colormap to use for the mask, 0 is default normal, 1 is inverted, 2+ are false color maps
             G_headername = 'BOUNDARY' if headername is None else headername #:str # the selected header name to save the contour to, changeable by the user using the text box
             G_fixrange= [i for i in fixlrange] if fixlrange is not None else None #:list[float]|None # the fixed luminance range, if any. selected pixels take priority over this range.
+            cl = persists.get('cl', None) # the auto selected contour picker point
             FIRST_RUN = False
         global G_ofixrange#:list[float]|None
         G_ofixrange = G_fixrange
@@ -354,6 +381,7 @@ def pathfinder(fits_dir: fits.HDUList,saveloc=None,show_tooltips=True, headernam
         G_path = persists.get('G_path', None)
         global retattrs#:dict
         retattrs = dict(LMIN =-np.inf, LMAX=np.inf, NUMPTS=np.nan, XYA_CT=np.nan, XYA_CTP=np.nan, XYA_IMG=imarea)
+        
         def __approx_contour_area_pct(contourarea):
             num = contourarea/imarea * 100
             if num < 0.01:
@@ -435,14 +463,33 @@ def pathfinder(fits_dir: fits.HDUList,saveloc=None,show_tooltips=True, headernam
             else:
                 pthparts.append(pth)
             pthparts.reverse()
-            hdulinf = hdulinfo(G_fits_obj)
+            hdulinf = hdulinfo(G_fits_obj,include_ver=True)
+            def hdupart(hdul):
+                template = "{i} {name} ({type})"
+                lent = len(hdul)
+                hduc = [template.format(i=i, name=h['name'], type=h['type']) for i,h in enumerate(hdul)]
+                #cols = lent//4 + (1 if lent%4 > 0 else 0)
+                rows = 4 if lent >= 7 else 3 if lent>=3 else lent
+                maxwidth = max([len(h) for h in hduc])
+                hduc = [h.ljust(maxwidth) for h in hduc]
+                addempties = rows - (lent%rows)
+                if addempties < rows:
+                    hduc += [' '.ljust(maxwidth) for _ in range(addempties)]
+                
+                # split into 4 parts
+                hduc = [hduc[i::rows] for i in range(rows)]
+                hduc = [' '.join(hduc[i]) for i in range(rows)]
+                ret = [['HDUs', hduc[0]]]+[[' ', hduc[i]] for i in range(1,rows)]
+                return ret
+
+            hdup = hdupart(hdulinf)
             ctxt = [['File',f'{pthparts[0]}'], *[[' ', f"{p}"] for p in pthparts[1:]],
                                     ['Inst.',f'{inst} ({tel}, {filt} filter)'],
                                     ['Obs.',f'visit {visit} of {pln} ({hem})'],
                                     ['Date',f'{dt.strftime("%d/%m/%Y")}, day {doy}'],
                                     ['Time',f'{dt.strftime("%H:%M:%S")}(ICRS)'],
-                                    ['CML',f'{cml:.4f}°'],
-                                    ['HDUs',f"{0} {hdulinf[0]['name']}({hdulinf[0]['type']})"], *[[" ", f"{i} {h['name']}({h['type']})"] for i,h in enumerate(hdulinf[1:],1)]]
+                                    ['CML',f'{cml:.4f}°'],*hdup]
+                                    # ['HDUs',f"{0} {hdulinf[0]['name']}({hdulinf[0]['type']})"], *[[" ", f"{i} {h['name']}({h['type']})"] for i,h in enumerate(hdulinf[1:],1)]]
             tl=fitinfoax.table(cellText=ctxt,cellLoc='right', cellColours=[[_bgs['sidebar'], _bgs['sidebar']] for i in range(len(ctxt))], colWidths=[0.14,1], colLabels=None, rowLabels=None, colColours=None, rowColours=None, colLoc='center', rowLoc='center', loc='bottom left', bbox=[0.02, 0.02, 0.96, 0.8], zorder=0)
             tl.visible_edges = ''
             tl.auto_set_font_size(False)
@@ -466,16 +513,20 @@ def pathfinder(fits_dir: fits.HDUList,saveloc=None,show_tooltips=True, headernam
             return dict(MORPH=m_, RETR=G_fcmode, CHAIN=G_fcmethod, CVH=int(G_cvh), KSIZE=G_ksize, CONTTIME=datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
         def __generate_coord_output():
             """Returns the current selected coordinates to save to the fits file."""
-            global clicked_coords, id_pixels
+            global clicked_coords, id_pixels,cl
             ret = dict()
             for i, coord in enumerate(clicked_coords):
                 ret[f'LUMXY_{i}'] = f"{coord[0]:.3f},({coord[1][0]},{coord[1][1]})"
             for i, coord in enumerate(id_pixels):
                 ret[f'IDXY_{i}'] = f"({coord[0]},{coord[1]})"
+            if  cl is not None:
+                ret['AUTOCL'] = f"({cl[0]},{cl[1]})"
+            
             return ret
         #main update function
-        def __redraw_main(cl):
-            global id_pixels, G_clicked_coords, G_morphex, G_fcmode, G_fcmethod, G_cvh, G_ksize, G_path, retattrs,  show_mask, falsecolor, G_fixrange
+        def __redraw_main(_):
+            global id_pixels, G_clicked_coords, G_morphex, G_fcmode, G_fcmethod, G_cvh, G_ksize, G_path, retattrs,  show_mask, falsecolor, G_fixrange,cl
+            #debug print(cl)
             for a in [ax, lax]:
                 a.clear()
                 a.set_facecolor(__get_bg(a))
@@ -490,11 +541,10 @@ def pathfinder(fits_dir: fits.HDUList,saveloc=None,show_tooltips=True, headernam
                 lrange = G_fixrange[0:2] if G_fixrange is not None else (0,1)
                 if len(clicked_coords) >1:
                     lrange = [min(*[c[0] for c in clicked_coords], *lrange), max(*[c[0] for c in clicked_coords], *lrange)]
-                    
-                
-                    
+
                 mask = cv2.inRange(normed, lrange[0]*255, lrange[1]*255)
                 retattrs.update({'LMIN':lrange[0], 'LMAX':lrange[1]})
+                retattrs.update({"LMETHOD":'FIXEDL' if lrange==G_fixrange else 'IDPX'})
                 # smooth out the mask to remove noise
                 kernel = np.ones((G_ksize, G_ksize), np.uint8)  # Small kernel to smooth edges
                 for morph in G_morphex:
@@ -517,15 +567,28 @@ def pathfinder(fits_dir: fits.HDUList,saveloc=None,show_tooltips=True, headernam
 
                         txt += f"({G_fixrange[2]:.0e})"
                 linfax.text(0.5,0.75, f'LRG=({lrange[0]:.4f},{lrange[1]:.4f})'+txt, fontsize=8, color='black', ha='center', va='center')
-                if len(id_pixels) > 0: # if an id_pixel is selected, find the contour that encloses it
+                #------- Contour Selection -------#
+                if len(id_pixels) > 0 or  isinstance(cl,(list,tuple)): # if an id_pixel is selected, find the contour that encloses it
                     selected_contours = []
                     other_contours = []
-                    for i,contour in enumerate(sortedcs):
-                        if all([cv2.pointPolygonTest(contour, id_pixel, False) > 0 for id_pixel in id_pixels]):  # >0 means inside
-                            selected_contours.append([i,contour])
-                        else:
-                            other_contours.append([i,contour])
-                    #if a contour is found, convert the contour points to polar coordinates and return them
+                    if len(id_pixels) > 0: #------------ IDPX METHOD ------------#
+                        for i,contour in enumerate(sortedcs):
+                            if all([cv2.pointPolygonTest(contour, id_pixel, False) > 0 for id_pixel in id_pixels]):  # >0 means inside
+                                selected_contours.append([i,contour])
+                            else:
+                                other_contours.append([i,contour])
+                        #if a contour is found, convert the contour points to polar coordinates and return them
+                    else: #------------ CLICK0 METHOD ------------#
+                       
+                        co = [(i,abs(cv2.pointPolygonTest(contour, cl, True))) for i,contour in enumerate(sortedcs)] + [(None,np.inf)]
+                        print(co,cl)
+                        chosen = min(co, key=lambda x: x[1])
+                           
+                        print(chosen)
+                        if chosen[0] is not None:
+                            selected_contours.append([chosen[0],sortedcs[chosen[0]]])
+                        other_contours = [[i,contour] for i,contour in enumerate(sortedcs) if i != chosen[0]]
+                    #------- Contour Drawing (with selections) -------#
                     for (i, contour) in selected_contours:
                         ax.scatter(*contour.T,**_selectclinekws)
                         cpath = mpl.path.Path(contour.reshape(-1, 2))
@@ -546,7 +609,7 @@ def pathfinder(fits_dir: fits.HDUList,saveloc=None,show_tooltips=True, headernam
                     selectedhandles = [mpl.lines.Line2D([0], [0], label=f'{i}, {__approx_contour_area_pct(cv2.contourArea(sortedcs[i]))}', **_handles['selectedc']) for i in [c[0] for c in selected_contours]]
                     otherhandles = [mpl.lines.Line2D([0], [0], label=f'{i}, {__approx_contour_area_pct(cv2.contourArea(sortedcs[i]))}', **_handles['otherc']) for i in [c[0] for c in other_contours]]
                     lax.legend(handles=[*selectedhandles,*otherhandles][:min(MAXLEGENDITEMS,len(otherhandles)-1)], **_legendkws)
-                else:
+                else: #------- Contour Drawing (without selections) -------#
                     for i,contour in enumerate(sortedcs):
                             if i <MAXCONTOURDRAWS and len(contour)>2 and len(contour)<MAXPOINTSPERCONTOUR:
                                 ax.scatter(*contour.T,**_defclinekws)
@@ -557,7 +620,7 @@ def pathfinder(fits_dir: fits.HDUList,saveloc=None,show_tooltips=True, headernam
                     handles = [mpl.lines.Line2D([0], [0], label=f'{i}, {__approx_contour_area_pct(cv2.contourArea(sortedcs[i]))}',**_handles['defc'] ) for i in range(len(sortedcs))][:min(MAXLEGENDITEMS,len(sortedcs)-1)]
                     lax.legend(handles=handles, **_legendkws)
                     lax.set_facecolor(__get_bg(lax))
-            else:
+            else: #------- No Contours -------#
                 linfax.clear()
                 linfax.text(0.5, 0.5, 'Select at least 2 or more\nLuminosity Samples', fontsize=8, color='black', ha='center', va='center')
                 lax.set_facecolor(__get_bg(ax))
@@ -567,9 +630,13 @@ def pathfinder(fits_dir: fits.HDUList,saveloc=None,show_tooltips=True, headernam
         #---- RESET button ----#
         breset = mpl.widgets.Button(rbax, "Reset      "+u'\uF0E2')
         def __event_reset(event):
-            global clicked_coords, id_pixels
+            global clicked_coords, id_pixels,falsecolor,cl,show_mask
             clicked_coords = []
             id_pixels = []
+            falsecolor = 0
+            cl = None
+            show_mask = 0
+
             __redraw_main(None)
         breset.on_clicked(__event_reset)
         #---- SAVE button ----#
@@ -595,7 +662,8 @@ def pathfinder(fits_dir: fits.HDUList,saveloc=None,show_tooltips=True, headernam
                     pathfinder(saveloc, None, G_morphex, G_fcmode, G_fcmethod
                                     , G_cvh, G_ksize,persists={'clicked_coords':clicked_coords, 'id_pixels':id_pixels, 'G_clicktype':G_clicktype, 'G_path':G_path})
                 else:
-                    G_fits_obj = fits.open(fits_dir, mode='update')
+                    
+                    gcopy = G_fits_obj.copy()
                     nhattr = retattrs
                     nhattr |=dict()
                     nhattr |= __generate_conf_output()
@@ -609,15 +677,27 @@ def pathfinder(fits_dir: fits.HDUList,saveloc=None,show_tooltips=True, headernam
                         if v in [np.nan, np.inf, -np.inf]:
                             raise KeyError(f'Key Mismatch: {v} is not a valid number, please check the value of {k}')
                     header = fits.Header(nhattr)
-                    G_fits_obj.append(contourhdu(pth, name=G_headername.upper(), header=header))
+                    extname = f'{G_headername.upper()}'
+                    if extname in [hdu.name for hdu in G_fits_obj]:
+                        ver = max([hdu.ver for hdu in G_fits_obj if hdu.name == extname])+1
+                        ch = contourhdu(pth, name=extname, header=header, ver=ver)
+                    else:
+                        ch = contourhdu(pth, name=extname, header=header)
+                    G_fits_obj.append(ch)
                     #repr(G_fits_obj[-1])
                     G_fits_obj.flush()
+                    #G_fits_obj.writeto("temp/temp.fits", overwrite=True, output_verify='fix')
+
+                    #G_fits_obj.close()
+                    #k_fits_obj = fits.open("temp/temp.fits")
+                    #k_fits_obj.writeto(fits_dir, overwrite=True, output_verify='fix')
+                    assert len(G_fits_obj) == oldlen+1, f"Save Failed: {len(G_fits_obj)} != {oldlen+1}\n"
+                    #fits.diff(gcopy, k_fits_obj)
                     tqdm.write(f"Save Successful, contour added to fits file at index {len(G_fits_obj)-1}")
                     linfax.clear()
                     linfax.text(0.5, 0.5, "Save Successful, contour added\n to fits file at index"+str(len(G_fits_obj)-1), fontsize=8, color='black', ha='center', va='center')
                     fig.canvas.blit(linfax.bbox)
                     __redraw_displayed_attrs()
-                    G_fits_obj.close()
             else:
                 tqdm.write("Save Failed: No contour selected to save")
         bsave.on_clicked(__event_save)
@@ -674,7 +754,7 @@ def pathfinder(fits_dir: fits.HDUList,saveloc=None,show_tooltips=True, headernam
             ksizesubax.clear()
             ksizesubax.text(0.1, 0.45, f'ksize: {G_ksize}', fontsize=8, color='black', ha='left', va='center')
             fig.canvas.blit(ksizesubax.bbox)
-            __redraw_main(clicked_coords)
+            __redraw_main(None)
         __event_ksize(G_ksize)
         ksizeslider.on_changed(__event_ksize)
         #---- SELECTMODE options ----#
@@ -705,7 +785,7 @@ def pathfinder(fits_dir: fits.HDUList,saveloc=None,show_tooltips=True, headernam
 
         #---- CLICK options ----#
         def __on_click_event(event):
-            global clicked_coords, id_pixels, G_clicktype, REGISTER_KEYS
+            global clicked_coords, id_pixels, G_clicktype, REGISTER_KEYS,cl
             if event.inaxes == headernameax:
                 REGISTER_KEYS = False
             else:
@@ -714,17 +794,19 @@ def pathfinder(fits_dir: fits.HDUList,saveloc=None,show_tooltips=True, headernam
                 if event.xdata is not None and event.ydata is not None:
                     click_coords = (int(event.xdata), int(event.ydata))
                     # get the luminance value of the clicked pixel
-                    if G_clicktype == 1:
+                    if G_clicktype == 1: # add luminosity
                         clicked_coords.append([img[int(event.ydata), int(event.xdata)]/255, click_coords])
-                    elif G_clicktype == -1:
+                    elif G_clicktype == -1: # remove luminosity
                         if len(clicked_coords) > 0:
                             clicked_coords.pop(np.argmin([np.linalg.norm(np.array(c[1])-np.array(click_coords)) for c in clicked_coords]))
-                    elif G_clicktype == 2:
+                    elif G_clicktype == 2: # add id pixel
                         id_pixels.append(click_coords)
-                    elif G_clicktype == -2:
+                    elif G_clicktype == -2: # remove id pixel
                         if len(id_pixels) > 0:
                             id_pixels.pop(np.argmin([np.linalg.norm(np.array(c)-np.array(click_coords)) for c in id_pixels]))   
-            __redraw_main(clicked_coords)
+                    elif G_clicktype == 0 and event.button == 3: #if not in any mode, right click to auto select the closest contour
+                        cl = click_coords
+            __redraw_main(cl)
         click_event = fig.canvas.mpl_connect('button_press_event', __on_click_event) #noqa: F841
         #---- HOVER options ----#
         def __on_mouse_move_event(event):
@@ -796,7 +878,8 @@ def pathfinder(fits_dir: fits.HDUList,saveloc=None,show_tooltips=True, headernam
             modifiers = modifiers ^ (1<<ind.key)
         global cursorloc# where in the text the cursor is. default is -1, which means at the end
         cursorloc=0 # (define as how many characters are after the cursor). 0 is at the end of the text, 1 is one character back, etc. not dependent on the length of the text
-        
+        global menulock
+        menulock = False
         def __on_key_press_event(event):
             global REGISTER_KEYS, notemode_active, G_notes, notebox
             if notemode_active:
@@ -831,7 +914,6 @@ def pathfinder(fits_dir: fits.HDUList,saveloc=None,show_tooltips=True, headernam
                         cursorloc = min(cursorloc, len(G_notes))
                     text = G_notes[:len(G_notes)-cursorloc]+'|'+G_notes[len(G_notes)-cursorloc:]
                     notebox.set_text("Notes:\n"+text)
-                    print(G_notes)
                     fig.canvas.blit(noteax.bbox)
                     fig.canvas.draw()
 
@@ -859,8 +941,12 @@ def pathfinder(fits_dir: fits.HDUList,saveloc=None,show_tooltips=True, headernam
                     elif action == 'CLOSE':
                         __event_close(None)
                     elif action == 'TOOLTIP':
-                        global G_show_tooltips
-                        G_show_tooltips = not G_show_tooltips
+                        if val != 1:
+                            global G_show_tooltips
+                            G_show_tooltips = not G_show_tooltips
+                        else:
+                            __show_key_menu(True)
+                            return
                     elif action == 'KILL':
                         tqdm.write('PATHFINDER: closing process.')
                         plt.close()
@@ -918,7 +1004,7 @@ def pathfinder(fits_dir: fits.HDUList,saveloc=None,show_tooltips=True, headernam
                             if len(G_fixrange) == 2:
                                 G_fixrange.append(0.01)
                             G_fixrange[2] = stepmap[stepmap.index(G_fixrange[2])+1 if stepmap.index(G_fixrange[2]) < len(stepmap)-1 else 0]
-                elif event.key == HELPKEY:
+                elif event.key in HELPKEYS:
                     tt = [(k,v[2]) for k,v in _keybindings.items()]
                     maxlenk = max([len(t[0]) for t in tt])
                     maxlenv = max([len(t[1]) for t in tt])
@@ -954,10 +1040,57 @@ def pathfinder(fits_dir: fits.HDUList,saveloc=None,show_tooltips=True, headernam
                         tqdm.write(bottom+sep+bottom)
                 __redraw_main(None)    
         def __on_key_release_event(event):
-            global modifiers
-            if event.key in __modind:
-                __setmod(__modind(event.key), False)
-        
+            pass
+            # global modifiers
+            # if event.key in __modind:
+            #     __setmod(__modind(event.key), False)
+
+        def __show_key_menu(_):
+            global keybind, tab, menulock
+            menulock = not menulock
+            if menulock:
+                bboxord = [-0.1,0, 1.1, 1,]
+                keybind = ax.add_patch(mpl.patches.Rectangle(bboxord[0:2],bboxord[2],bboxord[3],facecolor='#fffa', lw=1, zorder=10, edgecolor='black', transform=ax.transAxes, clip_on=False))
+                keys,values = zip(*_keybindings.items())
+                coltexts = [keys[:len(keys)//2], [v[2] for v in values[:len(keys)//2]], keys[len(keys)//2:], [v[2] for v in values[len(keys)//2:]]]
+                coltexts = [list(c) for c in coltexts]
+                coltexts[0] = [f"{k} "u"\u21E8" for k in coltexts[0]]
+                coltexts[2] = [f"{k} "u"\u21E8" for k in coltexts[2]]
+                keylen = max([len(k) for k in keys])
+                v2len = max([len(v[2]) for v in values])
+                coltexts = [[f"{k:>{keylen}}" for k in coltexts[0]], [f" {v:<{v2len}}" for v in coltexts[1]], [f"{k:<{keylen}}" for k in coltexts[2]], [f" {v:<{v2len}}" for v in coltexts[3]]]
+                while len(coltexts[0]) != len(coltexts[2]):
+                    if len(coltexts[0]) > len(coltexts[2]):
+                        coltexts[2].append('')
+                        coltexts[3].append('')
+                    elif len(coltexts[0]) < len(coltexts[2]):
+                        coltexts[0].append('')
+                        coltexts[1].append('')
+                    else:
+                        break
+                v = [*zip(*coltexts)]
+                tab = ax.table(cellText=v[1:] , cellLoc='left',colLoc='left', cellColours=[['#fff5']*len(coltexts)]*len(coltexts[0][1:]), colWidths=[0.1,0.4]*(len(coltexts)//2), colColours=['#fff5',]*len(coltexts), zorder=11, bbox=bboxord,edges='',colLabels=v[0],transform=ax.transAxes)
+                tab.AXESPAD = 0
+                tab.auto_set_column_width([0,1])
+                tab.auto_set_column_width([2,3])
+                tab.auto_set_font_size(True)
+                
+                for (i,j), cell in tab.get_celld().items():
+                    if i in [0,2]:
+                        cell.set_text_props(weight='800')
+                    cell.PAD = 0
+                    cell.set_fontsize(cell.get_fontsize()*1.2)
+                tab.auto_set_font_size(False)
+                
+                
+                
+                
+                fig.canvas.blit(ax.bbox)
+                fig.canvas.draw()
+                fig.canvas.flush_events()
+            else:
+                __redraw_main(None)
+                
         key_events = [fig.canvas.mpl_connect('key_press_event', __on_key_press_event),fig.canvas.mpl_connect('key_release_event', __on_key_release_event)] #noqa: F841
         plt.show()
         if G_path is not None:
@@ -967,6 +1100,12 @@ def pathfinder(fits_dir: fits.HDUList,saveloc=None,show_tooltips=True, headernam
             ret= None
         if G_notes not in ['', None]:
             tqdm.write(f'{filename_from_path(fits_dir)}:\n {G_notes}')
+        try:
+            G_fits_obj.close()
+        except: #noqa: E722
+            pass
+
+        
         return ret
 
 #------------ QuickPlot Class (for power.py optional plotting) ----------------#
@@ -1062,12 +1201,10 @@ def _get_pathfinderhead():
     # curses.cbreak()
     # rows, cols = stdscr.getmaxyx()
     lines = [
-        "[][][][][][][][][][][][][][][][][][][][][][][][][][]",
-        "[]                                                []",
-        "[]               JAR:VIS Pathfinder               []",
-        "[]                                                []",
-        f"[]           (press {HELPKEY} for keybindings.)           []",
-        "[][][][][][][][][][][][][][][][][][][][][][][][][][]"
+        "₊------------------------------------------------------₊",   
+        "|                   JAR:VIS Pathfinder                 |",
+        "⁺------------------------------------------------------⁺",
+        f"(press {" or ".join(HELPKEYS)} for keybindings.)",
     ]
     for line in lines:
         tqdm.write(line)

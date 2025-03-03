@@ -59,3 +59,8 @@ def std_dev(hist):
     mean = np.sum(probs * mids)  
     return np.sqrt(np.sum(probs * (mids - mean)**2))
     
+
+def intensity_distribution(roidata, bins=100, range=None):
+    """Returns the intensity distribution of a given roidata."""
+    hist = np.histogram(roidata, bins=bins, range=range)
+    return hist

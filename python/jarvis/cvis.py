@@ -254,7 +254,7 @@ def save_contour(fits_obj: fits.HDUList, cont, index=None):
     curr_hdus.insert(index, newtablehdu)
     newfits = fits.HDUList(curr_hdus)
     return newfits
-def contourhdu(cont,name='BOUNDARY',header=None):
+def contourhdu(cont,name='BOUNDARY',header=None,**kwargs):
     """Generate a fits BinTableHDU from a contour.
     Args:
     cont: the contour to generate the HDU from
@@ -262,8 +262,16 @@ def contourhdu(cont,name='BOUNDARY',header=None):
     header: the header to use
     Returns:
     fits.BinTableHDU: the HDU generated from the contour"""
+    kwargs.setdefault('uint', True)
     table = Table(data=cont, names=['colat', 'lon'], dtype=[np.float32, np.float32])
-    return fits.BinTableHDU(table, name=name, header=header, uint=True)
+    binhdu = fits.BinTableHDU(table, name=name, header=header, **kwargs)
+    binhdu.update_header()
+    binhdu.add_checksum()
+    binhdu.verify()
+    return binhdu
+
+
+    
 def contourid(fits_obj:fits.HDUList, name=None):
     """Find the ID of a contour in a fits file.
     Args:

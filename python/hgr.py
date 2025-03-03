@@ -1,11 +1,14 @@
 
 import numpy as np
-from jarvis import fpath
+
 import pandas as pd
 from matplotlib import pyplot as plt
 import matplotlib as mpl
-from jarvis.utils import get_obs_interval, hst_fitsfile_paths
+from jarvis import  hst_fitsfile_paths, get_obs_interval, fpath, fits_from_glob, get_data_over_interval
 from datetime import datetime
+from astropy.io import fits
+
+
 
 infile = fpath('2025-02-28_21-18-05.txt')
 def plot_visits(df, quantity='PFlux',corrected=None,ret='showsavefig'): #corrected = False, True, None (remove negative values)
@@ -85,14 +88,14 @@ def plot_visits(df, quantity='PFlux',corrected=None,ret='showsavefig'): #correct
         plt.show()
     if 'fig' in ret:
         return fig
-
+# print(infile)
 # df=pd.read_csv(infile, sep= ' ',index_col=False, names=['visit', 'Date', 'Time', 'Power', 'PFlux', 'Area'])
 # plot_visits(df, 'PFlux')
 # plot_visits(df, 'Power')
 # plot_visits(df, 'Area')
 
-# testfits = fits.open(fpath('datasets/HST/group_13/jup_16-148-17-19-53_0100_v16_stis_f25srf2_proj.fits'))
-# table = get_data_over_interval(fits_from_glob(fpath("datasets/Hisaki/Torus Data/")), [datetime.datetime(2015,1,1), datetime.datetime(2017,1,1)])
-# df = table.to_pandas()
-# df.plot(x='EPOCH',y='TPOW0710ADAWN')
-# plt.show()
+testfits = fits.open(fpath('datasets/HST/group_13/jup_16-148-17-19-53_0100_v16_stis_f25srf2_proj.fits'))
+table = get_data_over_interval(fits_from_glob(fpath("datasets/Hisaki/Torus Data/")), [datetime(2015,1,1), datetime(2017,1,1)])
+df = table.to_pandas()
+df.plot(x='EPOCH',y='TPOW0710ADAWN')
+plt.show()

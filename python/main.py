@@ -8,7 +8,7 @@ from jarvis import fpath
 from jarvis.extensions import pathfinder
 from jarvis.cvis import generate_coadded_fits
 from jarvis.utils import fits_from_glob, group_to_visit, hst_segmented_paths
-from jarvis.power import powercalc, WRITETO
+from jarvis.power import powercalc
 from jarvis.stats import stats, correlate #noqa: F401
 from tqdm import tqdm
 from astropy.io import fits

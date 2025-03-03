@@ -35,8 +35,8 @@ except:  #noqa: E722
 import logging
 import os
 from .utils import (fpath, fitsheader, ensure_dir, fits_from_glob, hst_fitsfile_paths, 
-                     group_to_visit, visit_to_group, hst_segmented_paths, hdulinfo)
-from .time import (get_obs_interval, get_datetime, get_datetime_interval, get_timedelta, datetime_to_yrdoysod, yrdoysod_to_datetime, get_data_over_interval)
+                     group_to_visit, visit_to_group, hst_segmented_paths, hdulinfo,get_obs_interval, get_datetime, get_datetime_interval, get_timedelta, datetime_to_yrdoysod, yrdoysod_to_datetime, get_data_over_interval)
+
 
 from .polar import (moind, make_gif, plot_moonfp, plot_regions, plot_polar, 
                     prep_polarfits)
@@ -47,8 +47,8 @@ __version__ = '0.1.0-alpha'
 __all__ =   ['cvis','extensions','stats','transforms',
             ]+['utils',
               'fpath', 'fitsheader', 'ensure_dir', 'fits_from_glob', 'hst_fitsfile_paths', 
-                     'group_to_visit', 'visit_to_group', 'hst_segmented_paths', 'hdulinfo'
-            ]+['time',
+                     'group_to_visit', 'visit_to_group', 'hst_segmented_paths', 'hdulinfo',
+            
                 'get_obs_interval', 'get_datetime', 'get_datetime_interval', 'get_timedelta', 
                 'datetime_to_yrdoysod', 'yrdoysod_to_datetime', 'get_data_over_interval'
             ]+['polar',

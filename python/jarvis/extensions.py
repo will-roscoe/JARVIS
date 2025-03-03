@@ -28,8 +28,7 @@ from matplotlib.text import Text
 
 from .polar import prep_polarfits
 from .cvis import contourhdu, imagexy, save_contour
-from .utils import filename_from_path, fpath, hdulinfo,fitsheader, assign_params, rpath, split_path
-from .time import get_datetime
+from .utils import filename_from_path, fpath, hdulinfo,fitsheader, assign_params, rpath, split_path, get_datetime
 from .transforms import fullxy_to_polar_arr
 
 try: # this is to ensure that this file can be imported without needing PyQt6 or PyQt5, eg for QuickPlot

@@ -10,7 +10,7 @@ import os
 from dateutil.parser import parse
 from datetime import timedelta
 from glob import glob
-from fastgif import makefastgif
+from fastgif import make_gif as makefastgif
 
 #third party libraries
 from astropy.io.fits import HDUList
@@ -24,8 +24,7 @@ import numpy as np
 from tqdm import tqdm 
 # local modules
 from .const import FITSINDEX
-from .utils import fpath, fitsheader, adapted_hdul, clock_format, ensure_dir, assign_params, filename_from_hdul, fits_from_glob
-from .time import get_datetime
+from .utils import fpath, fitsheader, adapted_hdul, clock_format, ensure_dir, assign_params, filename_from_hdul, fits_from_glob, get_datetime
 from .reading_mfp import moonfploc
 __all__ = ['moind', 'make_gif', 'plot_moonfp', 'plot_regions', 'plot_polar', 'prep_polarfits', 'makefast_gif']
 
@@ -347,7 +346,7 @@ def make_gif(fits_dir,fps=5,remove_temp=False,savelocation='auto',filename='auto
         filename = filename_from_hdul(f)+f'{len(fitslist)}fr_{fps}fps' +'.gif'
     mimsave(savelocation+filename, imagesgif, fps=fps)
     if remove_temp:
-        for file in glob.glob(fpath('temp/')+'*'):
+        for file in glob(fpath('temp/')+'*'):
             os.remove(file)
         os.rmdir(fpath('temp/'))
 

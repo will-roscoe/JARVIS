@@ -11,7 +11,7 @@ from astropy.io import fits
 
 
 infile = fpath('2025-02-28_21-18-05.txt')
-def plot_visits(df, quantity='PFlux',corrected=None,ret='showsavefig'): #corrected = False, True, None (remove negative values)
+def plot_visits(df, quantity='PFlux',corrected=None,ret='showsavefig',unit=None): #corrected = False, True, None (remove negative values)
     df['EPOCH'] = pd.to_datetime(df['Date'] + ' ' + df['Time'])
     df['color'] = df[quantity].apply(lambda x: 'r' if x < 0 else 'b')
     corr_df = df.copy()
@@ -44,7 +44,7 @@ def plot_visits(df, quantity='PFlux',corrected=None,ret='showsavefig'): #correct
         mind = pd.to_datetime(mind)
         maxd = pd.to_datetime(maxd)
         # span over the interval
-        main_ax.axvspan(mind,maxd,  alpha=0.5, color='grey')
+        main_ax.axvspan(mind,maxd,  alpha=0.5, color='#aaa5')
     ylim = [corr_df['PFlux'].min(), corr_df['PFlux'].max()]
     diff = ylim[1] - ylim[0]
     yl = [ylim[0] + diff/10, ylim[1] - diff/10]
@@ -60,7 +60,7 @@ def plot_visits(df, quantity='PFlux',corrected=None,ret='showsavefig'): #correct
     for j in range(J):
         for i in range(I):
             dfa = corr_df.loc[df['visit'] == visits[i+I*j]]
-            axs[j][i].plot(dfa['EPOCH'], dfa[quantity], color='grey', linewidth=0.5)
+            axs[j][i].plot(dfa['EPOCH'], dfa[quantity], color='#77f', linewidth=0.5)
             axs[j][i].scatter(dfa['EPOCH'], dfa[quantity], marker='.',s=5, c=dfa['color'])
             axs[j][i].yaxis.set_major_formatter(mpl.ticker.ScalarFormatter(useOffset=False))
             idfint = df.where(df['visit'] == visits[i+I*j])
@@ -82,20 +82,24 @@ def plot_visits(df, quantity='PFlux',corrected=None,ret='showsavefig'): #correct
     # for i in range(I):
     #     axs[0][i].xaxis.tick_top()
     #     axs[0][i].xaxis.set_label_position('top')
+    for j in range(J):
+        axs[j][0].set_ylabel(f'{quantity}'+(f' [{unit}]' if unit else ''))
+    main_ax.set_ylabel(f'{quantity}'+(f' [{unit}]' if unit else ''))
+    fig.suptitle(f'{quantity} over visits {df['visit'].min()} to {df['visit'].max()}', fontsize=20)
     if 'save' in ret:
         plt.savefig(fpath(f'figures/imgs/{quantity}_{datetime.now().strftime("%Y-%m-%dT%H-%M-%S")}.png'))
     if 'show' in ret:
         plt.show()
     if 'fig' in ret:
         return fig
-# print(infile)
-# df=pd.read_csv(infile, sep= ' ',index_col=False, names=['visit', 'Date', 'Time', 'Power', 'PFlux', 'Area'])
-# plot_visits(df, 'PFlux')
-# plot_visits(df, 'Power')
-# plot_visits(df, 'Area')
+print(infile)
+df=pd.read_csv(infile, sep= ' ',index_col=False, names=['visit', 'Date', 'Time', 'Power', 'PFlux', 'Area'])
+plot_visits(df, 'PFlux', unit='GW/km²')
+plot_visits(df, 'Power', unit='GW')
+plot_visits(df, 'Area', unit='km²')
 
 testfits = fits.open(fpath('datasets/HST/group_13/jup_16-148-17-19-53_0100_v16_stis_f25srf2_proj.fits'))
-table = get_data_over_interval(fits_from_glob(fpath("datasets/Hisaki/Torus Data/")), [datetime(2015,1,1), datetime(2017,1,1)])
+table = get_data_over_interval(fits_from_glob(fpath("datasets/Hisaki/Torus Power/")), [datetime(2015,1,1), datetime(2017,1,1)], )
 df = table.to_pandas()
 df.plot(x='EPOCH',y='TPOW0710ADAWN')
 plt.show()

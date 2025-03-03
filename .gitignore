@@ -124,12 +124,12 @@ pck00011.tpc
 **temp**
 .vscode/
 ### images/FITS generations
-*.jpg
-*.pdf 
-*.png
-*.jpg
-*.jpeg
-*.gif
+# *.jpg
+# *.pdf 
+# *.png
+# *.jpg
+# *.jpeg
+# *.gif
 ### Keep all latex stuff all the time
 !LaTeX/**
 !pictures/**/*.jpg

@@ -8,33 +8,34 @@ adapted from dmoral's original code by the JAR:VIS team.
 #python standard libraries
 import os
 from dateutil.parser import parse
-import datetime as dt
-import glob
-import fastgif
+from datetime import timedelta
+from glob import glob
+from fastgif import makefastgif
 
 #third party libraries
-from astropy.io import fits
-import imageio
-import matplotlib as mpl
-from matplotlib.ticker import FuncFormatter, MultipleLocator
-from matplotlib import patheffects as mpl_patheffects
-import matplotlib.pyplot as plt
+from astropy.io.fits import HDUList
+from imageio import imread,mimsave
+from matplotlib import pyplot as plt
+from matplotlib.patheffects import withStroke
+from matplotlib.projections.polar import PolarAxes
+from matplotlib.colors import LogNorm
+from matplotlib.figure import Figure
 import numpy as np
 from tqdm import tqdm 
 # local modules
 from .const import FITSINDEX
-from .utils import fpath, fitsheader, adapted_fits, get_datetime, clock_format, ensure_dir, assign_params, filename_from_fits, fits_from_glob
+from .utils import fpath, fitsheader, adapted_hdul, clock_format, ensure_dir, assign_params, filename_from_hdul, fits_from_glob
+from .time import get_datetime
 from .reading_mfp import moonfploc
+__all__ = ['moind', 'make_gif', 'plot_moonfp', 'plot_regions', 'plot_polar', 'prep_polarfits', 'makefast_gif']
 
-
-   
-def prep_polarfits(fitsobj: fits.HDUList) -> fits.HDUList:
+def prep_polarfits(fitsobj: HDUList) -> HDUList:
     """
     Processes a FITS file to apply transformations for polar plotting of a hemisphere. Uses header information to adjust the image data.
     Args:
-        fitsobj (fits.HDUList): The FITS file object to be processed.
+        fitsobj (HDUList): The FITS file object to be processed.
     Returns:
-        fits.HDUList: The processed FITS file object with updated data.
+        HDUList: The processed FITS file object with updated data.
     The function performs the following steps:
     1. Extracts header information such as CML, DECE, EXPT, and south.
     2. Parses the start time from the header.
@@ -51,10 +52,10 @@ def prep_polarfits(fitsobj: fits.HDUList) -> fits.HDUList:
     try:
         dist_org = fitsheader(fitsobj, 'DIST_ORG')
         ltime = dist_org * 1.495979e+11 / 299792458
-        lighttime = dt.timedelta(seconds=ltime)
+        lighttime = timedelta(seconds=ltime)
     except ValueError:
-        lighttime = dt.timedelta(seconds=2524.42)
-    exposure = dt.timedelta(seconds=exp_time)
+        lighttime = timedelta(seconds=2524.42)
+    exposure = timedelta(seconds=exp_time)
     start_time_jup = start_time - lighttime
     end_time_jup = start_time_jup + exposure # noqa: F841
     mid_ex_jup = start_time_jup + (exposure / 2.) # noqa: F841
@@ -70,14 +71,14 @@ def prep_polarfits(fitsobj: fits.HDUList) -> fits.HDUList:
     cliplim = np.cos(np.radians(89))
     clipind = np.squeeze([mask >= cliplim])
     image_data[clipind == False] = np.nan # noqa: E712
-    return adapted_fits(fitsobj, new_data=image_data, FIXED='LT' if not is_lon else 'LON')
+    return adapted_hdul(fitsobj, new_data=image_data, FIXED='LT' if not is_lon else 'LON')
         
 
-def plot_polar(fitsobj:fits.HDUList, ax:mpl.projections.polar.PolarAxes,**kwargs)-> mpl.projections.polar.PolarAxes:
+def plot_polar(fitsobj:HDUList, ax:PolarAxes,**kwargs)-> PolarAxes:
     """
     Plots a polar projection of the given FITS object data.
     Parameters:
-    fitsobj (fits.HDUList): The FITS file object containing the data to be plotted.
+    fitsobj (HDUList): The FITS file object containing the data to be plotted.
     ax (matplotlib.axes._subplots.PolarAxesSubplot): The matplotlib axis object to plot on.
     **kwargs: Additional keyword arguments for customization.
     Keyword Arguments:
@@ -100,14 +101,14 @@ def plot_polar(fitsobj:fits.HDUList, ax:mpl.projections.polar.PolarAxes,**kwargs
     ax.set(**dict(theta_zero_location="N", facecolor='k',rlabel_position=0 if full else 0, 
             thetalim=[np.pi/2,3*np.pi/2] if not full else None, 
             rlim=[0,rlim], rgrids=np.arange(0,rlim,10,dtype='int')) ) #set the polar plot
-    ax.yaxis.set(**dict(major_locator=MultipleLocator(base=10), 
-            major_formatter=FuncFormatter(lambda x, _: '{:.0f}°'.format(x))) if draw_ticks else dict(visible=False)) # set radial ticks
+    ax.yaxis.set(**dict(major_locator=plt.MultipleLocator(base=10), 
+            major_formatter=plt.FuncFormatter(lambda x, _: '{:.0f}°'.format(x))) if draw_ticks else dict(visible=False)) # set radial ticks
     ax.yaxis.set_tick_params(**dict(labelcolor='white') if draw_ticks else {}) # set radial ticks
-    ax.xaxis.set(**dict(major_locator=MultipleLocator(base=np.pi/2 if full else np.pi/4),
-            major_formatter=FuncFormatter(lambda x, _: '{:.0f}°'.format(
+    ax.xaxis.set(**dict(major_locator=plt.MultipleLocator(base=np.pi/2 if full else np.pi/4),
+            major_formatter=plt.FuncFormatter(lambda x, _: '{:.0f}°'.format(
                 np.degrees((lambda x: x if is_south else 2*np.pi-x)(x))%360) if fixed_lon 
                 else clock_format(x)) ,
-            minor_locator = MultipleLocator(base=np.pi/18 if fixed_lon else np.pi/12)) if draw_ticks else dict(visible=False))
+            minor_locator = plt.MultipleLocator(base=np.pi/18 if fixed_lon else np.pi/12)) if draw_ticks else dict(visible=False))
     ax.tick_params(axis='both',pad=2.)    # shift position of LT labels
     # Titles
     tkw,stkw =kwargs.pop('title', True),kwargs.pop('suptitle', True)
@@ -126,12 +127,12 @@ def plot_polar(fitsobj:fits.HDUList, ax:mpl.projections.polar.PolarAxes,**kwargs
             ax.text(np.radians(rot-cml), 3+rlim, 'CML', fontsize=11, color='r', ha='center', va='center', fontweight='bold') 
         if not fixed_lon and full: # meridian line (0°)  
             ax.text(np.radians(cml)+np.pi, 4+rlim, '0°', color='coral', fontsize=12,ha='center', va='bottom', fontweight='bold')
-            ax.plot([np.radians(cml)+np.pi,np.radians(cml)+np.pi],[0, 180], color='coral', path_effects=[mpl_patheffects.withStroke(linewidth=1, foreground='black')], linestyle='-.', lw=1) #prime meridian (longitude 0)
+            ax.plot([np.radians(cml)+np.pi,np.radians(cml)+np.pi],[0, 180], color='coral', path_effects=[withStroke(linewidth=1, foreground='black')], linestyle='-.', lw=1) #prime meridian (longitude 0)
 
     #Actual plot and colorbar (change the vmin and vmax to play with the limits
     #of the colorbars, recommended to enhance/saturate certain features)
     ticks = kwargs.pop('ticks', [10.,40.,100.,200.,400.,800.,1500.] if int(fitsobj[1].header['EXPT']) < 30 else [10.,40.,100.,200.,400.,1000.,3000.])
-    kwd = dict(cmap='viridis', norm=mpl.colors.LogNorm(vmin=ticks[0], vmax=ticks[-1]), shrink=1 if full else 0.75, pad=0.06)
+    kwd = dict(cmap='viridis', norm=LogNorm(vmin=ticks[0], vmax=ticks[-1]), shrink=1 if full else 0.75, pad=0.06)
     cmap, norm, shrink, pad = [kwargs.pop(k, v) for k, v in kwd.items()]
     rho = np.linspace(0,180,num=int(image_data.shape[0]))
     theta = np.linspace(0,2*np.pi, num=image_data.shape[1])
@@ -174,11 +175,11 @@ def plot_polar(fitsobj:fits.HDUList, ax:mpl.projections.polar.PolarAxes,**kwargs
 
 
 
-def plot_moonfp(fitsobj:fits.HDUList, ax:mpl.projections.polar.PolarAxes)->mpl.projections.polar.PolarAxes:
+def plot_moonfp(fitsobj:HDUList, ax:PolarAxes)->PolarAxes:
     """
     Plots the footprints of moons on a given axis based on the provided FITS object and the moonfploc function.
     Parameters:
-    fitsobj (fits.HDUList): The FITS object containing the data.
+    fitsobj (HDUList): The FITS object containing the data.
     ax (mpl.projections.polar.PolarAxes): The matplotlib axis on which to plot the moon footprints.
     Returns:
     None
@@ -209,7 +210,7 @@ def plot_moonfp(fitsobj:fits.HDUList, ax:mpl.projections.polar.PolarAxes)->mpl.p
                 color,key = (('gold','IO'), ('aquamarine','EUR'), ('w','GAN'))[i]
                 ax.plot([x,y],[v,v],color=color, linestyle='-', lw=2.5)
                 ax.text(w, 3.5+v, key, color=color, fontsize=10,alpha=0.5,
-                        path_effects=[mpl_patheffects.withStroke(linewidth=1, foreground='black')],\
+                        path_effects=[withStroke(linewidth=1, foreground='black')],\
                         horizontalalignment='center', verticalalignment='center', fontweight='bold')
     if fixed_lon:
         if not is_south: #process coordinates for north hemis of lon
@@ -223,7 +224,7 @@ def plot_moonfp(fitsobj:fits.HDUList, ax:mpl.projections.polar.PolarAxes)->mpl.p
                     color,key = (('gold','IO'), ('aquamarine','EUR'), ('w','GAN'))[i]
                     ax.plot([x,y],[v,v],color=color, linestyle='-', lw=2.5)
                     ax.text(w, 3.5+v, key, color=color, fontsize=10,alpha=0.5,
-                            path_effects=[mpl_patheffects.withStroke(linewidth=1, foreground='black')],\
+                            path_effects=[withStroke(linewidth=1, foreground='black')],\
                             horizontalalignment='center', verticalalignment='center', fontweight='bold')     
         else:  #process coordinates for south hemis of lon
             for i in range(3): #for IO first index, EUR second index, GAN third index
@@ -236,7 +237,7 @@ def plot_moonfp(fitsobj:fits.HDUList, ax:mpl.projections.polar.PolarAxes)->mpl.p
                     color,key = (('gold','IO'), ('aquamarine','EUR'), ('w','GAN'))[i]
                     ax.plot([x,y],[v,v],color=color, linestyle='-', lw=2.5)
                     ax.text(w, 3.5+v, key, color=color, fontsize=10,alpha=0.5,
-                            path_effects=[mpl_patheffects.withStroke(linewidth=1, foreground='black')],\
+                            path_effects=[withStroke(linewidth=1, foreground='black')],\
                             horizontalalignment='center', verticalalignment='center', fontweight='bold')            
         
         
@@ -249,7 +250,7 @@ def plot_moonfp(fitsobj:fits.HDUList, ax:mpl.projections.polar.PolarAxes)->mpl.p
 
 
 
-def plot_regions(fitsobj: fits.HDUList, ax:mpl.projections.polar.PolarAxes)->mpl.projections.polar.PolarAxes:
+def plot_regions(fitsobj: HDUList, ax:PolarAxes)->PolarAxes:
     """
     Plots various regions on a polar plot using the provided FITS object and matplotlib axis.
     Parameters:
@@ -283,11 +284,11 @@ def plot_regions(fitsobj: fits.HDUList, ax:mpl.projections.polar.PolarAxes)->mpl
 
 
 
-def moind(fitsobj:fits.HDUList, crop:float = 1, rlim:float = 40, fixed:str= 'lon', hemis:str='North', full:bool=True, regions:bool=False,moonfp:bool=False,**kwargs)->mpl.figure.Figure:  
+def moind(fitsobj:HDUList, crop:float = 1, rlim:float = 40, fixed:str= 'lon', hemis:str='North', full:bool=True, regions:bool=False,moonfp:bool=False,**kwargs)->Figure:  
     """
     Process and plot a FITS file in polar coordinates 
     Parameters:
-    fitsobj (fits.HDUList): The FITS file object to be processed.
+    fitsobj (HDUList): The FITS file object to be processed.
     crop (float, optional): The crop factor for the FITS file. Default is 1.
     rlim (float, optional): The radial limit for the plot. Default is 40.
     fixed (str, optional): The fixed parameter for the FITS file. Default is 'lon'.
@@ -337,14 +338,14 @@ def make_gif(fits_dir,fps=5,remove_temp=False,savelocation='auto',filename='auto
             #tqdm.write(f'Image {i+1} of {len(fitslist)} created: {"IMPLEMENT"}')
             pb.update(1)
             
-            imagesgif.append(imageio.imread(fpath('temp/')+f'gifpart_{i}.jpg'))
+            imagesgif.append(imread(fpath('temp/')+f'gifpart_{i}.jpg'))
             #saving the GIF
     if savelocation == 'auto':
         savelocation = fpath('pictures/gifs/')
     ensure_dir(savelocation)
     if filename == 'auto':
-        filename = filename_from_fits(f)+f'{len(fitslist)}fr_{fps}fps' +'.gif'
-    imageio.mimsave(savelocation+filename, imagesgif, fps=fps)
+        filename = filename_from_hdul(f)+f'{len(fitslist)}fr_{fps}fps' +'.gif'
+    mimsave(savelocation+filename, imagesgif, fps=fps)
     if remove_temp:
         for file in glob.glob(fpath('temp/')+'*'):
             os.remove(file)
@@ -380,6 +381,6 @@ def makefast_gif(fitsobjs,initfunc=None,fps=5,showprogress=True,**kwargs)->None:
     if 'saveto' in kwargs:
         savelocation = kwargs.pop('saveto')
     else:
-        savelocation = fpath('figures/gifs/')+filename_from_fits(assign_params(fitsobjs[0], **kwargs))+'.gif'
-    fastgif.make_gif(initfunc,num_calls=len(fitsobjs),filename=savelocation,show_progress=showprogress,writer_kwargs={'duration':1/fps})
+        savelocation = fpath('figures/gifs/')+filename_from_hdul(assign_params(fitsobjs[0], **kwargs))+'.gif'
+    makefastgif(initfunc,num_calls=len(fitsobjs),filename=savelocation,show_progress=showprogress,writer_kwargs={'duration':1/fps})
     

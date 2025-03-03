@@ -9,18 +9,29 @@ Classes:
 - QuickPlot: Predefined plotting functions for quick visualization of data in power.py [internal]
 """
 
-from multiprocessing import context
-import cli
 import numpy as np
 import matplotlib.pyplot as plt
-import time
 import cmasher as cmr
 import cv2
-import os
-from astropy.io import fits
-from regex import T
+from os.path import exists
+from astropy.io.fits import HDUList, open as fopen, Header
 from tqdm import tqdm
-from .utils import filename_from_path, fpath, hdulinfo
+from matplotlib.font_manager import fontManager
+from matplotlib import rc_context, use
+from matplotlib.path import Path as mPath
+from datetime import datetime
+
+from matplotlib.widgets import Button, RadioButtons, CheckButtons, Slider, TextBox
+from matplotlib.patches import Rectangle as Rectangle
+from matplotlib.lines import Line2D 
+from matplotlib.text import Text
+
+from .polar import prep_polarfits
+from .cvis import contourhdu, imagexy, save_contour
+from .utils import filename_from_path, fpath, hdulinfo,fitsheader, assign_params, rpath, split_path
+from .time import get_datetime
+from .transforms import fullxy_to_polar_arr
+
 try: # this is to ensure that this file can be imported without needing PyQt6 or PyQt5, eg for QuickPlot
     from PyQt6 import QtGui # type: ignore #
 except ImportError:
@@ -30,15 +41,8 @@ except ImportError:
         tqdm.write('Warning: PyQt6 or PyQt5 not found, pathfinder app may not function correctly')
 
 
-from matplotlib import font_manager 
-from datetime import datetime
-from .transforms import fullxy_to_polar_arr
-from .utils import fitsheader, get_datetime, assign_params, rpath, split_path
 
-from .polar import prep_polarfits
-from .cvis import contourhdu, imagexy, save_contour
 
-import matplotlib as mpl
 
 MAXPOINTSPERCONTOUR = 2000
 MAXCONTOURDRAWS = 125
@@ -292,8 +296,8 @@ def __validatecfg():
                     assert isinstance(val[3], str), f'{k}\'s index translation extensions must be strings, not {type(val[3])}: {val[3]}'
     for k, v in _keybindings.items():
         assert len(v) == 3, f'{k}\'s keybinding must be a tuple of length 3 containing the flag, value, and a short description'
-    assert os.path.exists(_iconpath), 'Icon file not found'
-    assert os.path.exists(_fontpath), 'Font file not found'
+    assert exists(_iconpath), 'Icon file not found'
+    assert exists(_fontpath), 'Font file not found'
 if FIRST_RUN:
     __validatecfg()
 
@@ -319,7 +323,7 @@ if FIRST_RUN:
 #FUTURE
 # integrate the hierarchy into the gui
 
-def pathfinder(fits_dir: fits.HDUList,saveloc=None,show_tooltips=True, headername='BOUNDARY',morphex=(cv2.MORPH_CLOSE,cv2.MORPH_OPEN),fixlrange=None, fcmode=cv2.RETR_EXTERNAL, fcmethod=cv2.CHAIN_APPROX_SIMPLE, cvh=False, ksize=5,writeresult=True,**persists):
+def pathfinder(fits_dir: HDUList,saveloc=None,show_tooltips=True, headername='BOUNDARY',morphex=(cv2.MORPH_CLOSE,cv2.MORPH_OPEN),fixlrange=None, fcmode=cv2.RETR_EXTERNAL, fcmethod=cv2.CHAIN_APPROX_SIMPLE, cvh=False, ksize=5,writeresult=True,**persists):
     """### *JAR:VIS* Pathfinder
     > ***Requires PyQt6 (or PyQt5)***
 
@@ -338,11 +342,11 @@ def pathfinder(fits_dir: fits.HDUList,saveloc=None,show_tooltips=True, headernam
 
         These may be changed during the session using the GUI buttons.
     """
-    mpl.use('QtAgg')
-    global G_fits_obj#:fits.HDUList
-    G_fits_obj = fits.open(fits_dir, 'update')
-    font_manager.fontManager.addfont(fpath('python/jarvis/resources/FiraCodeNerdFont-Regular.ttf'))
-    with mpl.rc_context(rc={'font.family': 'FiraCode Nerd Font', 'axes.unicode_minus': False, 'toolbar': 'None', 'font.size': 8,
+    use('QtAgg')
+    global G_fits_obj#:HDUList
+    G_fits_obj = fopen(fits_dir, 'update')
+    fontManager.addfont(fpath('python/jarvis/resources/FiraCodeNerdFont-Regular.ttf'))
+    with rc_context(rc={'font.family': 'FiraCode Nerd Font', 'axes.unicode_minus': False, 'toolbar': 'None', 'font.size': 8,
                             'keymap.fullscreen': '', 'keymap.home': '', 'keymap.back': '', 'keymap.forward': '', 'keymap.pan': '',
                             'keymap.zoom': '', 'keymap.save': '', 'keymap.quit': '', 'keymap.grid': '', 'keymap.yscale': '',
                             'keymap.xscale': '', 'keymap.copy':''}):
@@ -591,13 +595,13 @@ def pathfinder(fits_dir: fits.HDUList,saveloc=None,show_tooltips=True, headernam
                     #------- Contour Drawing (with selections) -------#
                     for (i, contour) in selected_contours:
                         ax.scatter(*contour.T,**_selectclinekws)
-                        cpath = mpl.path.Path(contour.reshape(-1, 2))
+                        cpath = mPath(contour.reshape(-1, 2))
                         ax.plot(*cpath.vertices.T, color=_selectclinekws['color'], lw=_selectclinekws['s'])
                         ax.text(contour[0][0][0], contour[0][0][1], f"{i}", **_selectctextkws)
                     for (i, contour) in other_contours:
                         if i <MAXCONTOURDRAWS and len(contour)>2 and len(contour)<MAXPOINTSPERCONTOUR:
                             ax.scatter(*contour.T,**_otherclinekws)
-                            cpath = mpl.path.Path(contour.reshape(-1, 2))
+                            cpath = mPath(contour.reshape(-1, 2))
                             ax.plot(*cpath.vertices.T, color=_otherclinekws['color'], lw=_otherclinekws['s'])
                             ax.text(contour[0][0][0], contour[0][0][1], f"{i}", **_otherctextkws)
                     linfax.text(0.5, 0.5, f'Contours: {len(selected_contours)}({len(other_contours)} invalid)', fontsize=8, color='black', ha='center', va='center')
@@ -606,18 +610,18 @@ def pathfinder(fits_dir: fits.HDUList,saveloc=None,show_tooltips=True, headernam
                         retattrs.update({'NUMPTS':len(G_path), 'XYA_CT':cv2.contourArea(G_path), 'XYA_CTP':__approx_contour_area_pct(cv2.contourArea(G_path))})
                         linfax.text(0.5, 0.25, f'Area: {retattrs["XYA_CTP"]}, N:{retattrs['NUMPTS']}', fontsize=10, color='black', ha='center', va='center')
 
-                    selectedhandles = [mpl.lines.Line2D([0], [0], label=f'{i}, {__approx_contour_area_pct(cv2.contourArea(sortedcs[i]))}', **_handles['selectedc']) for i in [c[0] for c in selected_contours]]
-                    otherhandles = [mpl.lines.Line2D([0], [0], label=f'{i}, {__approx_contour_area_pct(cv2.contourArea(sortedcs[i]))}', **_handles['otherc']) for i in [c[0] for c in other_contours]]
+                    selectedhandles = [Line2D([0], [0], label=f'{i}, {__approx_contour_area_pct(cv2.contourArea(sortedcs[i]))}', **_handles['selectedc']) for i in [c[0] for c in selected_contours]]
+                    otherhandles = [Line2D([0], [0], label=f'{i}, {__approx_contour_area_pct(cv2.contourArea(sortedcs[i]))}', **_handles['otherc']) for i in [c[0] for c in other_contours]]
                     lax.legend(handles=[*selectedhandles,*otherhandles][:min(MAXLEGENDITEMS,len(otherhandles)-1)], **_legendkws)
                 else: #------- Contour Drawing (without selections) -------#
                     for i,contour in enumerate(sortedcs):
                             if i <MAXCONTOURDRAWS and len(contour)>2 and len(contour)<MAXPOINTSPERCONTOUR:
                                 ax.scatter(*contour.T,**_defclinekws)
-                                cpath = mpl.path.Path(contour.reshape(-1, 2))
+                                cpath = mPath(contour.reshape(-1, 2))
                                 ax.plot(*cpath.vertices.T, color=_defclinekws['color'], lw=_defclinekws['s'])
                                 ax.text(contour[0][0][0], contour[0][0][1], f"{i}", **_defctextkws)
                     linfax.text(0.5, 0.5, f'Contours: {len(sortedcs)}', fontsize=8, color='black', ha='center', va='center')
-                    handles = [mpl.lines.Line2D([0], [0], label=f'{i}, {__approx_contour_area_pct(cv2.contourArea(sortedcs[i]))}',**_handles['defc'] ) for i in range(len(sortedcs))][:min(MAXLEGENDITEMS,len(sortedcs)-1)]
+                    handles = [Line2D([0], [0], label=f'{i}, {__approx_contour_area_pct(cv2.contourArea(sortedcs[i]))}',**_handles['defc'] ) for i in range(len(sortedcs))][:min(MAXLEGENDITEMS,len(sortedcs)-1)]
                     lax.legend(handles=handles, **_legendkws)
                     lax.set_facecolor(__get_bg(lax))
             else: #------- No Contours -------#
@@ -628,7 +632,7 @@ def pathfinder(fits_dir: fits.HDUList,saveloc=None,show_tooltips=True, headernam
             fig.canvas.flush_events()
         #config gui elements
         #---- RESET button ----#
-        breset = mpl.widgets.Button(rbax, "Reset      "+u'\uF0E2')
+        breset = Button(rbax, "Reset      "+u'\uF0E2')
         def __event_reset(event):
             global clicked_coords, id_pixels,falsecolor,cl,show_mask
             clicked_coords = []
@@ -640,7 +644,7 @@ def pathfinder(fits_dir: fits.HDUList,saveloc=None,show_tooltips=True, headernam
             __redraw_main(None)
         breset.on_clicked(__event_reset)
         #---- SAVE button ----#
-        bsave = mpl.widgets.Button(sbax, "Save       "+u'\uEB4B')
+        bsave = Button(sbax, "Save       "+u'\uEB4B')
         def __event_save(event):
             global G_path, G_fits_obj,retattrs,G_headername
             if G_path is not None:
@@ -655,7 +659,7 @@ def pathfinder(fits_dir: fits.HDUList,saveloc=None,show_tooltips=True, headernam
                     linfax.text(0.5, 0.5, "Saved to "+str(saveloc)+"\n restarting viewer with new data", fontsize=8, color='black', ha='center', va='center')
                     fig.canvas.blit(linfax.bbox)
                     #wait for 1 second
-                    time.sleep(1)
+                    #time.sleep(1)
                     plt.close()
                     G_fits_obj.close()
                     G_fits_obj = n_fits_obj
@@ -663,7 +667,7 @@ def pathfinder(fits_dir: fits.HDUList,saveloc=None,show_tooltips=True, headernam
                                     , G_cvh, G_ksize,persists={'clicked_coords':clicked_coords, 'id_pixels':id_pixels, 'G_clicktype':G_clicktype, 'G_path':G_path})
                 else:
                     
-                    gcopy = G_fits_obj.copy()
+                    #gcopy = G_fits_obj.copy()
                     nhattr = retattrs
                     nhattr |=dict()
                     nhattr |= __generate_conf_output()
@@ -676,7 +680,7 @@ def pathfinder(fits_dir: fits.HDUList,saveloc=None,show_tooltips=True, headernam
                     for k,v in nhattr.items():
                         if v in [np.nan, np.inf, -np.inf]:
                             raise KeyError(f'Key Mismatch: {v} is not a valid number, please check the value of {k}')
-                    header = fits.Header(nhattr)
+                    header = Header(nhattr)
                     extname = f'{G_headername.upper()}'
                     if extname in [hdu.name for hdu in G_fits_obj]:
                         ver = max([hdu.ver for hdu in G_fits_obj if hdu.name == extname])+1
@@ -702,7 +706,7 @@ def pathfinder(fits_dir: fits.HDUList,saveloc=None,show_tooltips=True, headernam
                 tqdm.write("Save Failed: No contour selected to save")
         bsave.on_clicked(__event_save)
         #---- RETR options ----#
-        retrbts = mpl.widgets.RadioButtons(retrax,__getflaglabels('RETR'), active=0)
+        retrbts = RadioButtons(retrax,__getflaglabels('RETR'), active=0)
         def __event_retr(label):
             """set the global variable G_fcmode to the correct value based on the label"""
             global G_fcmode
@@ -711,7 +715,7 @@ def pathfinder(fits_dir: fits.HDUList,saveloc=None,show_tooltips=True, headernam
         #---- MORPH options ----#
         bopts = __getflaglabels('MORPH')
         acts = [True if _cvtrans['MORPH'][b][0] in G_morphex else False for b in bopts]
-        morphbts = mpl.widgets.CheckButtons(morphax, bopts, acts)
+        morphbts = CheckButtons(morphax, bopts, acts)
         def __event_morphex(lb):
             """toggle the morphological operations in G_morphex based on the label, add if not present, remove if present"""
             global G_morphex
@@ -721,30 +725,30 @@ def pathfinder(fits_dir: fits.HDUList,saveloc=None,show_tooltips=True, headernam
                 G_morphex.append(_cvtrans['MORPH'][lb][0])
         morphbts.on_clicked(__event_morphex)
         #---- CHAIN options ----#
-        chainbts = mpl.widgets.RadioButtons(chainax,__getflaglabels('CHAIN'), active=1)
+        chainbts = RadioButtons(chainax,__getflaglabels('CHAIN'), active=1)
         def __event_chain(label):
             """set the global variable G_fcmethod to the correct value based on the label"""
             global G_fcmethod
             G_fcmethod = _cvtrans['CHAIN'][label][0]
         chainbts.on_clicked(__event_chain)
         #---- CLOSE button ----#
-        bclose = mpl.widgets.Button(clax, "Close      "+u'\uE20D', color='#ffaaaa', hovercolor='#ff6666')
+        bclose = Button(clax, "Close      "+u'\uE20D', color='#ffaaaa', hovercolor='#ff6666')
         #bclose.label.set(fontsize=14)
         def __event_close(event):
             """close the figure"""
             plt.close()
         bclose.on_clicked(__event_close)
         #---- CVH options ----#
-        cvhbts = mpl.widgets.CheckButtons(cvhax, ['Convex Hull'], [G_cvh],)
+        cvhbts = CheckButtons(cvhax, ['Convex Hull'], [G_cvh],)
         def __event_cvh(label):
             """toggle the G_cvh variable"""
             global G_cvh
             G_cvh = not G_cvh
         cvhbts.on_clicked(__event_cvh)
         #---- KSIZE options ----#
-        ksizeslider = mpl.widgets.Slider(ksizeax,"", valmin=1, valmax=11, valinit=G_ksize, valstep=2, color='orange', initcolor='None')
-        ksizeax.add_patch(mpl.patches.Rectangle((0,0), 1, 1, facecolor='#fff', lw=1, zorder=-1, transform=ksizeax.transAxes, edgecolor='black'))
-        ksizeax.add_patch(mpl.patches.Rectangle((0,0.995), 5/12, 1.005, facecolor='#fff', lw=0, zorder=10, transform=ksizeax.transAxes))
+        ksizeslider = Slider(ksizeax,"", valmin=1, valmax=11, valinit=G_ksize, valstep=2, color='orange', initcolor='None')
+        ksizeax.add_patch(Rectangle((0,0), 1, 1, facecolor='#fff', lw=1, zorder=-1, transform=ksizeax.transAxes, edgecolor='black'))
+        ksizeax.add_patch(Rectangle((0,0.995), 5/12, 1.005, facecolor='#fff', lw=0, zorder=10, transform=ksizeax.transAxes))
         def __event_ksize(val):
             """set the global variable G_ksize to the slider value, and update the displayed value"""
             global G_ksize
@@ -762,7 +766,7 @@ def pathfinder(fits_dir: fits.HDUList,saveloc=None,show_tooltips=True, headernam
                     'edgecolor':['#000', _clickedkws['color'], _clickedkws['color'], _idpxkws['color'], _idpxkws['color']],
                     'marker': ['o','o','X','o','X']}
         _labelprops = {'color': ['#000', _clickedkws['color'], _clickedkws['color'], _idpxkws['color'], _idpxkws['color']]}
-        selradio =  mpl.widgets.RadioButtons(flax, ['None', 'Add Luminosity', 'Remove Luminosity', 'Add IDPX', 'Remove IDPX'], active=0, radio_props=_radioprops, label_props=_labelprops) 
+        selradio =  RadioButtons(flax, ['None', 'Add Luminosity', 'Remove Luminosity', 'Add IDPX', 'Remove IDPX'], active=0, radio_props=_radioprops, label_props=_labelprops) 
         def __event_select(label):
             """set the global variable G_clicktype to the correct value based on the label"""
             global G_clicktype
@@ -777,7 +781,7 @@ def pathfinder(fits_dir: fits.HDUList,saveloc=None,show_tooltips=True, headernam
             G_clicktype = ret
         selradio.on_clicked(__event_select)
         #---- FULLSCREEN button ----#
-        bfullscreen = mpl.widgets.Button(fsax, 'Fullscreen '+u'\uF50C')
+        bfullscreen = Button(fsax, 'Fullscreen '+u'\uF50C')
         #bfullscreen.label.set(fontsize=14)  
         def __event_fullscreen(event):
             fig.canvas.manager.full_screen_toggle()
@@ -818,7 +822,7 @@ def pathfinder(fits_dir: fits.HDUList,saveloc=None,show_tooltips=True, headernam
                     if True:#lastax != inax:
                         lastax = inax
                         axlabel = inax.get_label()
-                        txts = [t for t in  inax.get_children() if isinstance(t, mpl.text.Text)]
+                        txts = [t for t in  inax.get_children() if isinstance(t, Text)]
                         txts = [t for t in txts if t.get_text() != '']
                         # now find if the mouse is over any of the texts
                         txt = None
@@ -846,7 +850,7 @@ def pathfinder(fits_dir: fits.HDUList,saveloc=None,show_tooltips=True, headernam
                 fig.canvas.set_cursor(1)
         hover_event = fig.canvas.mpl_connect('motion_notify_event', __on_mouse_move_event) #noqa: F841
         #----TEXTENTRY----#
-        textbox = mpl.widgets.TextBox(headernameax, 'Header Name:', initial=G_headername)
+        textbox = TextBox(headernameax, 'Header Name:', initial=G_headername)
         delchars = ''.join(c for c in map(chr, range(1114111)) if not c.isalnum() and c not in [' ','_','-'])
         delmap = str.maketrans("", "", delchars)
         def __on_headername_text_change(text:str):
@@ -1050,7 +1054,7 @@ def pathfinder(fits_dir: fits.HDUList,saveloc=None,show_tooltips=True, headernam
             menulock = not menulock
             if menulock:
                 bboxord = [-0.1,0, 1.1, 1,]
-                keybind = ax.add_patch(mpl.patches.Rectangle(bboxord[0:2],bboxord[2],bboxord[3],facecolor='#fffa', lw=1, zorder=10, edgecolor='black', transform=ax.transAxes, clip_on=False))
+                keybind = ax.add_patch(Rectangle(bboxord[0:2],bboxord[2],bboxord[3],facecolor='#fffa', lw=1, zorder=10, edgecolor='black', transform=ax.transAxes, clip_on=False))
                 keys,values = zip(*_keybindings.items())
                 coltexts = [keys[:len(keys)//2], [v[2] for v in values[:len(keys)//2]], keys[len(keys)//2:], [v[2] for v in values[len(keys)//2:]]]
                 coltexts = [list(c) for c in coltexts]

@@ -35,20 +35,33 @@ except:  #noqa: E722
 import logging
 import os
 from .utils import (fpath, fitsheader, ensure_dir, fits_from_glob, hst_fitsfile_paths, 
-                assign_params, adapted_fits, group_to_visit, visit_to_group)
+                     group_to_visit, visit_to_group, hst_segmented_paths, hdulinfo)
+from .time import (get_obs_interval, get_datetime, get_datetime_interval, get_timedelta, datetime_to_yrdoysod, yrdoysod_to_datetime, get_data_over_interval)
+
 from .polar import (moind, make_gif, plot_moonfp, plot_regions, plot_polar, 
                     prep_polarfits)
 
 from .cvis import (pathtest, generate_contours, identify_contour, 
                 plot_contourpoints, save_contour)
 __version__ = '0.1.0-alpha'
-__all__ = ['polar', 'const', 'utils', 'cvis', 'power', 
-    'fpath', 'fitsheader', 'ensure_dir', 'fits_from_glob', 'hst_fitsfile_paths', 
-    'assign_params', 'adapted_fits', 'group_to_visit', 'visit_to_group',
-    'moind', 'make_gif', 'plot_moonfp', 'plot_regions', 'plot_polar', 
-    'prep_polarfits', 'powercalc', 'plotcontours', 'pathtest', 'generate_contours', 
-    'identify_contour', 'plot_contourpoints', 'save_contour', 'KERNELDIR', 
-    'FITSINDEX', 'GHROOT', 'DATADIR', 'PYDIR', 'PKGDIR',]
+__all__ =   ['cvis','extensions','stats','transforms',
+            ]+['utils',
+              'fpath', 'fitsheader', 'ensure_dir', 'fits_from_glob', 'hst_fitsfile_paths', 
+                     'group_to_visit', 'visit_to_group', 'hst_segmented_paths', 'hdulinfo'
+            ]+['time',
+                'get_obs_interval', 'get_datetime', 'get_datetime_interval', 'get_timedelta', 
+                'datetime_to_yrdoysod', 'yrdoysod_to_datetime', 'get_data_over_interval'
+            ]+['polar',
+                'moind', 'make_gif', 'plot_moonfp', 'plot_regions', 'plot_polar', 
+                        'prep_polarfits'
+            ]+['cvis',
+                'pathtest', 'generate_contours', 'identify_contour', 
+                    'plot_contourpoints', 'save_contour'
+            ]+['power',
+                'powercalc'
+            ]+['const',
+                'KERNELDIR', 'FITSINDEX', 'GHROOT', 'DATADIR', 'PYDIR', 'PKGDIR'
+            ]
 AUTHORS = {
     'Will Roscoe': '@will-roscoe',
     'Samuel Courthold': '@samoo2000000',

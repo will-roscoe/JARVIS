@@ -1,18 +1,13 @@
 """
 This module contains the headless functions to generate contour paths from fits files via openCV.
 """
-
-
-
 import random
-
 import numpy as np
 import matplotlib.pyplot as plt
 import cmasher as cmr
 import cv2
-
-
-from .utils import fitsheader, fpath, mcolor_to_lum, adapted_fits, assign_params,  filename_from_path, hst_fitsfile_paths
+import os
+from .utils import fitsheader, fpath, mcolor_to_lum, adapted_hdul, assign_params,  filename_from_path, hst_fitsfile_paths
 from .polar import plot_polar, prep_polarfits
 from astropy.io import fits
 from astropy.table import Table
@@ -99,7 +94,7 @@ def imagexy(fits_obj: fits.HDUList, ax_background='white',img_background='black'
     fig.savefig(tempdir, dpi=dpi)
     plt.close()
     img = crop_to_axes(tempdir,ax_background=ax_background,img_background=ax_background) if crop else cv2.imread(tempdir)
-    #os.remove(tempdir)
+    os.remove(tempdir)
     return img
 
 def generate_coadded_fits(fits_objs,saveto=None, gaussian=(3,1), overwrite=True,indiv=True,coadded=True):
@@ -120,7 +115,7 @@ def generate_coadded_fits(fits_objs,saveto=None, gaussian=(3,1), overwrite=True,
     fdatas = [gaussian_blur(fd, *gaussian) for fd in fdatas] if indiv else fdatas
     coaddg = coadd(fdatas)
     coaddg = gaussian_blur(coaddg, 3, 1) if coadded else coaddg
-    cofitsd = adapted_fits(fits_objs[0], new_data=coaddg)
+    cofitsd = adapted_hdul(fits_objs[0], new_data=coaddg)
     if saveto is not None:
         #ensure_dir(saveto)
         cofitsd.writeto(saveto, overwrite=overwrite)

@@ -17,7 +17,8 @@ import numpy as np
 import spiceypy as spice
 from matplotlib import path
 from .const import KERNELDIR, FITSINDEX
-from .utils import fitsheader, get_datetime
+from .utils import fitsheader
+from .time import get_datetime
 
 from typing import Tuple
 #--------------------------------- CONSTANTS ----------------------------------#

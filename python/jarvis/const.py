@@ -1,8 +1,6 @@
 """
 This module contains constants and default values used throughout the project. 
 """
-
-
 from pathlib import Path
 #! defines the project root directory (as the root of the gh repo) 
 GHROOT = Path(__file__).parents[2]

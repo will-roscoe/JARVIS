@@ -17,6 +17,8 @@ table['Time_UT'] = pd.to_datetime(table['Time_UT'], format='%Y-%m-%d-%H:%M:%S.%f
 # plot the table:
 table.plot(x='Time_UT', y='jup_sw_pdyn', title='Solar wind pressure vs Time at Jupiter', xlabel='Time_UT', ylabel='jup_sw_pdyn')
 
+plt.tight_layout
+
 plt.title("Variation in solar wind pressure dynamics at Jupiter over 21 visits")
 plt.xlabel("Date (UT)")
 plt.ylabel("Solar wind pressure dynamics at Jupiter")

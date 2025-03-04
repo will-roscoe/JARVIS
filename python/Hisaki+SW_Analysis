@@ -106,11 +106,22 @@ ax[2].legend()
 
 plt.tight_layout
 
+#current_date = datetime.datetime(2016, 5, 6, 0, 0 ,0)
+#sw_xaxis = np.array([])
+#for p in range(9):
+    #sw_xaxis = np.append(sw_xaxis, current_date + datetime.timedelta(days = 5) * p)
+
+a = table['Time_UT'].to_list()
+
 ax[0].set_xticks(np.arange(0, 86400 * 43 + 1, step = 86400 * 5))
 ax[1].set_xticks(np.arange(0, 86400 * 43 + 1, step = 86400 * 5))
+ax[2].set_xticks(a[0::24*5])
 
 ax[0].xaxis.set_major_formatter(plt.FuncFormatter(date_aligner))
 ax[1].xaxis.set_major_formatter(plt.FuncFormatter(date_aligner))
-ax[2].
 
-plt.show()
+
+#plt.show()
+
+#a = table['Time_UT'].to_list()
+#print(len(a))

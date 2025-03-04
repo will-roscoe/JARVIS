@@ -1,9 +1,7 @@
 import numpy as np
 import datetime
 
-init_date = datetime.date(2016,5,6)
-print(init_date)
-init_date = init_date + datetime.timedelta(days = 1)
-print(init_date)
+for i in range(5):
+    print("a")
 
     

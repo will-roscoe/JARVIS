@@ -864,7 +864,7 @@ def pathfinder(fits_dir: HDUList,saveloc=None,show_tooltips=True, headername='BO
         modifiers = bytes((0 for i in range(4))) #caps shift ctrl alt
         kmap = dict(enter='\n',space=' ', tab='\t')
                     
-        __modind = tuple(['caps','shift','ctrl','alt'])
+        _modind = tuple(['caps','shift','ctrl','alt'])
         def __modind(key:str)->int:
             return __modind.index(key) #shouldnt need this, flags are fixed so we can just remember the order, is less readable though
         def __getmod(ind:int)->bool:
@@ -895,7 +895,7 @@ def pathfinder(fits_dir: HDUList,saveloc=None,show_tooltips=True, headername='BO
                     notebox.set(bbox=dict(facecolor='#fff0',edgecolor='#fff0'),color='#fff0')
                     noteax.set(facecolor='#fff0')
                     REGISTER_KEYS = True
-                elif event.key in __modind: #process modifiers
+                elif event.key in _modind: #process modifiers
                     __setmod(__modind(event.key), True)
                 else: #process the keypress if not modifier or exit key
                     if notebox.zorder < ax.zorder:
@@ -1045,7 +1045,7 @@ def pathfinder(fits_dir: HDUList,saveloc=None,show_tooltips=True, headername='BO
         def __on_key_release_event(event):
             pass
             # global modifiers
-            # if event.key in __modind:
+            # if event.key in _modind:
             #     __setmod(__modind(event.key), False)
 
         def __show_key_menu(_):

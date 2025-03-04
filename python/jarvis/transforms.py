@@ -3,7 +3,7 @@ import numpy as np
 from scipy.signal import convolve2d
 from astropy.io.fits import HDUList
 from .const import FITSINDEX
-from .utils import fitsheader, adapted_hdul
+from .utils import fitsheader, adapted_hdul, yrdoysod_to_datetime
 
 ##########################################################################################################
 #                            COORDINATE SYSTEM TRANSFORMS
@@ -128,3 +128,5 @@ def align_cmls(input_fits:list[HDUList], primary_index:int)-> list[HDUList]:
     dwidths =[int(d/360*width) for d in diffs] # index/pixel differences
     aligned = [np.roll(f[FITSINDEX].data, d, axis=1) for f,d in zip(input_fits,dwidths)] # roll each image
     return [adapted_hdul(f,new_data=arr) for f,arr in zip(input_fits,aligned)] # return new fits objects.
+
+

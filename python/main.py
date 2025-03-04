@@ -3,6 +3,7 @@
 import datetime
 import os
 import matplotlib as mpl
+from sympy import fft
 mpl.use('qtagg') # forces the use of the Qt5/6 backend, neccessary for pathfinder
 from jarvis import fpath
 from jarvis.extensions import pathfinder
@@ -103,22 +104,47 @@ if __name__ == '__main__': # __name__ is a special,file-unique variable that is 
     #         print(f'No boundary found for group {i}')
 ## loop to generate gaussians of segments of the fits
     fpaths = hst_segmented_paths(2,False)
-# pbar = tqdm(total=len(fpaths), desc='Generating coadded fits')
-# for g,f in fpaths.items():
-#         if any(f'g{grp:0>2}' in g for grp in gps):
-#             copath = fpath(f'datasets/HST/custom/{g}_[3,1]gaussian-coadded.fits')
-#             print(f)
-#             fit = generate_coadded_fits([fits.open(ff) for ff in f], saveto=copath, gaussian=(3,1), overwrite=True,indiv=False, coadded=True)
-#             fit.close()
-#         pbar.update()
-# pbar.close()
+    # pbar = tqdm(total=len(fpaths), desc='Generating coadded fits')
+    # for g,f in fpaths.items():
+    #         if any(f'g{grp:0>2}' in g for grp in gps):
+    #             copath = fpath(f'datasets/HST/custom/{g}_[3,1]gaussian-coadded.fits')
+    #             print(f)
+    #             fit = generate_coadded_fits([fits.open(ff) for ff in f], saveto=copath, gaussian=(3,1), overwrite=True,indiv=True, coadded=True)
+    #             fit.close()
+    #         pbar.update()
+    # pbar.close()
 ## loop to run pathfinder on segments of the fits
-    lrange = (0.25,0.32)
+    # lrange = (0.25,0.32)
 
-    for g in fpaths.keys():
-        copath =fpath(f'datasets/HST/custom/{g}_[3,1]gaussian-coadded.fits')
+    # for g in fpaths.keys():
+    #     #if int(g[1:3]) < 7 or if g=='g07sA':
+    #         copath =fpath(f'datasets/HST/custom/{g}_[3,1]gaussian-coadded.fits')
+    #         if os.path.isfile(copath):
+    #             pt = pathfinder(copath, fixlrange=lrange)
+## loop to run powercalc on segments of the fits
+    for g,fs in fpaths.items():
+        copath = fpath(f'datasets/HST/custom/{g}_[3,1]gaussian-coadded.fits')
         if os.path.isfile(copath):
-            pt = pathfinder(copath, fixlrange=lrange)
+            fit = fits.open(copath)
+            try:
+                cpath = np.array(fit['BOUNDARY'].data.tolist())
+                
+                pbr = tqdm(total=len(fs), desc=f'"powercalc"({g})')
+                for f in fs:
+                    ff = fits.open(f)
+                    pc = powercalc(ff, cpath, writeto=outfile)
+                    pbr.set_postfix_str(f"P={pc[0]:.3f}GW,I={pc[1]*1e8:.3f}x10⁻⁸GW/km²")
+                    pbr.update()
+                    ff.close()
+                pbr.close()
+            except KeyError:
+                fit.close()
+                print(f'No boundary found for {g}')
+
+
+
+
+
 
 
 

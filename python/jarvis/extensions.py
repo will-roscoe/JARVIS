@@ -322,7 +322,7 @@ if FIRST_RUN:
 #FUTURE
 # integrate the hierarchy into the gui
 
-def pathfinder(fits_dir: HDUList,saveloc=None,show_tooltips=True, headername='BOUNDARY',morphex=(cv2.MORPH_CLOSE,cv2.MORPH_OPEN),fixlrange=None, fcmode=cv2.RETR_EXTERNAL, fcmethod=cv2.CHAIN_APPROX_SIMPLE, cvh=False, ksize=5,writeresult=True,**persists):
+def pathfinder(fits_dir: HDUList,saveloc=None,show_tooltips=True, headername='BOUNDARY',morphex=(cv2.MORPH_CLOSE,cv2.MORPH_OPEN),fixlrange=None, fcmode=cv2.RETR_EXTERNAL, fcmethod=cv2.CHAIN_APPROX_SIMPLE, cvh=False, ksize=5,steps=True,**persists):
     """### *JAR:VIS* Pathfinder
     > ***Requires PyQt6 (or PyQt5)***
 
@@ -342,6 +342,8 @@ def pathfinder(fits_dir: HDUList,saveloc=None,show_tooltips=True, headername='BO
         These may be changed during the session using the GUI buttons.
     """
     use('QtAgg')
+    global save_arrays
+    save_arrays = dict()
     global G_fits_obj#:HDUList
     G_fits_obj = fopen(fits_dir, 'update')
     fontManager.addfont(fpath('python/jarvis/resources/FiraCodeNerdFont-Regular.ttf'))
@@ -352,6 +354,8 @@ def pathfinder(fits_dir: HDUList,saveloc=None,show_tooltips=True, headername='BO
         #generate a stripped down, grey scale image of the fits file, and make normalised imagempl.rcParams['toolbar'] = 'None'
         proc =prep_polarfits(assign_params(G_fits_obj, fixed='LON', full=True))
         img = imagexy(proc, cmap=cmr.neutral, ax_background='white', img_background='black') 
+        if steps:
+            save_arrays['img_0.png'] = img.copy()
         oldlen = len(G_fits_obj)
         global show_mask, G_clicktype, G_path, G_headername, G_show_tooltips, G_morphex, G_fcmode, G_fcmethod, G_cvh, G_ksize, falsecolor, G_fixrange, REGISTER_KEYS,cl
         REGISTER_KEYS = True # control whether to listen for keypresses and run each key's function, set to False when we are in a text box.
@@ -374,6 +378,7 @@ def pathfinder(fits_dir: HDUList,saveloc=None,show_tooltips=True, headername='BO
         global G_ofixrange#:list[float]|None
         G_ofixrange = G_fixrange
         normed = cv2.normalize(img, None, 0, 255, cv2.NORM_MINMAX)
+        
         #set up global variables needed for the click event and configuration options
         global imarea#:float
         imarea = (np.pi*(normed.shape[0]/2)**2)/2 
@@ -534,6 +539,8 @@ def pathfinder(fits_dir: HDUList,saveloc=None,show_tooltips=True, headername='BO
                 a.clear()
                 a.set_facecolor(__get_bg(a))
             ax.imshow(normed, cmap=cmap_cycler[falsecolor], zorder=0)
+            if steps:
+                save_arrays['img_1.png'] = normed.copy()
             if len (id_pixels) > 0:
                 pxsc = [idpixels[0] for idpixels in id_pixels], [idpixels[1] for idpixels in id_pixels]
                 ax.scatter(*pxsc, **_idpxkws)
@@ -546,12 +553,16 @@ def pathfinder(fits_dir: HDUList,saveloc=None,show_tooltips=True, headername='BO
                     lrange = [min(*[c[0] for c in clicked_coords], *lrange), max(*[c[0] for c in clicked_coords], *lrange)]
 
                 mask = cv2.inRange(normed, lrange[0]*255, lrange[1]*255)
+                if steps:
+                    save_arrays['img_2.png'] = mask.copy()
                 retattrs.update({'LMIN':lrange[0], 'LMAX':lrange[1]})
                 retattrs.update({"LMETHOD":'FIXEDL' if lrange==G_fixrange else 'IDPX'})
                 # smooth out the mask to remove noise
                 kernel = np.ones((G_ksize, G_ksize), np.uint8)  # Small kernel to smooth edges
-                for morph in G_morphex:
+                for i,morph in enumerate(G_morphex):
                     mask = cv2.morphologyEx(mask, morph, kernel)
+                    if steps:
+                        save_arrays[f'img_2_{i}.png'] = mask.copy()
                 if show_mask !=0:
                     a = 0.5 if show_mask in [1,3,5] else 1
                     cmap = cmr.neutral if show_mask in [1,2] else cmr.neutral_r if show_mask in [3,4] else cmr.neon
@@ -627,6 +638,9 @@ def pathfinder(fits_dir: HDUList,saveloc=None,show_tooltips=True, headername='BO
                 linfax.clear()
                 linfax.text(0.5, 0.5, 'Select at least 2 or more\nLuminosity Samples', fontsize=8, color='black', ha='center', va='center')
                 lax.set_facecolor(__get_bg(ax))
+            if steps:
+                fig.savefig(fpath('figures/img_3.png'))
+                
             fig.canvas.draw()
             fig.canvas.flush_events()
         #config gui elements
@@ -665,7 +679,9 @@ def pathfinder(fits_dir: HDUList,saveloc=None,show_tooltips=True, headername='BO
                     pathfinder(saveloc, None, G_morphex, G_fcmode, G_fcmethod
                                     , G_cvh, G_ksize,persists={'clicked_coords':clicked_coords, 'id_pixels':id_pixels, 'G_clicktype':G_clicktype, 'G_path':G_path})
                 else:
-                    
+                    if steps:
+                        for k,v in save_arrays.items():
+                            cv2.imwrite(fpath(f'figures/{k}'), v)
                     #gcopy = G_fits_obj.copy()
                     nhattr = retattrs
                     nhattr |=dict()

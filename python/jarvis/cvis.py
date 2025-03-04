@@ -95,6 +95,7 @@ def imagexy(fits_obj: fits.HDUList, ax_background='white',img_background='black'
     plt.close()
     img = crop_to_axes(tempdir,ax_background=ax_background,img_background=ax_background) if crop else cv2.imread(tempdir)
     os.remove(tempdir)
+    cv2.imwrite("temp/temp_Crop.png",img)
     return img
 
 def generate_coadded_fits(fits_objs,saveto=None, gaussian=(3,1), overwrite=True,indiv=True,coadded=True):

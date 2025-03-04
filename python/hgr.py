@@ -1,4 +1,5 @@
 
+from math import e
 import numpy as np
 
 import pandas as pd
@@ -7,16 +8,19 @@ import matplotlib as mpl
 from jarvis import  hst_fitsfile_paths, get_obs_interval, fpath, fits_from_glob, get_data_over_interval
 from datetime import datetime
 from astropy.io import fits
+import cmasher as cmr
 
+from jarvis.utils import group_to_visit, yrdoysod_to_datetime
 
-
-infile = fpath('2025-02-28_21-18-05.txt')
+infiles = [fpath('2025-02-28_21-18-05.txt'), fpath('2025-03-03_19-43-52.txt'),fpath('powers.txt')]
 def plot_visits(df, quantity='PFlux',corrected=None,ret='showsavefig',unit=None): #corrected = False, True, None (remove negative values)
     df['EPOCH'] = pd.to_datetime(df['Date'] + ' ' + df['Time'])
-    df['color'] = df[quantity].apply(lambda x: 'r' if x < 0 else 'b')
+    df = df.sort_values(by='EPOCH')
+    if 'color' not in df.columns:
+        df['color'] = df[quantity].apply(lambda x: 'r' if x < 0 else 'b')
     corr_df = df.copy()
     if corrected is True:
-        corr_df[quantity] = df[quantity].where(df[quantity] > 0, 0)
+        corr_df[quantity] = df[quantity].where(df[quantity] > 0, 0,)
     elif corrected is None:
         corr_df[quantity] = df[quantity].where(df[quantity] > 0, np.nan)
     visits = df['visit'].unique()
@@ -33,12 +37,13 @@ def plot_visits(df, quantity='PFlux',corrected=None,ret='showsavefig',unit=None)
         J += 1
 
     print(f'J={J}, I={I}')
-    gs = fig.add_gridspec(J+1,I,  height_ratios=[3,*[1 for _ in range(J)]])#hspace=0,wspace=0,
-    main_ax = fig.add_subplot(gs[0, :])
+    gs= fig.add_gridspec(2,1,  height_ratios=[4,5],hspace=0.5,wspace=0.1)#hspace=0,wspace=0,
+    mgs = gs[1].subgridspec(J,I,  height_ratios=[1 for _ in range(J)])#hspace=0,wspace=0,
+    main_ax = fig.add_subplot(gs[0])
     main_ax.xaxis.set_major_locator(mpl.dates.DayLocator(interval=2))
     main_ax.xaxis.set_major_formatter(mpl.dates.DateFormatter('%d/%m/%y'))
     main_ax.xaxis.set_minor_locator(mpl.dates.DayLocator(interval=1))
-    axs = [[fig.add_subplot(gs[j+1, i],label=f'v{visits[i+I*j]}') for i in range(I)] for j in range(J)]        
+    axs = [[fig.add_subplot(mgs[j,i],label=f'v{visits[i+I*j]}') for i in range(I)] for j in range(J)]        
     for f in fitsdirs:
         mind,maxd=get_obs_interval(f)
         mind = pd.to_datetime(mind)
@@ -92,14 +97,155 @@ def plot_visits(df, quantity='PFlux',corrected=None,ret='showsavefig',unit=None)
         plt.show()
     if 'fig' in ret:
         return fig
-print(infile)
-df=pd.read_csv(infile, sep= ' ',index_col=False, names=['visit', 'Date', 'Time', 'Power', 'PFlux', 'Area'])
-plot_visits(df, 'PFlux', unit='GW/km²')
-plot_visits(df, 'Power', unit='GW')
-plot_visits(df, 'Area', unit='km²')
 
-testfits = fits.open(fpath('datasets/HST/group_13/jup_16-148-17-19-53_0100_v16_stis_f25srf2_proj.fits'))
-table = get_data_over_interval(fits_from_glob(fpath("datasets/Hisaki/Torus Power/")), [datetime(2015,1,1), datetime(2017,1,1)], )
-df = table.to_pandas()
-df.plot(x='EPOCH',y='TPOW0710ADAWN')
+def plot_visits_multi(dfs, quantity='PFlux',corrected=False,ret='showsavefig',unit=None,figure=None): #corrected = False, True, None (remove negative values)
+    corr_,visits_ = [], []
+    for df in dfs:
+        df['EPOCH'] = pd.to_datetime(df['Date'] + ' ' + df['Time'])
+        df = df.sort_values(by='EPOCH')
+        if 'color' not in df.columns:
+            df['color'] = df[quantity].apply(lambda x: 'r' if x < 0 else 'b')
+        visits = df['visit'].unique()
+        corr_.append(df)
+        visits_.append(visits)
+    visits = set()
+    for visit in visits_:
+        for v in visit:
+            if not any(v==u for u in visits):
+                visits.update({v})
+    df = dfs[0].copy()
+    for i,df_ in enumerate(dfs[1:]):
+        df = pd.merge(df, df_, how='outer', on=['visit', 'Date', 'Time', 'Power', 'PFlux', 'Area', 'EPOCH', 'color'], suffixes=('', f'_{i+1}'))
+ 
+    fitsdirs = hst_fitsfile_paths()[:-1]
+    # this generates the grid dimensions based on the number of visits and a maximum of 8 columns
+    N = len(visits)
+    #J = 1
+    for pI in [5,6,7,4,8]:
+        if N%pI==0:
+            I,J = pI, N//pI
+            break
+    else:
+        for pI in [5,6,7,4,8]:
+            if N%pI<pI//2:
+                I,J = pI+1, N//pI
+                break
+        else:
+            I,J = N//2+1, 2
+    print(f'{J=}, {I=}, {visits=}')
+    fig = plt.figure(figsize=(19.2,10.8), dpi=70) if figure is None else figure
+   
+    gs=fig.add_gridspec(2,1,  height_ratios=[4,5],hspace=0.1)#hspace=0,wspace=0,
+
+    main_ax = fig.add_subplot(gs[0])
+    main_ax.xaxis.set_major_locator(mpl.dates.DayLocator(interval=2))
+    main_ax.xaxis.set_major_formatter(mpl.dates.DateFormatter('%d/%m/%y'))
+    main_ax.xaxis.set_minor_locator(mpl.dates.DayLocator(interval=1))
+    uniquevisits = []
+    for f in fitsdirs:
+        mind,maxd=get_obs_interval(f)
+        mind = pd.to_datetime(mind)
+        maxd = pd.to_datetime(maxd)
+        # span over the interval
+        fvisit = group_to_visit(int(f.split('_')[-1][:2]))
+        if fvisit in visits:
+            col = '#aaa'
+            main_ax.annotate(f'v{fvisit}', xy=(mind, 0), xytext=(mind, 0), fontsize=10, color='black', va='top', ha='right',rotation=90)
+            uniquevisits.append(fvisit)
+        else:
+            col = '#aaa5'
+        main_ax.axvspan(mind,maxd,  alpha=0.5, color=col)
+    
+    mgs = gs[1].subgridspec(J,I,  height_ratios=[1 for _ in range(J)])#hspace=0,wspace=0,
+    axs = [[fig.add_subplot(mgs[j, i],label=f'v{uniquevisits[i+I*j]}') if i+I*j<N else None for i in range(I) ] for j in range(J)]        
+
+    for cdf in corr_:
+        main_ax.scatter(cdf['EPOCH'], cdf[quantity], marker='x',s=5, c=cdf['color'])
+    ranges = {}
+    main_ax.xaxis.tick_top()
+    for i in range(I):
+        for j in range(J):
+            if i+I*j<N:
+                for cdf in corr_:
+                    dfa = cdf.loc[cdf['visit'] == uniquevisits[i+I*j]]
+                    if not dfa.empty:
+                        #axs[j][i].plot(dfa['EPOCH'], dfa[quantity], color=dfa['color'].tolist()[0], linewidth=0.5)
+                        axs[j][i].scatter(dfa['EPOCH'], dfa[quantity], marker='.',s=5, color=dfa['color'].tolist()[0])
+                axs[j][i].yaxis.set_major_formatter(mpl.ticker.ScalarFormatter())
+                idfint = df.where(df['visit'] == uniquevisits[i+I*j])
+                dmax,dmin =[idfint['EPOCH'].max(),idfint['EPOCH'].min()]
+                delta = (dmax-dmin)          
+                axs[j][i].set_xlim([dmin-0.01*delta, dmax+0.01*delta])
+                axs[j][i].xaxis.set_major_locator(mpl.dates.MinuteLocator(interval=int(np.floor((delta.total_seconds()/60)/3))))
+                axs[j][i].xaxis.set_major_formatter(mpl.dates.DateFormatter('%H:%M'))
+                axs[j][i].annotate(f'v{uniquevisits[i+I*j]}'
+                                ,xy=(0, 1), xycoords='axes fraction',
+            xytext=(+0.5, -0.5), textcoords='offset fontsize',
+            fontsize='medium', verticalalignment='top',weight='bold',
+            bbox=dict(facecolor='#0000', edgecolor='none', pad=3.0))
+                axs[j][i].annotate(f'{dmin.strftime("%d/%m/%y")}',xy=(1, 1), xycoords='axes fraction',
+            xytext=(-0.05, +0.1), textcoords='offset fontsize',
+            fontsize='medium', verticalalignment='bottom',horizontalalignment='right', annotation_clip=False,
+            bbox=dict(facecolor='#0000', edgecolor='none', pad=3.0))
+                axs[j][i].tick_params(axis='both',pad=0)
+                qmin,qmax = [idfint[quantity].min(),idfint[quantity].max()]
+                axs[j][i].set_ylim([max(0,qmin-0.1*(qmax-qmin)), min(qmax+0.1*(qmax-qmin), df[quantity].max())])
+                ranges[i+I*j] = dmin,dmax, qmin,qmax
+                
+
+    arr = []
+    for i,[dmn,dmx,mn,mx] in ranges.items():
+        arr.extend([[dmn, mn,mx], [dmx, mn,mx]])
+    mmdf = pd.DataFrame(arr, columns=['EPOCH', 'min', 'max'])
+    mmdf.dropna(inplace=True)
+
+    mmdf.sort_values(by=['EPOCH'], inplace=True)
+    main_ax.fill_between(mmdf['EPOCH'], mmdf['min'], mmdf['max'], color='#aaa5', alpha=0.5, interpolate=True)
+    for j in range(J):
+        axs[j][0].set_ylabel(f'{quantity}'+(f' [{unit}]' if unit else ''))
+    main_ax.set_ylabel(f'{quantity}'+(f' [{unit}]' if unit else ''))
+    main_ax.set_ylim([0, df[quantity].max()])
+    
+    main_ax.set_title(f'{quantity} over visits {df['visit'].min()} to {df['visit'].max()}', fontsize=20)
+    if 'save' in ret:
+        if figure is None:
+            plt.savefig(fpath(f'figures/imgs/{quantity}_{datetime.now().strftime("%Y-%m-%dT%H-%M-%S")}.png'))
+    if 'show' in ret:
+        plt.show()
+    if 'fig' in ret:
+        return fig,main_ax,axs, (df['EPOCH'].min(), df['EPOCH'].max())
+dfs = [pd.read_csv(f, sep= ' ',index_col=False, names=['visit', 'Date', 'Time', 'Power', 'PFlux', 'Area']) for f in infiles]
+clrs = ['r','g','b']#cmr.take_cmap_colors('rainbow', len(dfs), return_fmt='hex')
+for i,d in enumerate(dfs):
+    dfs[i]['color'] = [clrs[i] for _ in range(len(dfs[i]))] 
+fig= plt.figure(figsize=(8,6), constrained_layout=True)
+#subfig = fig.subfigures(1,3, wspace=0, )
+table = get_data_over_interval(fits_from_glob(fpath("datasets/Hisaki/Torus Power/")), get_obs_interval(hst_fitsfile_paths()))
+
+table['DATETIME'] = [yrdoysod_to_datetime(int(y),int(d),int(s)) for y,d,s in zip(table['YEAR'], table['DAYOFYEAR'], table['SECOFDAY'])]
+tdf = table.to_pandas()
+# plot_visits_multi(dfs, 'PFlux', unit='GW/km²',figure=subfig[0], ret='fig')
+# plot_visits_multi(dfs, 'Power', unit='GW', figure=subfig[1], ret='fig')
+# plot_visits_multi(dfs, 'Area', unit='km²', figure=subfig[2], ret='fig')
+fig,ax,axs,lims=plot_visits_multi(dfs, 'PFlux', unit='GW/km²',figure=fig,ret='fig')
+axt = ax.twinx()
+axt.plot(tdf['DATETIME'], tdf['TPOW0710ADAWN'], color='magenta', linewidth=0.5)
+for m in axs:
+    for a in m:
+        ax0t = a.twinx()
+        ax0t.plot(tdf['DATETIME'], tdf['TPOW0710ADAWN'], color='magenta', linewidth=0.5)
+#print(lims, t, table.columns)
+
+
+
+
 plt.show()
+
+    # testfits = fits.open(fpath('datasets/HST/group_13/jup_16-148-17-19-53_0100_v16_stis_f25srf2_proj.fits'))
+    # 
+    # df = table.to_pandas()
+    # df.plot(x='EPOCH',y='TPOW0710ADAWN')
+    # plt.show()
+    
+    #get the first color value:
+

@@ -255,12 +255,12 @@ class Generator(ScriptLike):
     def gaussians(self,args=None):
         """Generate Gaussian fits from FITS files"""
         from jarvis.cvis import generate_coadded_fits
-        from jarvis.utils import hst_fitsfile_paths, filename_from_hdul
-        fpaths = hst_fitsfile_paths()
+        from jarvis.utils import hst_fpath_list, filename_from_hdul
+        fpaths = hst_fpath_list()
         for i in tqdm(fpaths):
             fitsg = fits_from_glob(i)
             copath = fpath(f'datasets/HST/custom/{filename_from_hdul(i)}_coadded_gaussian.fits')
-            fit = generate_coadded_fits(fitsg, saveto=copath, gaussian=(3,1), overwrite=False,indiv=False, coadded=True)
+            fit = generate_coadded_fits(fitsg, saveto=copath, kernel_params=(3,1), overwrite=False,indiv=False, coadded=True)
             fit.close()
 
 class Tidy(ScriptLike):
@@ -272,12 +272,7 @@ class Tidy(ScriptLike):
             parser.add_argument("--dir", type=str, nargs='+',required=False, default='NONE', help="directory to search for fits files")
             args = parser.parse_args()
         if args is not None:
-            normaldirs = ["datasets/*","python/*","figures/*",".*/*", ]
-            #walk through the directories and remove all files that are not in the normaldirs list
-            for d in normaldirs:
-                for f in os.listdir(fpath(d)):
-                    if f not in normaldirs:
-                        os.remove(fpath(f"{d}/{f}"))
+  
             
             super().__init__(args)
     

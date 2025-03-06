@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 import matplotlib as mpl
-from jarvis import  hst_fitsfile_paths, get_obs_interval, fpath, fits_from_glob, get_data_over_interval
+from jarvis import  hst_fpath_list, get_obs_interval, fpath, fits_from_glob, get_data_over_interval
 from datetime import datetime
 from astropy.io import fits
 import cmasher as cmr
@@ -24,7 +24,7 @@ def plot_visits(df, quantity='PFlux',corrected=None,ret='showsavefig',unit=None)
     elif corrected is None:
         corr_df[quantity] = df[quantity].where(df[quantity] > 0, np.nan)
     visits = df['visit'].unique()
-    fitsdirs = hst_fitsfile_paths()[:-1]
+    fitsdirs = hst_fpath_list()[:-1]
     fig=plt.figure(figsize=(19.2,10.8), dpi=70)
 
     # this generates the grid dimensions based on the number of visits and a maximum of 8 columns
@@ -117,7 +117,7 @@ def plot_visits_multi(dfs, quantity='PFlux',corrected=False,ret='showsavefig',un
     for i,df_ in enumerate(dfs[1:]):
         df = pd.merge(df, df_, how='outer', on=['visit', 'Date', 'Time', 'Power', 'PFlux', 'Area', 'EPOCH', 'color'], suffixes=('', f'_{i+1}'))
  
-    fitsdirs = hst_fitsfile_paths()[:-1]
+    fitsdirs = hst_fpath_list()[:-1]
     # this generates the grid dimensions based on the number of visits and a maximum of 8 columns
     N = len(visits)
     #J = 1
@@ -214,13 +214,16 @@ def plot_visits_multi(dfs, quantity='PFlux',corrected=False,ret='showsavefig',un
         plt.show()
     if 'fig' in ret:
         return fig,main_ax,axs, (df['EPOCH'].min(), df['EPOCH'].max())
+
+
+        
 dfs = [pd.read_csv(f, sep= ' ',index_col=False, names=['visit', 'Date', 'Time', 'Power', 'PFlux', 'Area']) for f in infiles]
 clrs = ['r','g','b']#cmr.take_cmap_colors('rainbow', len(dfs), return_fmt='hex')
 for i,d in enumerate(dfs):
     dfs[i]['color'] = [clrs[i] for _ in range(len(dfs[i]))] 
 fig= plt.figure(figsize=(8,6), constrained_layout=True)
 #subfig = fig.subfigures(1,3, wspace=0, )
-table = get_data_over_interval(fits_from_glob(fpath("datasets/Hisaki/Torus Power/")), get_obs_interval(hst_fitsfile_paths()))
+table = get_data_over_interval(fits_from_glob(fpath("datasets/Hisaki/Torus Power/")), get_obs_interval(hst_fpath_list()))
 
 table['DATETIME'] = [yrdoysod_to_datetime(int(y),int(d),int(s)) for y,d,s in zip(table['YEAR'], table['DAYOFYEAR'], table['SECOFDAY'])]
 tdf = table.to_pandas()

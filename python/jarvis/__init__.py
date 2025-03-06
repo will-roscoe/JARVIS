@@ -34,8 +34,8 @@ except:  #noqa: E722
 
 import logging
 import os
-from .utils import (fpath, fitsheader, ensure_dir, fits_from_glob, hst_fitsfile_paths, 
-                     group_to_visit, visit_to_group, hst_segmented_paths, hdulinfo,get_obs_interval, get_datetime, get_datetime_interval, get_timedelta, datetime_to_yrdoysod, yrdoysod_to_datetime, get_data_over_interval)
+from .utils import (fpath, fitsheader, ensure_dir, fits_from_glob, hst_fpath_list, 
+                     group_to_visit, visit_to_group, hst_fpath_segdict, hdulinfo,get_obs_interval, get_datetime, get_datetime_interval, get_timedelta, datetime_to_yrdoysod, yrdoysod_to_datetime, get_data_over_interval)
 
 
 from .polar import (moind, make_gif, plot_moonfp, plot_regions, plot_polar, 

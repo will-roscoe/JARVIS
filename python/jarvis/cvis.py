@@ -7,7 +7,8 @@ import matplotlib.pyplot as plt
 import cmasher as cmr
 import cv2
 import os
-from .utils import fitsheader, fpath, mcolor_to_lum, adapted_hdul, assign_params,  filename_from_path, hst_fitsfile_paths
+
+from .utils import fitsheader, fpath, mcolor_to_lum, adapted_hdul, assign_params,  filename_from_path, hst_fpath_list, get_datetime
 from .polar import plot_polar, prep_polarfits
 from astropy.io import fits
 from astropy.table import Table
@@ -98,7 +99,7 @@ def imagexy(fits_obj: fits.HDUList, ax_background='white',img_background='black'
     cv2.imwrite("temp/temp_Crop.png",img)
     return img
 
-def generate_coadded_fits(fits_objs,saveto=None, gaussian=(3,1), overwrite=True,indiv=True,coadded=True):
+def generate_coadded_fits(fits_objs,saveto=None, kernel_params=(3,1), overwrite=True,indiv=True,coadded=True):
     """Generate a coadded fits file from a list of fits files.
     Args:
     fits_objs: a list of fits objects to coadd
@@ -112,8 +113,8 @@ def generate_coadded_fits(fits_objs,saveto=None, gaussian=(3,1), overwrite=True,
     """
     fdatas = [fits_objs[i][1].data for i in range(len(fits_objs))]
     if saveto == 'auto':
-        saveto = fpath(f'datasets/HST/custom/{filename_from_path(hst_fitsfile_paths)}_coadded_gaussian{gaussian}.fits')
-    fdatas = [gaussian_blur(fd, *gaussian) for fd in fdatas] if indiv else fdatas
+        saveto = fpath(f'datasets/HST/custom/{filename_from_path(hst_fpath_list)}_coadded_gaussian{kernel_params}.fits')
+    fdatas = [gaussian_blur(fd, *kernel_params) for fd in fdatas] if indiv else fdatas
     coaddg = coadd(fdatas)
     coaddg = gaussian_blur(coaddg, 3, 1) if coadded else coaddg
     cofitsd = adapted_hdul(fits_objs[0], new_data=coaddg)

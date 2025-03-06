@@ -93,13 +93,13 @@ def fits_from_glob(fits_dir:str, suffix:str='/*.fits', recursive=True, sort=True
     return [fopen(f) for f in fits_file_list]
 
 
-def hst_fitsfile_paths(sortby='visit', full=False):
+def hst_fpath_list(byvisit='visit', full=False):
     """Convienence function to return a list of file paths for the HST fits files.
     if full is True, returns a list of lists of file paths, else returns a list of file paths."""
     fitspaths = []
     for g in gv_translation['group']:
         fitspaths.append(fpath(f'datasets/HST/group_{g:0>2}'))
-    if sortby == 'visit':
+    if byvisit == 'visit':
         # sort the file paths by their respective visit number
         fitspaths = [fitspaths[i] for i in np.argsort(gv_translation['visit'])]
     if full:
@@ -109,9 +109,9 @@ def hst_fitsfile_paths(sortby='visit', full=False):
     return fitspaths
 
 
-def hst_segmented_paths(segments=4,byvisit=True):
+def hst_fpath_segdict(segments=4,byvisit=True):
     """Returns a dictionary of file paths for the HST fits files, segmented into the specified number subgroups."""
-    fitspaths = hst_fitsfile_paths(full=True)
+    fitspaths = hst_fpath_list(full=True)
     fdict = {}
     for i,f in enumerate(fitspaths,1):
         parts = np.array_split(f, segments)
@@ -122,6 +122,19 @@ def hst_segmented_paths(segments=4,byvisit=True):
             for j,p in enumerate(parts):
                 fdict[f'v{group_to_visit(i):0>2}s{chr(65+j)}'] = p
     return fdict
+
+def hst_fpath_dict(byvisit=True):
+    """Returns a dictionary of file paths for the HST fits files."""
+    fitspaths = hst_fpath_list(full=True)
+    fdict = {}
+    for i,f in enumerate(fitspaths,1):
+        if byvisit:
+            fdict[f'v{group_to_visit(i):0>2}'] = f
+        else:
+            fdict[f'g{i:0>2}'] = f
+    return fdict
+
+
 
 
 

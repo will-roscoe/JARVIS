@@ -135,7 +135,7 @@ pck00011.tpc
 !pictures/**/*.jpg
 !pictures/**/*.png
 !pictures/**/*.gif
-**/custom/*.fits
+datasets/HST/custom/
 
 
 

@@ -1,9 +1,12 @@
 
 
 import datetime
+from math import e
 import os
 import matplotlib as mpl
+from regex import F, P
 from sympy import fft
+from glob import glob
 mpl.use('qtagg') # forces the use of the Qt5/6 backend, neccessary for pathfinder
 from jarvis import fpath
 from jarvis.extensions import pathfinder, extract_conf
@@ -40,38 +43,97 @@ import pandas as pd #noqa: F401
 #print(d)
 
 
-outfile = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + '.txt'
+
 # NOTE: we use this condition to run the code only if it is run as a script to avoid running it when imported, this is best practice.
 if __name__ == '__main__': # __name__ is a special,file-unique variable that is set to '__main__' when the script is run as a script, and set to the name of the module when imported.
-    gps = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20]
+    gps = [1,2,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19]
     #remove 3 (broken), 20 (southern) #group Numbe
 # loop to generate the coadded fits, identify the boundary, and calculate the power
-    # for i in tqdm(gps):
-    #     basefitpath = fpath(f'datasets/HST/group_{i:0>2}') 
-    #     fitsg = fits_from_glob(basefitpath)
-    #     copath = fpath(f'datasets/HST/custom/g{i+1:0>2},v{group_to_visit(i+1):0>2}_[3,1]gaussian-coadded.fits')
-    #     fit = generate_coadded_fits(fitsg, saveto=copath, gaussian=(3,1), overwrite=True,indiv=False, coadded=True)
-    #     #fit.info()
-    #     fit.close()
-    #     pt = pathfinder(copath)
-    #     fit = fits.open(copath)
-    #     #fit.info()
-    #     # print(*[fi for fi in f], sep='\n')
-    #     #print(*[f.fileinfo(i) for i in range(len(f))], sep='\n')
-    #     #f.info()
-    #     try:
-    #         path = np.array(fit['BOUNDARY'].data.tolist())
-    #         fit.close()
-    #         pbr = tqdm(total=len(fitsg), desc=f'"powercalc"(group {i} of {len(gps)})')
-    #         for j,f in enumerate(fitsg):
-    #             pc = powercalc(f,path)
-    #             pbr.set_postfix_str(f"P={pc[0]:.3f}GW,I={pc[1]*1e8:.3f}x10⁻⁸GW/km²")
-    #             pbr.update()
-    #             f.close()
-    #         pbr.close()
-    #     except KeyError:
-    #         fit.close()
-    #         print(f'No boundary found for group {i}')
+    #fpaths = hst_fpath_segdict(2,False)
+    fpaths = hst_fpath_dict(byvisit=True) 
+    fsegs = hst_fpath_segdict(2,False)
+    favgs = dict()
+    avgsdir = fpath('datasets/HST/custom/rollavgs')
+    coaddir = fpath('datasets/HST/custom/coadds')
+
+    #! First generate coadds in each segment
+    # copaths = []
+    # ensure_dir(coaddir)
+    # for visit,fitpaths in fsegs.items():
+    #     path = coaddir+"/"+visit +".fits"
+    #     fobj = generate_coadded_fits([fits.open(fp) for fp in fitpaths], saveto=path, kernel_params=(3,1), overwrite=True,indiv=False, coadded=True)
+    #     fobj.close()
+    #     copaths.append([visit, path])
+    # #! then run pathfinder on each segment.
+    # for [visit,copath] in copaths:
+    #     ret = pathfinder(copath, steps=False)
+    #     if ret[0]:
+    #         print(f"Pathfinder succeeded on {copath=}")
+    #     else:
+    #         print(f"Pathfinder failed on {copath=}")
+    #         copaths.remove(copath) 
+    # #! generate rolling averages of the fits, in their respective groups, and then save and split them into their respective segments
+    # pbar = tqdm(total=len(fpaths), desc='Generating coadded fits')
+    avgpaths = dict()
+    for k,f in fpaths.items():
+    #     # from fsegs identify the "visit" key that contains the fits obj
+    #     # then turn into the correct dir 
+    #     fitsobjs = generate_rollings([fits.open(ff) for ff in f], kernel_params=(3,1),indiv=True, coadded=True)
+        
+        for i in range(len(f)):
+    #         fobj = fitsobjs[i]
+            initpath = f[i]
+            visit = None
+            for key, value in fsegs.items():
+                if initpath in value:
+                    visit = key
+                    break
+            avgpath = avgsdir+f"/{visit}/"+initpath.split("/")[-1].split("\\")[-1] 
+            if visit in avgpaths:
+                avgpaths[visit] = avgpaths[visit] + [avgpath]
+            else:
+                avgpaths[visit] = [avgpath]
+    #             ensure_dir(avgsdir+f"/{visit}")
+    #         fobj.writeto(avgpath, overwrite=True)
+    #         fobj.close()
+    #     pbar.update()
+    # pbar.close()
+    #! using each pathed coadded fit, run pathfinder with conf, in silent mode, and then run powercalc. 
+    failed = []
+    pbarr = tqdm(total=len(avgpaths.keys()), desc="powergen")
+    outfile = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + '.txt'
+    open(outfile, 'w').close()
+    for visit,fitspaths in avgpaths.items():
+                copath = coaddir+"/"+visit +".fits"
+            
+            
+                fit =fits.open(copath)
+                if 'BOUNDARY' in fit:
+                    conf = extract_conf(fit['BOUNDARY'].header,ignore=('LUMXY'))
+                    fit.close()
+                    pbr = tqdm(total=len(fitspaths), desc=visit)
+                    for j,f in enumerate(fitspaths):
+                        pf = pathfinder(f, fixlrange=(max(conf['LMIN']-0.2,0.05),conf['LMAX']), steps=False,show=False,conf=conf)
+                        path = pf[1]
+                        if pf[0]:
+                            pc = powercalc(fits.open(f),path, writeto=outfile)
+                            pbr.set_postfix_str(f"P={pc[0]:.3f}GW,I={pc[1]*1e8:.3f}x10⁻⁸GW/km²")
+                        else:
+                            failed.append([f,copath,path]) # this is a list of paths that failed pathfinder.
+                        pbr.update()
+                        fit.close()
+                    pbr.close()
+                else:
+                    fit.close()
+                    tqdm.write(f'No boundary found for {visit=!s}')
+                pbarr.update()
+    pbarr.close()
+    for file in failed:
+        print(f"failed on: {rpath(file[0])} using {rpath(file[1])} config: {file[2]}")
+    print(f"{len(failed)=}")
+        # except KeyError:
+        #    fit.close()
+        #    print(f'No boundary found for {visit=}')
 # loop to only generate the gaussians ----------------------------------------
 #     for i in tqdm(gps):
 #         basefitpath = fpath(f'datasets/HST/group_{i:0>2}') 
@@ -103,15 +165,14 @@ if __name__ == '__main__': # __name__ is a special,file-unique variable that is 
     #         fit.close()
     #         print(f'No boundary found for group {i}')
 ## loop to generate gaussians of segments of the fits
-    fpaths = hst_segmented_paths(2,False)
+
     # pbar = tqdm(total=len(fpaths), desc='Generating coadded fits')
-    # for g,f in fpaths.items():
-    #         if any(f'g{grp:0>2}' in g for grp in gps):
-    #             copath = fpath(f'datasets/HST/custom/{g}_[3,1]gaussian-coadded.fits')
-    #             print(f)
-    #             fit = generate_coadded_fits([fits.open(ff) for ff in f], saveto=copath, gaussian=(3,1), overwrite=True,indiv=True, coadded=True)
-    #             fit.close()
-    #         pbar.update()
+    # for k,f in fpaths.items():
+    #     fitsobjs = generate_rollings([fits.open(ff) for ff in f], kernel_params=(3,1),indiv=True, coadded=True)
+    #     ensure_dir(savedir+f'/{k}')
+    #     for i,ff in enumerate(fitsobjs):
+    #         ff.writeto(fpath(savedir+f'/{k}/{get_datetime(ff).strftime("%Y_%m_%dT%H_%M_%S")}window3_.fits'), overwrite=True)
+    #     pbar.update()
     # pbar.close()
 ## loop to run pathfinder on segments of the fits
     # lrange = (0.25,0.32)

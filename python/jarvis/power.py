@@ -202,8 +202,9 @@ def powercalc(fits_obj:fits.HDUList, dpr_coords:np.ndarray=None, **kwargs)-> Tup
     llons, llats = np.meshgrid(np.arange(0,360,0.25), np.arange(0,40,0.25)) # checked correct
     dark_mask_2d = dpr_path.contains_points(np.vstack(
         [llats.flatten(), llons.flatten()]).T).reshape(160,1440)#> mask needs to be applied to un-rolled image
+    dark_mask_2d = np.flip(dark_mask_2d, axis=1) #> flip mask vertically to match image
     # --------------- FITS FILE HEADER INFO AND VARIABLE DEFS -----------------#
-    __print(fits_obj.info(output=False))                  #> print file information
+    #__print(fits_obj.info(output=False))                  #> print file information
     #> accessing specific header info entries:
     cml, dece, dist, cts2kr = fitsheader(fits_obj, 'CML','DECE','DIST','CTS2KR')
     #> CML:       Central meridian longitude
@@ -249,10 +250,10 @@ def powercalc(fits_obj:fits.HDUList, dpr_coords:np.ndarray=None, **kwargs)-> Tup
     image_extract[dark_mask_2d==False] = np.nan # noqa: E712
     #> And insert auroral region image back into the full projected image space:
     roi_im_full          = np.zeros((720,1440))        #> new array full of zeros
-    roi_im_full[0:160,:] = image_extract
+    roi_im_full[:160,:] = image_extract
     #> Do the same thing for a full image space ROI mask:
     roi_mask_full          = np.zeros((720,1440))
-    roi_mask_full[0:160,:] = dark_mask_2d
+    roi_mask_full[:160,:] = dark_mask_2d
     #---------------------------- BACK-PROJECTION -----------------------------#
     #> Now at the point we can try back-projecting this projected image mask
     #> (or masked-out image) using the back-project function:

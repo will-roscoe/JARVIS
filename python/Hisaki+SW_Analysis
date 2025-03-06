@@ -42,8 +42,11 @@ torus_counter = 0
 
 aurora_fitspath = glob.glob(r"C:datasets/Hisaki/Aurora Power/*.fits")
 torus_fitspath = glob.glob(r"C:datasets/Hisaki/Torus Power/*.fits")
-aurora_groups_list = aurora_fitspath[2:43]
-torus_groups_list = torus_fitspath[2:43]
+aurora_groups_list = aurora_fitspath[2:41]
+torus_groups_list = torus_fitspath[2:41]
+
+print(aurora_fitspath[2])
+print(aurora_fitspath[41])
 
 aurora_power_all = np.array([])
 aurora_time_all = np.array([])
@@ -112,9 +115,10 @@ plt.tight_layout
     #sw_xaxis = np.append(sw_xaxis, current_date + datetime.timedelta(days = 5) * p)
 
 a = table['Time_UT'].to_list()
+#print(a)
 
-ax[0].set_xticks(np.arange(0, 86400 * 43 + 1, step = 86400 * 5))
-ax[1].set_xticks(np.arange(0, 86400 * 43 + 1, step = 86400 * 5))
+ax[0].set_xticks(np.arange(0, 86400 * 39 + 1, step = 86400 * 5))
+ax[1].set_xticks(np.arange(0, 86400 * 39 + 1, step = 86400 * 5))
 ax[2].set_xticks(a[0::24*5])
 
 ax[0].xaxis.set_major_formatter(plt.FuncFormatter(date_aligner))
@@ -123,5 +127,3 @@ ax[1].xaxis.set_major_formatter(plt.FuncFormatter(date_aligner))
 
 #plt.show()
 
-#a = table['Time_UT'].to_list()
-#print(len(a))

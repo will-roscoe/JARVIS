@@ -24,4 +24,4 @@ plt.xlabel("Date (UT)")
 plt.ylabel("Solar wind pressure dynamics at Jupiter")
 plt.show()  
 
-# from 6/5/16 to 17/6/16
+# from 6/5/6 to 16/6/16

@@ -325,7 +325,6 @@ if FIRST_RUN:
 #FUTURE
 # integrate the hierarchy into the gui
 
-def pathfinder(fits_dir: HDUList,saveloc=None,show_tooltips=True, headername='BOUNDARY',morphex=(cv2.MORPH_CLOSE,cv2.MORPH_OPEN),fixlrange=None, fcmode=cv2.RETR_EXTERNAL, fcmethod=cv2.CHAIN_APPROX_SIMPLE, cvh=False, ksize=5,steps=True,**persists):
 def pathfinder(fits_dir: HDUList,saveloc=None,show_tooltips=True, headername='BOUNDARY',morphex=(cv2.MORPH_CLOSE,cv2.MORPH_OPEN),fixlrange=None, fcmode=cv2.RETR_EXTERNAL, fcmethod=cv2.CHAIN_APPROX_SIMPLE, cvh=False, ksize=5,steps=True,show=True, **persists):
     """### *JAR:VIS* Pathfinder
     > ***Requires PyQt6 (or PyQt5)***

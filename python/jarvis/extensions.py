@@ -1133,6 +1133,238 @@ def pathfinder(fits_dir: HDUList,saveloc=None,show_tooltips=True, headername='BO
         
         return ret
 
+def pathfinder_headless(fits_dir: HDUList,saveloc=None, headername='BOUNDARY',morphex=(cv2.MORPH_CLOSE,cv2.MORPH_OPEN),fixlrange=None, fcmode=cv2.RETR_EXTERNAL, fcmethod=cv2.CHAIN_APPROX_SIMPLE, cvh=False, ksize=5,steps=True, **persists):
+        """### *JAR:VIS* Pathfinder
+        > ***Requires PyQt6 (or PyQt5)***
+
+        A GUI tool to select contours from a fits file. The tool allows the user to select luminosity samples from the image, and then to select a contour that encloses all of the selected samples. The user can then save the contour to the fits file, or to a new file if a save location is provided. The user can also change the morphological operations applied to the mask before finding the contours, the method used to find the contours, the method used to approximate the contours, and whether to use the convex hull of the contours. The user can also change the kernel size for the morphological operations.
+
+        #### Parameters:
+        - `fits_dir`: The fits file to open.
+        - `saveloc`: The location to save the selected contour to. If `None`, the contour will be saved to the original fits file if the user chooses to save it.
+        - `show_tooltips`: Whether to show tooltips when hovering over buttons.
+        - Initial Config Options:
+            - `morphex`: The morphological operations to apply to the mask before finding the contours. Default is `(cv2.MORPH_CLOSE,cv2.MORPH_OPEN)`.
+            - `fcmode`: The method to find the contours. Default is `cv2.RETR_EXTERNAL`.
+            - `fcmethod`: The method to approximate the contours. Default is `cv2.CHAIN_APPROX_SIMPLE`.
+            - `cvh`: Whether to use convex hulls of the contours. Default is `False`.
+            - `ksize`: The kernel size for the morphological operations. Default is `5`.
+
+            These may be changed during the session using the GUI buttons.
+        """
+        global G_fits_obj#:HDUList
+        G_fits_obj = fopen(fits_dir, 'update')
+        #generate a stripped down, grey scale image of the fits file, and make normalised imagempl.rcParams['toolbar'] = 'None'
+        proc =prep_polarfits(assign_params(G_fits_obj, fixed='LON', full=True))
+        img = imagexy(proc, cmap=cmr.neutral, ax_background='white', img_background='black') 
+        if steps:
+            save_arrays['img_0.png'] = img.copy()
+        oldlen = len(G_fits_obj)
+        global show_mask, G_clicktype, G_path, G_headername, G_show_tooltips, G_morphex, G_fcmode, G_fcmethod, G_cvh, G_ksize, falsecolor, G_fixrange, REGISTER_KEYS,cl
+        REGISTER_KEYS = True # control whether to listen for keypresses and run each key's function, set to False when we are in a text box.
+        global FIRST_RUN
+        if True:#FIRST_RUN:
+            G_morphex= [m for m in morphex] #:list[int] # list of activated morphological operations
+            G_fcmode = fcmode #:int # selected contour mode aka cv2.RETR_*
+            G_fcmethod = fcmethod #:int # selected contour method aka cv2.CHAIN_APPROX_*
+            G_cvh= cvh #:bool # whether to use convex hulls of the contours
+            G_ksize = ksize #:int, 2N+1 only # kernel size for morphological operations
+            G_headername = 'BOUNDARY' if headername is None else headername #:str # the selected header name to save the contour to, changeable by the user using the text box
+            G_fixrange= [i for i in fixlrange] if fixlrange is not None else persists.get('fixlrange',None)#:list[float]|None # the fixed luminance range, if any. selected pixels take priority over this range.
+            cl = persists.get('cl', None) # the auto selected contour picker point
+            FIRST_RUN = False
+        global G_ofixrange#:list[float]|None
+        G_ofixrange = G_fixrange
+        normed = cv2.normalize(img, None, 0, 255, cv2.NORM_MINMAX)
+        
+        #set up global variables needed for the click event and configuration options
+        global imarea#:float
+        imarea = (np.pi*(normed.shape[0]/2)**2)/2 
+        global clicked_coords#:list[list[float,list[int]]]
+        clicked_coords= persists.get('clicked_coords', []) # members are of the form [luminance, [x,y]]
+        global id_pixels#:list[list[int]]
+        id_pixels = persists.get('id_pixels', []) # members are of the form [x,y]
+        G_path = persists.get('G_path', None)
+        global retattrs#:dict
+        retattrs = dict(LMIN =-np.inf, LMAX=np.inf, NUMPTS=np.nan, XYA_CT=np.nan, XYA_CTP=np.nan, XYA_IMG=imarea)
+        
+        def __approx_contour_area_pct(contourarea):
+            num = contourarea/imarea * 100
+            if num < 0.01:
+                return f'{num:.2e}%'
+            return f'{num:.2f}%'    
+        # set up the figure and axes
+        
+
+            
+        
+        def __load_conf_output(conf):
+            """Loads the configuration options from a dictionary, decoding the values from integers or binary strings."""
+            global G_morphex, G_fcmode, G_fcmethod, G_cvh, G_ksize
+            G_morphex = [i for i in range(8) if conf['MORPH'][i]=='1'] if 'MORPH' in conf else G_morphex
+            G_fcmode = conf['RETR'] if 'RETR' in conf else G_fcmode
+            G_fcmethod = conf['CHAIN'] if 'CHAIN' in conf else G_fcmethod
+            G_cvh = bool(conf['CVH']) if 'CVH' in conf else G_cvh
+            G_ksize = conf['KSIZE'] if 'KSIZE' in conf else G_ksize
+            #print(G_morphex, G_fcmode, G_fcmethod, G_cvh, G_ksize)
+        def __load_coord_output(conf):
+            """Loads the selected coordinates from a dictionary."""
+            global clicked_coords, id_pixels,cl
+            clicked_coords = [] 
+            id_pixels = []
+            cl = None
+            for k,v in conf.items():
+                if k.startswith('LUMXY'):
+                    lum = float(v.split(',')[0])
+                    x = int(v.split('(')[1].split(',')[0])
+                    y = int(v.split(',')[1].split(')')[0])
+                    clicked_coords.append([lum, [x,y]])
+                elif k.startswith('IDXY'):
+                    xy = v.replace('(','').replace(')','').split(',')
+                    id_pixels.append([int(xy[0]),int(xy[1])])
+                elif k == 'AUTOCL':
+                    xy = v.replace('(','').replace(')','').split(',')
+                    cl = [int(xy[0]),int(xy[1])]
+            #print(clicked_coords, id_pixels,cl)
+        def __generate_conf_output():
+            """Returns the current configuration options in a dictionary, encoding the values as integers or binary strings to save to the fits file."""
+            global G_morphex, G_fcmode, G_fcmethod, G_cvh, G_ksize
+            m_ = [0,]*8
+            for m in G_morphex:
+                m_[m]=1
+            m_ = "".join([str(i) for i in m_])
+            return dict(MORPH=m_, RETR=G_fcmode, CHAIN=G_fcmethod, CVH=int(G_cvh), KSIZE=G_ksize, CONTTIME=datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+        def __generate_coord_output():
+            """Returns the current selected coordinates to save to the fits file."""
+            global clicked_coords, id_pixels,cl
+            ret = dict()
+            for i, coord in enumerate(clicked_coords):
+                ret[f'LUMXY_{i}'] = f"{coord[0]:.3f},({coord[1][0]},{coord[1][1]})"
+            for i, coord in enumerate(id_pixels):
+                ret[f'IDXY_{i}'] = f"({coord[0]},{coord[1]})"
+            if  cl is not None:
+                ret['AUTOCL'] = f"({cl[0]},{cl[1]})"
+            return ret
+        def __load_conf(conf):
+            """Loads the configuration and selected coordinates from a dictionary."""
+            __load_conf_output(conf)
+            __load_coord_output(conf)
+            global G_fixrange
+            G_fixrange = [float(conf['LMIN']), float(conf['LMAX'])] if 'LMIN' in conf else G_fixrange
+            __redraw_main(None)
+                
+            
+            
+        #main update function
+        def __redraw_main(_):
+            global id_pixels, G_clicked_coords, G_morphex, G_fcmode, G_fcmethod, G_cvh, G_ksize, G_path, retattrs,  show_mask, falsecolor, G_fixrange,cl
+            #debug print(cl)
+            if steps:
+                save_arrays['img_1.png'] = normed.copy()
+            if len(clicked_coords) >1 or G_fixrange is not None:
+                lrange = G_fixrange[0:2] if G_fixrange is not None else (0,1)
+                if len(clicked_coords) >1:
+                    lrange = [min(*[c[0] for c in clicked_coords], *lrange), max(*[c[0] for c in clicked_coords], *lrange)]
+
+                mask = cv2.inRange(normed, lrange[0]*255, lrange[1]*255)
+                if steps:
+                    save_arrays['img_2.png'] = mask.copy()
+                retattrs.update({'LMIN':lrange[0], 'LMAX':lrange[1]})
+                retattrs.update({"LMETHOD":'FIXEDL' if lrange==G_fixrange else 'IDPX'})
+                # smooth out the mask to remove noise
+                kernel = np.ones((G_ksize, G_ksize), np.uint8)  # Small kernel to smooth edges
+                for i,morph in enumerate(G_morphex):
+                    mask = cv2.morphologyEx(mask, morph, kernel)
+                    if steps:
+                        save_arrays[f'img_2_{i}.png'] = mask.copy()
+                # find the contours of the mask
+                contours, hierarchy = cv2.findContours(image=mask, mode=G_fcmode, method=G_fcmethod)
+                if G_cvh: # Convex hull of the contours which reduces the complexity of the contours
+                    contours = [cv2.convexHull(cnt) for cnt in contours]
+                sortedcs = sorted(contours, key=lambda x: cv2.contourArea(x))
+                sortedcs.reverse()
+            
+                #------- Contour Selection -------#
+                if len(id_pixels) > 0 or  isinstance(cl,(list,tuple)): # if an id_pixel is selected, find the contour that encloses it
+                    selected_contours = []
+                    other_contours = []
+                    if len(id_pixels) > 0: #------------ IDPX METHOD ------------#
+                        for i,contour in enumerate(sortedcs):
+                            if all([cv2.pointPolygonTest(contour, id_pixel, False) > 0 for id_pixel in id_pixels]):  # >0 means inside
+                                selected_contours.append([i,contour])
+                            else:
+                                other_contours.append([i,contour])
+                        #if a contour is found, convert the contour points to polar coordinates and return the
+                
+                    if len(selected_contours) >0:
+                        G_path = selected_contours[0][1]
+                        retattrs.update({'NUMPTS':len(G_path), 'XYA_CT':cv2.contourArea(G_path), 'XYA_CTP':__approx_contour_area_pct(cv2.contourArea(G_path))})
+                    else:
+                        G_path = None
+
+        #config gui elements
+
+        #---- SAVE button ----#
+        
+        def __event_save(event):
+            global G_path, G_fits_obj,retattrs,G_headername
+            if G_path is not None:
+                pth = G_path.reshape(-1, 2)
+                pth = fullxy_to_polar_arr(pth, normed, 40)
+                if steps:
+                    for k,v in save_arrays.items():
+                        cv2.imwrite(fpath(f'figures/{k}'), v)
+                #gcopy = G_fits_obj.copy()
+                nhattr = retattrs
+                nhattr |=dict()
+                nhattr |= __generate_conf_output()
+                nhattr |= __generate_coord_output()
+                nhattr |= {m:fitsheader(G_fits_obj,m) for m in ['UDATE','YEAR','VISIT','DOY']}
+                if G_notes not in ['', None]:
+                    notes = G_notes.replace('\n', " "*32)
+                    notes= "".join([char if ord(char) < 128 else f'\\x{ord(char):02x}' for char in notes])
+                    nhattr['NOTES'] = notes
+                for k,v in nhattr.items():
+                    if v in [np.nan, np.inf, -np.inf]:
+                        raise KeyError(f'Key Mismatch: {v} is not a valid number, please check the value of {k}')
+                header = Header(nhattr)
+                extname = f'{G_headername.upper()}'
+                if extname in [hdu.name for hdu in G_fits_obj]:
+                    ver = max([hdu.ver for hdu in G_fits_obj if hdu.name == extname])+1
+                    ch = contourhdu(pth, name=extname, header=header, ver=ver)
+                else:
+                    ch = contourhdu(pth, name=extname, header=header)
+                G_fits_obj.append(ch)
+                G_fits_obj.flush()
+                assert len(G_fits_obj) == oldlen+1, f"Save Failed: {len(G_fits_obj)} != {oldlen+1}\n"
+                tqdm.write(f"Save Successful, contour added to fits file at index {len(G_fits_obj)-1}")
+            else:
+                tqdm.write("Save Failed: No contour selected to save")
+        if "conf" in persists.keys():
+            __load_conf(persists['conf'])
+        #---- CLICK options ----#
+        __redraw_main(None)
+        if G_path is None:
+            pass
+        else:
+            __event_save(None)
+        if G_path is not None:
+            pth = G_path.reshape(-1, 2)
+            ret=[True, fullxy_to_polar_arr(pth, normed, 40)]
+        else:
+            ret= [False, [__generate_conf_output(), __generate_coord_output()]]
+        if G_notes not in ['', None]:
+            tqdm.write(f'{filename_from_path(fits_dir)}:\n {G_notes}')
+        try:
+            G_fits_obj.close()
+        except: #noqa: E722
+            pass
+
+        
+        return ret
+
+
+
 #------------ QuickPlot Class (for power.py optional plotting) ----------------#
 class QuickPlot:
     """Helper class for plotting image arrays in various formats, used in the power.py module when the plotting flag is set."""

@@ -174,7 +174,8 @@ _cvtrans = {
              "Upper-":          [3,                     '\'','Decrease upper limit '],
              "Reset":           [4,                         'f6','Reset range to initial'],
              "Toggle":          [5,                         'f5','Toggle fixed luminance range'],
-             "Cycle":           [6,                         'f8','Cycle through steps'],}, 
+             "Cycle":           [6,                         'f8','Cycle through steps'],
+}, 
 }      
 stepmap = [0.1,0.05,0.01,0.005,0.001,0.0005,0.0001]     
 HELPKEYS = [k for k in [_cvtrans['TOOLTIP'].get(k,[None,None])[1] for k in ['ONSCREEN','CLI']] if k is not None]
@@ -200,7 +201,8 @@ def __getflagindex(flag:str,label:str):
     '''Returns the correct index of a given label for a given flag'''
     ident = _cvtrans[flag]
     if ident.get('trans',None) is None:
-        return _cvtrans[flag][label][0]
+        #print(f"{ident[label][0]=}")
+        return ident[label][0]
     else:
         v= ident['trans'].index(ident[label][0])
         return v
@@ -226,9 +228,9 @@ def __evalkbt(flag,label=None):
 _keybindings = {} # Structure: {'key':('flag',value,'tooltip')}
 for k,v in _cvtrans.items():
     for label in __getflaglabels(k):
-        _keybindings[v[label][1]] = (k,v[label][0],__evalkbt(k,label))
+        _keybindings[v[label][1]] = (k,label,__evalkbt(k,label))
                 # 'key':('flag',value,'kb_tooltip')
-
+#print(_keybindings)
 def __gettooltip(flag, value=None, label=None):
     '''Returns the tooltip for a flag (and/or label/value combination), along with the correct keybinding, if available'''
     if label is not None:
@@ -595,10 +597,10 @@ def pathfinder(fits_dir: HDUList,saveloc=None,show_tooltips=True, headername='BO
                     else: #------------ CLICK0 METHOD ------------#
                        
                         co = [(i,abs(cv2.pointPolygonTest(contour, cl, True))) for i,contour in enumerate(sortedcs)] + [(None,np.inf)]
-                        print(co,cl)
+                        #print(co,cl)
                         chosen = min(co, key=lambda x: x[1])
                            
-                        print(chosen)
+                        #print(chosen)
                         if chosen[0] is not None:
                             selected_contours.append([chosen[0],sortedcs[chosen[0]]])
                         other_contours = [[i,contour] for i,contour in enumerate(sortedcs) if i != chosen[0]]
@@ -619,7 +621,8 @@ def pathfinder(fits_dir: HDUList,saveloc=None,show_tooltips=True, headername='BO
                         G_path = selected_contours[0][1]
                         retattrs.update({'NUMPTS':len(G_path), 'XYA_CT':cv2.contourArea(G_path), 'XYA_CTP':__approx_contour_area_pct(cv2.contourArea(G_path))})
                         linfax.text(0.5, 0.25, f'Area: {retattrs["XYA_CTP"]}, N:{retattrs['NUMPTS']}', fontsize=10, color='black', ha='center', va='center')
-
+                    else:
+                        G_path = None
                     selectedhandles = [Line2D([0], [0], label=f'{i}, {__approx_contour_area_pct(cv2.contourArea(sortedcs[i]))}', **_handles['selectedc']) for i in [c[0] for c in selected_contours]]
                     otherhandles = [Line2D([0], [0], label=f'{i}, {__approx_contour_area_pct(cv2.contourArea(sortedcs[i]))}', **_handles['otherc']) for i in [c[0] for c in other_contours]]
                     lax.legend(handles=[*selectedhandles,*otherhandles][:min(MAXLEGENDITEMS,len(otherhandles)-1)], **_legendkws)
@@ -687,7 +690,7 @@ def pathfinder(fits_dir: HDUList,saveloc=None,show_tooltips=True, headername='BO
                     nhattr |=dict()
                     nhattr |= __generate_conf_output()
                     nhattr |= __generate_coord_output()
-                    nhattr |= {m:fitsheader(G_fits_obj,m) for m in ['UDATE','YEAR','VISIT','DOY']}
+                    nhattr |= {m:fitsheader(G_fits_obj,m) for m in ['UDATE','YEAR','VISIT','DOY','EXPT']}
                     if G_notes not in ['', None]:
                         notes = G_notes.replace('\n', " "*32)
                         notes= "".join([char if ord(char) < 128 else f'\\x{ord(char):02x}' for char in notes])
@@ -801,7 +804,8 @@ def pathfinder(fits_dir: HDUList,saveloc=None,show_tooltips=True, headername='BO
         def __event_fullscreen(event):
             fig.canvas.manager.full_screen_toggle()
         bfullscreen.on_clicked(__event_fullscreen)
-
+        if "conf" in persists.keys():
+            __load_conf(persists['conf'])
         #---- CLICK options ----#
         def __on_click_event(event):
             global clicked_coords, id_pixels, G_clicktype, REGISTER_KEYS,cl
@@ -874,7 +878,8 @@ def pathfinder(fits_dir: HDUList,saveloc=None,show_tooltips=True, headername='BO
             G_headername = text.replace(" ","_").replace()
         textbox.on_submit(__on_headername_text_change)
         #----NOTES----#
-        
+        if "conf" in persists.keys():
+            __load_conf(persists['conf'])
         #----KEYEVENTS----#
         global modifiers
         modifiers = bytes((0 for i in range(4))) #caps shift ctrl alt
@@ -993,6 +998,7 @@ def pathfinder(fits_dir: HDUList,saveloc=None,show_tooltips=True, headername='BO
                         fig.canvas.blit(noteax.bbox)
                         fig.canvas.draw()
                     elif action == 'FIXLRANGE':
+                        val = __getflagindex('FIXLRANGE', val)
                         if val == 4:
                             global G_fixrange, G_ofixrange
                             if G_fixrange is None:
@@ -1023,7 +1029,7 @@ def pathfinder(fits_dir: HDUList,saveloc=None,show_tooltips=True, headername='BO
                             if len(G_fixrange) == 2:
                                 G_fixrange.append(0.01)
                             G_fixrange[2] = stepmap[stepmap.index(G_fixrange[2])+1 if stepmap.index(G_fixrange[2]) < len(stepmap)-1 else 0]
-                elif event.key in HELPKEYS:
+                if event.key in HELPKEYS:
                     tt = [(k,v[2]) for k,v in _keybindings.items()]
                     maxlenk = max([len(t[0]) for t in tt])
                     maxlenv = max([len(t[1]) for t in tt])

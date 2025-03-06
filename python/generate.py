@@ -1,3 +1,6 @@
+"""generate.py
+Generate GIFs, images and Gaussian fits from FITS files
+"""
 from jarvis.utils import fpath, fits_from_glob
 import argparse
 import os

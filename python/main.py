@@ -122,24 +122,24 @@ if __name__ == '__main__': # __name__ is a special,file-unique variable that is 
     #         if os.path.isfile(copath):
     #             pt = pathfinder(copath, fixlrange=lrange)
 ## loop to run powercalc on segments of the fits
-    for g,fs in fpaths.items():
-        copath = fpath(f'datasets/HST/custom/{g}_[3,1]gaussian-coadded.fits')
-        if os.path.isfile(copath):
-            fit = fits.open(copath)
-            try:
-                cpath = np.array(fit['BOUNDARY'].data.tolist())
+    # for g,fs in fpaths.items():
+    #     copath = fpath(f'datasets/HST/custom/{g}_[3,1]gaussian-coadded.fits')
+    #     if os.path.isfile(copath):
+    #         fit = fits.open(copath)
+    #         try:
+    #             cpath = np.array(fit['BOUNDARY'].data.tolist())
                 
-                pbr = tqdm(total=len(fs), desc=f'"powercalc"({g})')
-                for f in fs:
-                    ff = fits.open(f)
-                    pc = powercalc(ff, cpath, writeto=outfile)
-                    pbr.set_postfix_str(f"P={pc[0]:.3f}GW,I={pc[1]*1e8:.3f}x10⁻⁸GW/km²")
-                    pbr.update()
-                    ff.close()
-                pbr.close()
-            except KeyError:
-                fit.close()
-                print(f'No boundary found for {g}')
+    #             pbr = tqdm(total=len(fs), desc=f'"powercalc"({g})')
+    #             for f in fs:
+    #                 ff = fits.open(f)
+    #                 pc = powercalc(ff, cpath, writeto=outfile)
+    #                 pbr.set_postfix_str(f"P={pc[0]:.3f}GW,I={pc[1]*1e8:.3f}x10⁻⁸GW/km²")
+    #                 pbr.update()
+    #                 ff.close()
+    #             pbr.close()
+    #         except KeyError:
+    #             fit.close()
+    #             print(f'No boundary found for {g}')
 
 
 

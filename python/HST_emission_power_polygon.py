@@ -379,6 +379,7 @@ plt.show()
 # roi_mask[roi_bottom_left[0]:roi_top_right[0]+1, roi_bottom_left[1]:roi_top_right[1]+1] = True
 
 # Quick plot check of the ROI mask:
+dark_mask_2D = np.flip(dark_mask_2D,axis=1)    # flip the mask vertically to match image space
 plt.figure()
 plt.imshow(dark_mask_2D, origin='lower')
 plt.title('ROI mask in image space')
@@ -397,8 +398,8 @@ image_extract[dark_mask_2D==False] = np.nan
 # plt.show()
 
 # And insert auroral region image back into the full projected image space:
-roi_im_full          = np.zeros((720,1440))        # new array full of zeros
-roi_im_full[0:160,:] = image_extract
+roi_im_full         = np.zeros((720,1440))        # new array full of zeros
+roi_im_full[:160,:] = image_extract
 # Quick plot check to see auroral region inserted properly:
 # plt.figure()
 # plt.imshow(roi_im_full, origin='lower')
@@ -406,8 +407,8 @@ roi_im_full[0:160,:] = image_extract
 # plt.show()
 
 # Do the same thing for a full image space ROI mask:
-roi_mask_full          = np.zeros((720,1440))
-roi_mask_full[0:160,:] = dark_mask_2D
+roi_mask_full         = np.zeros((720,1440))
+roi_mask_full[:160,:] = dark_mask_2D
 
 # ==============================================================================
 # Now at the point we can try back-projecting this projected image mask

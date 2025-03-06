@@ -1,6 +1,7 @@
 """
 This module contains the headless functions to generate contour paths from fits files via openCV.
 """
+
 import random
 import numpy as np
 import matplotlib.pyplot as plt
@@ -12,7 +13,7 @@ from .utils import fitsheader, fpath, mcolor_to_lum, adapted_hdul, assign_params
 from .polar import plot_polar, prep_polarfits
 from astropy.io import fits
 from astropy.table import Table
-from .const import  DPR_IMXY
+from .const import  DPR_IMXY, FITSINDEX
 from typing import List, Union
 
 from .transforms import  coadd,gaussian_blur,fullxy_to_polar_arr
@@ -122,6 +123,50 @@ def generate_coadded_fits(fits_objs,saveto=None, kernel_params=(3,1), overwrite=
         #ensure_dir(saveto)
         cofitsd.writeto(saveto, overwrite=overwrite)
     return cofitsd
+
+def generate_rollings(fits_objs, window=3, kernel_params=(3,1), indiv=True,coadded=True, preserve='array'):
+    """Generate rolling coadded fits files from a list of fits files.
+    given N inputs and a window size W,
+    - mode: preserve='array' will preserve the number of inputs to match the number of outputs
+    - mode: preserve='window' will preserve the window size, giving null outputs at the start and end of the list
+    the window will include equal number of earlier and later inputs, with the current input in the middle.
+    ie Nearlier = W//2, Nlater= W//2 - W%2
+    if an even window is given, Nearlier = W//2, Nlater = W//2 - 1
+    Args:
+    fits_objs: a list of fits objects to coadd
+    window: the number of fits files to coadd
+    kernel_params: the parameters for the gaussian blur
+    indiv: whether to blur the individual fits files
+    coadded: whether to blur the coadded fits file
+    preserve: whether to preserve the array length or the window size
+    Returns:
+    List[fits.HDUList]: the coadded fits files
+    """
+    fdatas = np.stack([fits_objs[i][FITSINDEX].data for i in range(len(fits_objs))])
+    #print(f"{fdatas.shape=}")
+    if indiv:
+        fdatas = [gaussian_blur(fdatas[i], *kernel_params) for i in range(len(fdatas))]
+    
+    if preserve == 'array':
+        result = np.zeros_like(fdatas) * np.nan
+        for i in range(len(fdatas)):
+            result[i] = coadd(fdatas[max(0, i-window//2):min(len(fdatas), i+window//2+1)])
+    elif preserve == 'window':
+        result = np.zeros_like(fdatas) * np.nan
+        for i in range(len(fdatas)):
+            if i < window//2 or i > len(fdatas) - window//2:
+                continue  
+            result[i] = coadd(fdatas[i-window//2:i+window//2+1])
+            #print(f"{result[i].shape=}")
+            # sample_indices = [j for j in range(i-window//2, i+window//2+1)]
+            # print(f"{sample_indices=}, {len(sample_indices)=}, {len(fdatas)=}")
+    else:
+        raise ValueError("Invalid value for preserve")
+    if coadded:
+        result = [gaussian_blur(result[i], *kernel_params) for i in range(len(result))]
+    result = [adapted_hdul(fits_objs[i], new_data=result[i]) for i in range(len(result))]
+    #print(f"{len(result)=}, {len(result[0])=}")
+    return result
        
 def generate_contours(fits_obj:fits.HDUList, lrange=(0.2,0.4), morphex=(cv2.MORPH_CLOSE,cv2.MORPH_OPEN), fcmode=cv2.RETR_EXTERNAL, fcmethod=cv2.CHAIN_APPROX_SIMPLE, cvh=False)->List[List[float]]:
     """Generate contours from a fits file.

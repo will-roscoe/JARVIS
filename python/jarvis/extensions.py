@@ -200,6 +200,7 @@ def __getflaglabels(flag:str):
 def __getflagindex(flag:str,label:str):
     '''Returns the correct index of a given label for a given flag'''
     ident = _cvtrans[flag]
+    #print(f"{flag=}, {label=}, {ident=}")
     if ident.get('trans',None) is None:
         #print(f"{ident[label][0]=}")
         return ident[label][0]
@@ -325,6 +326,7 @@ if FIRST_RUN:
 # integrate the hierarchy into the gui
 
 def pathfinder(fits_dir: HDUList,saveloc=None,show_tooltips=True, headername='BOUNDARY',morphex=(cv2.MORPH_CLOSE,cv2.MORPH_OPEN),fixlrange=None, fcmode=cv2.RETR_EXTERNAL, fcmethod=cv2.CHAIN_APPROX_SIMPLE, cvh=False, ksize=5,steps=True,**persists):
+def pathfinder(fits_dir: HDUList,saveloc=None,show_tooltips=True, headername='BOUNDARY',morphex=(cv2.MORPH_CLOSE,cv2.MORPH_OPEN),fixlrange=None, fcmode=cv2.RETR_EXTERNAL, fcmethod=cv2.CHAIN_APPROX_SIMPLE, cvh=False, ksize=5,steps=True,show=True, **persists):
     """### *JAR:VIS* Pathfinder
     > ***Requires PyQt6 (or PyQt5)***
 
@@ -374,7 +376,7 @@ def pathfinder(fits_dir: HDUList,saveloc=None,show_tooltips=True, headername='BO
             G_ksize = ksize #:int, 2N+1 only # kernel size for morphological operations
             falsecolor = 0 #:int # what colormap to use for the mask, 0 is default normal, 1 is inverted, 2+ are false color maps
             G_headername = 'BOUNDARY' if headername is None else headername #:str # the selected header name to save the contour to, changeable by the user using the text box
-            G_fixrange= [i for i in fixlrange] if fixlrange is not None else None #:list[float]|None # the fixed luminance range, if any. selected pixels take priority over this range.
+            G_fixrange= [i for i in fixlrange] if fixlrange is not None else persists.get('fixlrange',None)#:list[float]|None # the fixed luminance range, if any. selected pixels take priority over this range.
             cl = persists.get('cl', None) # the auto selected contour picker point
             FIRST_RUN = False
         global G_ofixrange#:list[float]|None
@@ -521,6 +523,15 @@ def pathfinder(fits_dir: HDUList,saveloc=None,show_tooltips=True, headername='BO
                 m_[m]=1
             m_ = "".join([str(i) for i in m_])
             return dict(MORPH=m_, RETR=G_fcmode, CHAIN=G_fcmethod, CVH=int(G_cvh), KSIZE=G_ksize, CONTTIME=datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+        def __load_conf_output(conf):
+            """Loads the configuration options from a dictionary, decoding the values from integers or binary strings."""
+            global G_morphex, G_fcmode, G_fcmethod, G_cvh, G_ksize
+            G_morphex = [i for i in range(8) if conf['MORPH'][i]=='1'] if 'MORPH' in conf else G_morphex
+            G_fcmode = conf['RETR'] if 'RETR' in conf else G_fcmode
+            G_fcmethod = conf['CHAIN'] if 'CHAIN' in conf else G_fcmethod
+            G_cvh = bool(conf['CVH']) if 'CVH' in conf else G_cvh
+            G_ksize = conf['KSIZE'] if 'KSIZE' in conf else G_ksize
+            #print(G_morphex, G_fcmode, G_fcmethod, G_cvh, G_ksize)
         def __generate_coord_output():
             """Returns the current selected coordinates to save to the fits file."""
             global clicked_coords, id_pixels,cl
@@ -531,8 +542,36 @@ def pathfinder(fits_dir: HDUList,saveloc=None,show_tooltips=True, headername='BO
                 ret[f'IDXY_{i}'] = f"({coord[0]},{coord[1]})"
             if  cl is not None:
                 ret['AUTOCL'] = f"({cl[0]},{cl[1]})"
-            
             return ret
+        def __load_coord_output(conf):
+            """Loads the selected coordinates from a dictionary."""
+            global clicked_coords, id_pixels,cl
+            clicked_coords = [] 
+            id_pixels = []
+            cl = None
+            for k,v in conf.items():
+                if k.startswith('LUMXY'):
+                    lum = float(v.split(',')[0])
+                    x = int(v.split('(')[1].split(',')[0])
+                    y = int(v.split(',')[1].split(')')[0])
+                    clicked_coords.append([lum, [x,y]])
+                elif k.startswith('IDXY'):
+                    xy = v.replace('(','').replace(')','').split(',')
+                    id_pixels.append([int(xy[0]),int(xy[1])])
+                elif k == 'AUTOCL':
+                    xy = v.replace('(','').replace(')','').split(',')
+                    cl = [int(xy[0]),int(xy[1])]
+            #print(clicked_coords, id_pixels,cl)
+        def __load_conf(conf):
+            """Loads the configuration and selected coordinates from a dictionary."""
+            __load_conf_output(conf)
+            __load_coord_output(conf)
+            global G_fixrange
+            G_fixrange = [float(conf['LMIN']), float(conf['LMAX'])] if 'LMIN' in conf else G_fixrange
+            __redraw_main(None)
+                
+            
+            
         #main update function
         def __redraw_main(_):
             global id_pixels, G_clicked_coords, G_morphex, G_fcmode, G_fcmethod, G_cvh, G_ksize, G_path, retattrs,  show_mask, falsecolor, G_fixrange,cl
@@ -1117,12 +1156,23 @@ def pathfinder(fits_dir: HDUList,saveloc=None,show_tooltips=True, headername='BO
                 __redraw_main(None)
                 
         key_events = [fig.canvas.mpl_connect('key_press_event', __on_key_press_event),fig.canvas.mpl_connect('key_release_event', __on_key_release_event)] #noqa: F841
-        plt.show()
+        
+        
+        if show:
+            plt.show()
+        else:
+            __redraw_main(None)
+            if G_path is None:
+                plt.close()
+            else:
+                __event_save(None)
+                plt.close()
+
         if G_path is not None:
             pth = G_path.reshape(-1, 2)
-            ret= fullxy_to_polar_arr(pth, normed, 40)
+            ret=[True, fullxy_to_polar_arr(pth, normed, 40)]
         else:
-            ret= None
+            ret= [False, [__generate_conf_output(), __generate_coord_output()]]
         if G_notes not in ['', None]:
             tqdm.write(f'{filename_from_path(fits_dir)}:\n {G_notes}')
         try:
@@ -1465,3 +1515,44 @@ def _get_pathfinderhead():
     ]
     for line in lines:
         tqdm.write(line)
+def extract_conf(header,ignore:list=(),to_pf_kwargs=True):
+    """Extracts the configuration from the header of a fits file"""
+    ignore = [ignore] if isinstance(ignore, str) else ignore
+    conf = {}
+    for keyword in header:
+        #print(keyword, header[keyword])
+        if any([keyword.startswith(i) for i in ignore]):
+            continue
+        elif keyword not in conf.keys():
+            conf[keyword] = header[keyword]
+        else:
+    #         # if the valconf type is a list,
+    #             # if the valheader type is a list and the item in the valconf matches len of valheader,
+    #                 #----> likely a list of the values, so append the value to the list
+    #             # if the valheader type is a list and the item in the valconf does not match len of valheader,
+    #                 #----> likely an error, so raise an error
+    #             # if the valheader type is not a list, 
+    #                 #----> likely a list of values, so append value to the list 
+    #         # else if the valconf type is not a list,
+    #             # if the valheader type is a list,
+    #                 #----> likely an error, so raise an error
+    #             # if the valheader type is not a list,
+    #                 #----> likely two values that have not been combined, so combine them
+    #         if isinstance(conf[keyword], list):
+    #             if isinstance(header[keyword], list):
+    #                 if len(conf[keyword])[0] == len(header[keyword]):
+    #                     conf[keyword].append(header[keyword])
+    #                 else:
+    #                     raise ValueError(f'Error: {keyword} has conflicting values in header and configuration, {conf[keyword]=}, {header[keyword]=}')
+    #             else:
+    #                 conf[keyword].append(header[keyword])
+    #         else:
+    #             if isinstance(header[keyword], list):
+    #                 raise ValueError(f'Error: {keyword} has conflicting values in header and configuration, {conf[keyword]=}, {header[keyword]=}')
+    #             else:
+    #                 conf[keyword] = [conf[keyword], header[keyword]]
+    # if to_pf_kwargs:
+    #     kwargs = {}
+    #     for k,v in conf.items():
+            conf[keyword+str(len([k for k in conf.keys() if k.startswith(keyword)]))] = header[keyword]
+    return conf

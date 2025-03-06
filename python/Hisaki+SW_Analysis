@@ -42,11 +42,8 @@ torus_counter = 0
 
 aurora_fitspath = glob.glob(r"C:datasets/Hisaki/Aurora Power/*.fits")
 torus_fitspath = glob.glob(r"C:datasets/Hisaki/Torus Power/*.fits")
-aurora_groups_list = aurora_fitspath[2:41]
-torus_groups_list = torus_fitspath[2:41]
-
-print(aurora_fitspath[2])
-print(aurora_fitspath[41])
+aurora_groups_list = aurora_fitspath[2:42]
+torus_groups_list = torus_fitspath[2:42]
 
 aurora_power_all = np.array([])
 aurora_time_all = np.array([])
@@ -60,6 +57,8 @@ for i in aurora_groups_list:
     hdul = fits.open(fpath(i))
     time_series_data = hdul[2].data
     aurora_time = time_series_data.field('SECOFDAY') +86400 * aurora_counter
+    if i == r'C:datasets/Hisaki/Aurora Power\exeuv_aurora_20160525_lv03_LT00-24_dt00010_vr01_00.fits':
+        aurora_counter = aurora_counter + 2
     aurora_counter = aurora_counter + 1
     aurora_power = time_series_data.field('TPOW1190A')
     for j in aurora_power:
@@ -71,6 +70,8 @@ for l in torus_groups_list:
     hdul = fits.open(fpath(l))
     time_series_data = hdul[2].data
     torus_time = time_series_data.field('SECOFDAY') + 86400 * torus_counter
+    if l == r'C:datasets/Hisaki/Torus Power\exeuv_torus_20160525_lv03_LT00-24_dt00010_vr01_00.fits':
+        torus_counter = torus_counter + 2
     torus_counter = torus_counter + 1
     power_dawn = time_series_data.field('TPOW0710ADAWN')
     power_dusk = time_series_data.field('TPOW0710ADUSK')
@@ -98,10 +99,10 @@ ax[1].set_ylabel('Torus Power (GW)')
 ax[2].set_xlabel('Time (Days)')
 ax[2].set_ylabel('jup_sw_dyn')
 
-ax[0].plot(aurora_time_all, aurora_power_all, label = 'Aurora Power')
-ax[1].plot(torus_time_all, power_dawn_all, label = 'Dawn')
-ax[1].plot(torus_time_all, power_dusk_all, label = 'Dusk')
-ax[2].plot(table['Time_UT'].to_list(), table['jup_sw_pdyn'].to_list(), label = 'jup_sw_dyn')
+ax[0].scatter(aurora_time_all, aurora_power_all, s = 0.5, label = 'Aurora Power')
+ax[1].scatter(torus_time_all, power_dawn_all, s = 0.5, label = 'Dawn')
+ax[1].scatter(torus_time_all, power_dusk_all, s = 0.5, label = 'Dusk')
+ax[2].scatter(table['Time_UT'].to_list(), table['jup_sw_pdyn'].to_list(), s = 0.5, label = 'jup_sw_dyn')
 
 ax[0].legend()
 ax[1].legend()
@@ -109,21 +110,14 @@ ax[2].legend()
 
 plt.tight_layout
 
-#current_date = datetime.datetime(2016, 5, 6, 0, 0 ,0)
-#sw_xaxis = np.array([])
-#for p in range(9):
-    #sw_xaxis = np.append(sw_xaxis, current_date + datetime.timedelta(days = 5) * p)
-
 a = table['Time_UT'].to_list()
-#print(a)
 
-ax[0].set_xticks(np.arange(0, 86400 * 39 + 1, step = 86400 * 5))
-ax[1].set_xticks(np.arange(0, 86400 * 39 + 1, step = 86400 * 5))
+ax[0].set_xticks(np.arange(0, 86400 * aurora_counter + 1, step = 86400 * 5))
+ax[1].set_xticks(np.arange(0, 86400 * torus_counter + 1, step = 86400 * 5))
 ax[2].set_xticks(a[0::24*5])
 
 ax[0].xaxis.set_major_formatter(plt.FuncFormatter(date_aligner))
 ax[1].xaxis.set_major_formatter(plt.FuncFormatter(date_aligner))
 
-
-#plt.show()
+plt.show()
 

@@ -1,0 +1,44 @@
+[
+  {
+    "code": "T201",
+    "name": "print",
+    "count": 11,
+    "fixable": true
+  },
+  {
+    "code": "ARG001",
+    "name": "unused-function-argument",
+    "count": 9,
+    "fixable": false
+  },
+  {
+    "code": "C901",
+    "name": "complex-structure",
+    "count": 6,
+    "fixable": false
+  },
+  {
+    "code": "ARG002",
+    "name": "unused-method-argument",
+    "count": 4,
+    "fixable": false
+  },
+  {
+    "code": "W291",
+    "name": "trailing-whitespace",
+    "count": 4,
+    "fixable": true
+  },
+  {
+    "code": "C408",
+    "name": "unnecessary-collection-call",
+    "count": 2,
+    "fixable": true
+  },
+  {
+    "code": "RET504",
+    "name": "unnecessary-assign",
+    "count": 2,
+    "fixable": true
+  }
+]

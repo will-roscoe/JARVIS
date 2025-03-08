@@ -1,4 +1,12 @@
+
+
+
+
+
+
 HST FITs file name structure
+
+v03/g05 --> Face on projection
 
 PLN_YY_DDD_HH_MM_SS_EXPR_VIS_CAM_FILTER_TYPE.fits
 

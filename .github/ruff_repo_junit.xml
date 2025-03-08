@@ -1,0 +1,279 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="ruff" tests="84" failures="84" errors="0">
+    <testsuite name="E:\Repositories\JARVIS\python\HST_emission_power_polygon.py" tests="27" disabled="0" errors="0" failures="27" package="org.ruff">
+        <testcase name="org.ruff.I001" classname="E:\Repositories\JARVIS\python\HST_emission_power_polygon" line="17" column="1">
+            <failure message="Import block is un-sorted or un-formatted">line 17, col 1, Import block is un-sorted or un-formatted</failure>
+        </testcase>
+        <testcase name="org.ruff.W291" classname="E:\Repositories\JARVIS\python\HST_emission_power_polygon" line="39" column="49">
+            <failure message="Trailing whitespace">line 39, col 49, Trailing whitespace</failure>
+        </testcase>
+        <testcase name="org.ruff.W291" classname="E:\Repositories\JARVIS\python\HST_emission_power_polygon" line="47" column="121">
+            <failure message="Trailing whitespace">line 47, col 121, Trailing whitespace</failure>
+        </testcase>
+        <testcase name="org.ruff.W291" classname="E:\Repositories\JARVIS\python\HST_emission_power_polygon" line="57" column="39">
+            <failure message="Trailing whitespace">line 57, col 39, Trailing whitespace</failure>
+        </testcase>
+        <testcase name="org.ruff.W291" classname="E:\Repositories\JARVIS\python\HST_emission_power_polygon" line="58" column="84">
+            <failure message="Trailing whitespace">line 58, col 84, Trailing whitespace</failure>
+        </testcase>
+        <testcase name="org.ruff.W291" classname="E:\Repositories\JARVIS\python\HST_emission_power_polygon" line="63" column="86">
+            <failure message="Trailing whitespace">line 63, col 86, Trailing whitespace</failure>
+        </testcase>
+        <testcase name="org.ruff.T201" classname="E:\Repositories\JARVIS\python\HST_emission_power_polygon" line="83" column="1">
+            <failure message="`print` found">line 83, col 1, `print` found</failure>
+        </testcase>
+        <testcase name="org.ruff.T201" classname="E:\Repositories\JARVIS\python\HST_emission_power_polygon" line="128" column="1">
+            <failure message="`print` found">line 128, col 1, `print` found</failure>
+        </testcase>
+        <testcase name="org.ruff.RET505" classname="E:\Repositories\JARVIS\python\HST_emission_power_polygon" line="175" column="5">
+            <failure message="Unnecessary `else` after `return` statement">line 175, col 5, Unnecessary `else` after `return` statement</failure>
+        </testcase>
+        <testcase name="org.ruff.W291" classname="E:\Repositories\JARVIS\python\HST_emission_power_polygon" line="215" column="81">
+            <failure message="Trailing whitespace">line 215, col 81, Trailing whitespace</failure>
+        </testcase>
+        <testcase name="org.ruff.W291" classname="E:\Repositories\JARVIS\python\HST_emission_power_polygon" line="244" column="48">
+            <failure message="Trailing whitespace">line 244, col 48, Trailing whitespace</failure>
+        </testcase>
+        <testcase name="org.ruff.W293" classname="E:\Repositories\JARVIS\python\HST_emission_power_polygon" line="283" column="1">
+            <failure message="Blank line contains whitespace">line 283, col 1, Blank line contains whitespace</failure>
+        </testcase>
+        <testcase name="org.ruff.W291" classname="E:\Repositories\JARVIS\python\HST_emission_power_polygon" line="291" column="51">
+            <failure message="Trailing whitespace">line 291, col 51, Trailing whitespace</failure>
+        </testcase>
+        <testcase name="org.ruff.W291" classname="E:\Repositories\JARVIS\python\HST_emission_power_polygon" line="351" column="98">
+            <failure message="Trailing whitespace">line 351, col 98, Trailing whitespace</failure>
+        </testcase>
+        <testcase name="org.ruff.W291" classname="E:\Repositories\JARVIS\python\HST_emission_power_polygon" line="354" column="40">
+            <failure message="Trailing whitespace">line 354, col 40, Trailing whitespace</failure>
+        </testcase>
+        <testcase name="org.ruff.W291" classname="E:\Repositories\JARVIS\python\HST_emission_power_polygon" line="434" column="56">
+            <failure message="Trailing whitespace">line 434, col 56, Trailing whitespace</failure>
+        </testcase>
+        <testcase name="org.ruff.UP034" classname="E:\Repositories\JARVIS\python\HST_emission_power_polygon" line="488" column="25">
+            <failure message="Avoid extraneous parentheses">line 488, col 25, Avoid extraneous parentheses</failure>
+        </testcase>
+        <testcase name="org.ruff.UP034" classname="E:\Repositories\JARVIS\python\HST_emission_power_polygon" line="516" column="29">
+            <failure message="Avoid extraneous parentheses">line 516, col 29, Avoid extraneous parentheses</failure>
+        </testcase>
+        <testcase name="org.ruff.T201" classname="E:\Repositories\JARVIS\python\HST_emission_power_polygon" line="544" column="5">
+            <failure message="`print` found">line 544, col 5, `print` found</failure>
+        </testcase>
+        <testcase name="org.ruff.RET504" classname="E:\Repositories\JARVIS\python\HST_emission_power_polygon" line="550" column="12">
+            <failure message="Unnecessary assignment to `bimage` before `return` statement">line 550, col 12, Unnecessary assignment to `bimage` before `return` statement</failure>
+        </testcase>
+        <testcase name="org.ruff.W291" classname="E:\Repositories\JARVIS\python\HST_emission_power_polygon" line="569" column="55">
+            <failure message="Trailing whitespace">line 569, col 55, Trailing whitespace</failure>
+        </testcase>
+        <testcase name="org.ruff.W291" classname="E:\Repositories\JARVIS\python\HST_emission_power_polygon" line="582" column="55">
+            <failure message="Trailing whitespace">line 582, col 55, Trailing whitespace</failure>
+        </testcase>
+        <testcase name="org.ruff.RET504" classname="E:\Repositories\JARVIS\python\HST_emission_power_polygon" line="607" column="12">
+            <failure message="Unnecessary assignment to `area` before `return` statement">line 607, col 12, Unnecessary assignment to `area` before `return` statement</failure>
+        </testcase>
+        <testcase name="org.ruff.T201" classname="E:\Repositories\JARVIS\python\HST_emission_power_polygon" line="614" column="1">
+            <failure message="`print` found">line 614, col 1, `print` found</failure>
+        </testcase>
+        <testcase name="org.ruff.T201" classname="E:\Repositories\JARVIS\python\HST_emission_power_polygon" line="615" column="1">
+            <failure message="`print` found">line 615, col 1, `print` found</failure>
+        </testcase>
+        <testcase name="org.ruff.T201" classname="E:\Repositories\JARVIS\python\HST_emission_power_polygon" line="616" column="1">
+            <failure message="`print` found">line 616, col 1, `print` found</failure>
+        </testcase>
+        <testcase name="org.ruff.T201" classname="E:\Repositories\JARVIS\python\HST_emission_power_polygon" line="617" column="1">
+            <failure message="`print` found">line 617, col 1, `print` found</failure>
+        </testcase>
+    </testsuite>
+    <testsuite name="E:\Repositories\JARVIS\python\Hisaki_Aurora_Power.py" tests="11" disabled="0" errors="0" failures="11" package="org.ruff">
+        <testcase name="org.ruff.I001" classname="E:\Repositories\JARVIS\python\Hisaki_Aurora_Power" line="3" column="1">
+            <failure message="Import block is un-sorted or un-formatted">line 3, col 1, Import block is un-sorted or un-formatted</failure>
+        </testcase>
+        <testcase name="org.ruff.W291" classname="E:\Repositories\JARVIS\python\Hisaki_Aurora_Power" line="6" column="25">
+            <failure message="Trailing whitespace">line 6, col 25, Trailing whitespace</failure>
+        </testcase>
+        <testcase name="org.ruff.ARG001" classname="E:\Repositories\JARVIS\python\Hisaki_Aurora_Power" line="13" column="29">
+            <failure message="Unused function argument: `pos`">line 13, col 29, Unused function argument: `pos`</failure>
+        </testcase>
+        <testcase name="org.ruff.ARG001" classname="E:\Repositories\JARVIS\python\Hisaki_Aurora_Power" line="22" column="34">
+            <failure message="Unused function argument: `pos`">line 22, col 34, Unused function argument: `pos`</failure>
+        </testcase>
+        <testcase name="org.ruff.RET504" classname="E:\Repositories\JARVIS\python\Hisaki_Aurora_Power" line="24" column="12">
+            <failure message="Unnecessary assignment to `hours` before `return` statement">line 24, col 12, Unnecessary assignment to `hours` before `return` statement</failure>
+        </testcase>
+        <testcase name="org.ruff.T201" classname="E:\Repositories\JARVIS\python\Hisaki_Aurora_Power" line="37" column="5">
+            <failure message="`print` found">line 37, col 5, `print` found</failure>
+        </testcase>
+        <testcase name="org.ruff.T201" classname="E:\Repositories\JARVIS\python\Hisaki_Aurora_Power" line="51" column="5">
+            <failure message="`print` found">line 51, col 5, `print` found</failure>
+        </testcase>
+        <testcase name="org.ruff.W605" classname="E:\Repositories\JARVIS\python\Hisaki_Aurora_Power" line="90" column="30">
+            <failure message="Invalid escape sequence: `\H`">line 90, col 30, Invalid escape sequence: `\H`</failure>
+        </testcase>
+        <testcase name="org.ruff.W605" classname="E:\Repositories\JARVIS\python\Hisaki_Aurora_Power" line="90" column="37">
+            <failure message="Invalid escape sequence: `\A`">line 90, col 37, Invalid escape sequence: `\A`</failure>
+        </testcase>
+        <testcase name="org.ruff.W605" classname="E:\Repositories\JARVIS\python\Hisaki_Aurora_Power" line="90" column="50">
+            <failure message="Invalid escape sequence: `\e`">line 90, col 50, Invalid escape sequence: `\e`</failure>
+        </testcase>
+        <testcase name="org.ruff.W292" classname="E:\Repositories\JARVIS\python\Hisaki_Aurora_Power" line="91" column="29">
+            <failure message="No newline at end of file">line 91, col 29, No newline at end of file</failure>
+        </testcase>
+    </testsuite>
+    <testsuite name="E:\Repositories\JARVIS\python\Hisaki_Torus_Power.py" tests="10" disabled="0" errors="0" failures="10" package="org.ruff">
+        <testcase name="org.ruff.I001" classname="E:\Repositories\JARVIS\python\Hisaki_Torus_Power" line="3" column="1">
+            <failure message="Import block is un-sorted or un-formatted">line 3, col 1, Import block is un-sorted or un-formatted</failure>
+        </testcase>
+        <testcase name="org.ruff.W291" classname="E:\Repositories\JARVIS\python\Hisaki_Torus_Power" line="6" column="25">
+            <failure message="Trailing whitespace">line 6, col 25, Trailing whitespace</failure>
+        </testcase>
+        <testcase name="org.ruff.ARG001" classname="E:\Repositories\JARVIS\python\Hisaki_Torus_Power" line="13" column="29">
+            <failure message="Unused function argument: `pos`">line 13, col 29, Unused function argument: `pos`</failure>
+        </testcase>
+        <testcase name="org.ruff.ARG001" classname="E:\Repositories\JARVIS\python\Hisaki_Torus_Power" line="22" column="34">
+            <failure message="Unused function argument: `pos`">line 22, col 34, Unused function argument: `pos`</failure>
+        </testcase>
+        <testcase name="org.ruff.RET504" classname="E:\Repositories\JARVIS\python\Hisaki_Torus_Power" line="24" column="12">
+            <failure message="Unnecessary assignment to `hours` before `return` statement">line 24, col 12, Unnecessary assignment to `hours` before `return` statement</failure>
+        </testcase>
+        <testcase name="org.ruff.T201" classname="E:\Repositories\JARVIS\python\Hisaki_Torus_Power" line="37" column="5">
+            <failure message="`print` found">line 37, col 5, `print` found</failure>
+        </testcase>
+        <testcase name="org.ruff.T201" classname="E:\Repositories\JARVIS\python\Hisaki_Torus_Power" line="51" column="5">
+            <failure message="`print` found">line 51, col 5, `print` found</failure>
+        </testcase>
+        <testcase name="org.ruff.T201" classname="E:\Repositories\JARVIS\python\Hisaki_Torus_Power" line="52" column="5">
+            <failure message="`print` found">line 52, col 5, `print` found</failure>
+        </testcase>
+        <testcase name="org.ruff.W291" classname="E:\Repositories\JARVIS\python\Hisaki_Torus_Power" line="82" column="112">
+            <failure message="Trailing whitespace">line 82, col 112, Trailing whitespace</failure>
+        </testcase>
+        <testcase name="org.ruff.W292" classname="E:\Repositories\JARVIS\python\Hisaki_Torus_Power" line="93" column="27">
+            <failure message="No newline at end of file">line 93, col 27, No newline at end of file</failure>
+        </testcase>
+    </testsuite>
+    <testsuite name="E:\Repositories\JARVIS\python\generate.py" tests="1" disabled="0" errors="0" failures="1" package="org.ruff">
+        <testcase name="org.ruff.T201" classname="E:\Repositories\JARVIS\python\generate" line="59" column="9">
+            <failure message="`print` found">line 59, col 9, `print` found</failure>
+        </testcase>
+    </testsuite>
+    <testsuite name="E:\Repositories\JARVIS\python\hgr.py" tests="1" disabled="0" errors="0" failures="1" package="org.ruff">
+        <testcase name="org.ruff.C901" classname="E:\Repositories\JARVIS\python\hgr" line="100" column="5">
+            <failure message="`plot_visits_multi` is too complex (27 &gt; 16)">line 100, col 5, `plot_visits_multi` is too complex (27 &gt; 16)</failure>
+        </testcase>
+    </testsuite>
+    <testsuite name="E:\Repositories\JARVIS\python\jarvis\extensions.py" tests="3" disabled="0" errors="0" failures="3" package="org.ruff">
+        <testcase name="org.ruff.C901" classname="E:\Repositories\JARVIS\python\jarvis\extensions" line="337" column="5">
+            <failure message="`pathfinder` is too complex (192 &gt; 16)">line 337, col 5, `pathfinder` is too complex (192 &gt; 16)</failure>
+        </testcase>
+        <testcase name="org.ruff.C901" classname="E:\Repositories\JARVIS\python\jarvis\extensions" line="650" column="13">
+            <failure message="`__redraw_main` is too complex (26 &gt; 16)">line 650, col 13, `__redraw_main` is too complex (26 &gt; 16)</failure>
+        </testcase>
+        <testcase name="org.ruff.C901" classname="E:\Repositories\JARVIS\python\jarvis\extensions" line="969" column="17">
+            <failure message="`__on_key_press_event` is too complex (55 &gt; 16)">line 969, col 17, `__on_key_press_event` is too complex (55 &gt; 16)</failure>
+        </testcase>
+    </testsuite>
+    <testsuite name="E:\Repositories\JARVIS\python\jarvis\scripter.py" tests="4" disabled="0" errors="0" failures="4" package="org.ruff">
+        <testcase name="org.ruff.ARG002" classname="E:\Repositories\JARVIS\python\jarvis\scripter" line="77" column="23">
+            <failure message="Unused method argument: `args`">line 77, col 23, Unused method argument: `args`</failure>
+        </testcase>
+        <testcase name="org.ruff.ARG002" classname="E:\Repositories\JARVIS\python\jarvis\scripter" line="105" column="25">
+            <failure message="Unused method argument: `args`">line 105, col 25, Unused method argument: `args`</failure>
+        </testcase>
+        <testcase name="org.ruff.ARG002" classname="E:\Repositories\JARVIS\python\jarvis\scripter" line="141" column="22">
+            <failure message="Unused method argument: `args`">line 141, col 22, Unused method argument: `args`</failure>
+        </testcase>
+        <testcase name="org.ruff.ARG002" classname="E:\Repositories\JARVIS\python\jarvis\scripter" line="238" column="24">
+            <failure message="Unused method argument: `args`">line 238, col 24, Unused method argument: `args`</failure>
+        </testcase>
+    </testsuite>
+    <testsuite name="E:\Repositories\JARVIS\python\jarvis\stats.py" tests="3" disabled="0" errors="0" failures="3" package="org.ruff">
+        <testcase name="org.ruff.T201" classname="E:\Repositories\JARVIS\python\jarvis\stats" line="32" column="5">
+            <failure message="`print` found">line 32, col 5, `print` found</failure>
+        </testcase>
+        <testcase name="org.ruff.T201" classname="E:\Repositories\JARVIS\python\jarvis\stats" line="34" column="5">
+            <failure message="`print` found">line 34, col 5, `print` found</failure>
+        </testcase>
+        <testcase name="org.ruff.T201" classname="E:\Repositories\JARVIS\python\jarvis\stats" line="36" column="5">
+            <failure message="`print` found">line 36, col 5, `print` found</failure>
+        </testcase>
+    </testsuite>
+    <testsuite name="E:\Repositories\JARVIS\python\kernelextract.py" tests="11" disabled="0" errors="0" failures="11" package="org.ruff">
+        <testcase name="org.ruff.W291" classname="E:\Repositories\JARVIS\python\kernelextract" line="11" column="2">
+            <failure message="Trailing whitespace">line 11, col 2, Trailing whitespace</failure>
+        </testcase>
+        <testcase name="org.ruff.I001" classname="E:\Repositories\JARVIS\python\kernelextract" line="20" column="1">
+            <failure message="Import block is un-sorted or un-formatted">line 20, col 1, Import block is un-sorted or un-formatted</failure>
+        </testcase>
+        <testcase name="org.ruff.W293" classname="E:\Repositories\JARVIS\python\kernelextract" line="29" column="1">
+            <failure message="Blank line contains whitespace">line 29, col 1, Blank line contains whitespace</failure>
+        </testcase>
+        <testcase name="org.ruff.W293" classname="E:\Repositories\JARVIS\python\kernelextract" line="39" column="1">
+            <failure message="Blank line contains whitespace">line 39, col 1, Blank line contains whitespace</failure>
+        </testcase>
+        <testcase name="org.ruff.W293" classname="E:\Repositories\JARVIS\python\kernelextract" line="65" column="1">
+            <failure message="Blank line contains whitespace">line 65, col 1, Blank line contains whitespace</failure>
+        </testcase>
+        <testcase name="org.ruff.W293" classname="E:\Repositories\JARVIS\python\kernelextract" line="76" column="1">
+            <failure message="Blank line contains whitespace">line 76, col 1, Blank line contains whitespace</failure>
+        </testcase>
+        <testcase name="org.ruff.W293" classname="E:\Repositories\JARVIS\python\kernelextract" line="94" column="1">
+            <failure message="Blank line contains whitespace">line 94, col 1, Blank line contains whitespace</failure>
+        </testcase>
+        <testcase name="org.ruff.W293" classname="E:\Repositories\JARVIS\python\kernelextract" line="96" column="1">
+            <failure message="Blank line contains whitespace">line 96, col 1, Blank line contains whitespace</failure>
+        </testcase>
+        <testcase name="org.ruff.W293" classname="E:\Repositories\JARVIS\python\kernelextract" line="103" column="1">
+            <failure message="Blank line contains whitespace">line 103, col 1, Blank line contains whitespace</failure>
+        </testcase>
+        <testcase name="org.ruff.W293" classname="E:\Repositories\JARVIS\python\kernelextract" line="111" column="1">
+            <failure message="Blank line contains whitespace">line 111, col 1, Blank line contains whitespace</failure>
+        </testcase>
+        <testcase name="org.ruff.W292" classname="E:\Repositories\JARVIS\python\kernelextract" line="124" column="67">
+            <failure message="No newline at end of file">line 124, col 67, No newline at end of file</failure>
+        </testcase>
+    </testsuite>
+    <testsuite name="E:\Repositories\JARVIS\python\main.py" tests="4" disabled="0" errors="0" failures="4" package="org.ruff">
+        <testcase name="org.ruff.C901" classname="E:\Repositories\JARVIS\python\main" line="122" column="9">
+            <failure message="`gen_path_powercalc` is too complex (18 &gt; 16)">line 122, col 9, `gen_path_powercalc` is too complex (18 &gt; 16)</failure>
+        </testcase>
+        <testcase name="org.ruff.T201" classname="E:\Repositories\JARVIS\python\main" line="179" column="13">
+            <failure message="`print` found">line 179, col 13, `print` found</failure>
+        </testcase>
+        <testcase name="org.ruff.T201" classname="E:\Repositories\JARVIS\python\main" line="180" column="9">
+            <failure message="`print` found">line 180, col 9, `print` found</failure>
+        </testcase>
+        <testcase name="org.ruff.T201" classname="E:\Repositories\JARVIS\python\main" line="181" column="9">
+            <failure message="`print` found">line 181, col 9, `print` found</failure>
+        </testcase>
+    </testsuite>
+    <testsuite name="E:\Repositories\JARVIS\python\sw_plot.py" tests="1" disabled="0" errors="0" failures="1" package="org.ruff">
+        <testcase name="org.ruff.T201" classname="E:\Repositories\JARVIS\python\sw_plot" line="16" column="1">
+            <failure message="`print` found">line 16, col 1, `print` found</failure>
+        </testcase>
+    </testsuite>
+    <testsuite name="E:\Repositories\JARVIS\python\time_conversions.py" tests="8" disabled="0" errors="0" failures="8" package="org.ruff">
+        <testcase name="org.ruff.RET505" classname="E:\Repositories\JARVIS\python\time_conversions" line="30" column="5">
+            <failure message="Unnecessary `else` after `return` statement">line 30, col 5, Unnecessary `else` after `return` statement</failure>
+        </testcase>
+        <testcase name="org.ruff.RET505" classname="E:\Repositories\JARVIS\python\time_conversions" line="45" column="5">
+            <failure message="Unnecessary `else` after `return` statement">line 45, col 5, Unnecessary `else` after `return` statement</failure>
+        </testcase>
+        <testcase name="org.ruff.RET505" classname="E:\Repositories\JARVIS\python\time_conversions" line="57" column="5">
+            <failure message="Unnecessary `else` after `return` statement">line 57, col 5, Unnecessary `else` after `return` statement</failure>
+        </testcase>
+        <testcase name="org.ruff.RET505" classname="E:\Repositories\JARVIS\python\time_conversions" line="70" column="5">
+            <failure message="Unnecessary `else` after `return` statement">line 70, col 5, Unnecessary `else` after `return` statement</failure>
+        </testcase>
+        <testcase name="org.ruff.RET505" classname="E:\Repositories\JARVIS\python\time_conversions" line="82" column="5">
+            <failure message="Unnecessary `else` after `return` statement">line 82, col 5, Unnecessary `else` after `return` statement</failure>
+        </testcase>
+        <testcase name="org.ruff.RET505" classname="E:\Repositories\JARVIS\python\time_conversions" line="94" column="5">
+            <failure message="Unnecessary `else` after `return` statement">line 94, col 5, Unnecessary `else` after `return` statement</failure>
+        </testcase>
+        <testcase name="org.ruff.RET504" classname="E:\Repositories\JARVIS\python\time_conversions" line="100" column="12">
+            <failure message="Unnecessary assignment to `doy2004` before `return` statement">line 100, col 12, Unnecessary assignment to `doy2004` before `return` statement</failure>
+        </testcase>
+        <testcase name="org.ruff.RET504" classname="E:\Repositories\JARVIS\python\time_conversions" line="105" column="12">
+            <failure message="Unnecessary assignment to `pytimes` before `return` statement">line 105, col 12, Unnecessary assignment to `pytimes` before `return` statement</failure>
+        </testcase>
+    </testsuite>
+</testsuites>

@@ -1,13 +1,9 @@
+#!/usr/bin/env python3
 
-
-from jarvis.utils import fpath#, get_data_over_interval, fits_from_glob, yrdoysod_to_datetime
 # from datetime import datetime
 # from jarvis.const import AURORA_DIR, TORUS_DIR
-from astropy.timeseries import TimeSeries
 # from astropy.table import Table, vstack
 # import numpy as np
-import matplotlib.pyplot as plt
-
 # sw_fp = fpath("datasets/Solar_Wind.txt")
 # df_sw = Table.read(sw_fp, format='ascii')
 # df_sw['Time_UT'] = [x[:10]+"T"+x[11:] for x in df_sw['Time_UT']]
@@ -38,22 +34,15 @@ import matplotlib.pyplot as plt
 # ts_main = ts_main.group_by('time')
 # # we can now combine the rows with the same timestamp
 # ts_main = ts_main.groups.aggregate(np.nanmean)
- 
+
 # ts_main.write(fpath("datasets/Hisaki_SW-combined.csv"), format='fits', overwrite=True)
 
 ### del ts_main
-ts_main = TimeSeries.read(fpath("datasets/Hisaki_SW-combined.csv"))
+# ts_main = TimeSeries.read(fpath("datasets/Hisaki_SW-combined.csv"))
 
-fig = plt.figure(figsize=(12,8))
-axs = fig.subplots(3,1, sharex='col', gridspec_kw={'hspace':0})
-plotlist = ((0, 'jup_sw_pdyn'), (1, 'TPOW1190A'), (2, 'TPOW0710ADAWN'), (2, 'TPOW0710ADUSK'))
-for i, col in plotlist:
-    axs[i].plot(ts_main.time.datetime64, ts_main[col])
-plt.show()
-
-
-
-
-        
-
-        
+# fig = plt.figure(figsize=(12,8))
+# axs = fig.subplots(3,1, sharex='col', gridspec_kw={'hspace':0})
+# plotlist = ((0, 'jup_sw_pdyn'), (1, 'TPOW1190A'), (2, 'TPOW0710ADAWN'), (2, 'TPOW0710ADUSK'))
+# for i, col in plotlist:
+#     axs[i].plot(ts_main.time.datetime64, ts_main[col])
+# plt.show()

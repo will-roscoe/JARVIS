@@ -1,16 +1,21 @@
+#!/usr/bin/env python3
 # import relevant packages
-import numpy as np
-from astropy.io import fits					#handling of FITS files
-import matplotlib.pyplot as plt		#for making plots
-from pathlib import Path 
-import datetime
 import os
+from pathlib import Path
+
+import matplotlib.pyplot as plt  # for making plots
+import numpy as np
+from astropy.io import fits  # handling of FITS files
+
 GHROOT = Path(__file__).parents[1]
+
+
 def fpath(x):
     return os.path.join(GHROOT, x)
 
+
 # function to plot x-axis in H:M:S format
-def HMS(sec_of_day, pos):
+def hms_convert(sec_of_day, pos):
     sec_of_day = int(sec_of_day)
     hours = sec_of_day // 3600
     rsec = sec_of_day % 3600
@@ -18,14 +23,17 @@ def HMS(sec_of_day, pos):
     seconds = rsec % 60
     return f"{hours:0>2}:{minutes:0>2}:{seconds:0>2}"
 
+
 # function to plot x-axis in hours only
 def hours_conversion(sec_of_day, pos):
     hours = int(sec_of_day / 3600)
     return hours
 
+
 #############################################
 #### Retrieving data from the FITS file #####
 #############################################
+
 
 def torus_plot(torus_filename):
     # load the file
@@ -34,7 +42,7 @@ def torus_plot(torus_filename):
     # print initial and final times of observation
     init_time = hdul[1].header["DATE-OBS"]
     fin_time = hdul[1].header["DATE-END"]
-    print("From "+ init_time + " to " + fin_time)
+    print("From " + init_time + " to " + fin_time)
 
     # 'hdul' is a HDUList (header-data unit list) containing 3 elements; using Python indexing you can retrieve the individual elements:
     # hdul[0] contains 'metadata' - you'll rarely have to use this one
@@ -44,10 +52,10 @@ def torus_plot(torus_filename):
     # extract time series data for use on both axis
     time_series_data = hdul[2].data
 
-    #to get data from a specific column in the table, use the 'field' function; we want 'SECOFDAY', 'TPOW0710ADAWN' and 'TPOW0710ADUSK'
-    time = time_series_data.field('SECOFDAY')
-    power_dawn = time_series_data.field('TPOW0710ADAWN')
-    power_dusk = time_series_data.field('TPOW0710ADUSK')
+    # to get data from a specific column in the table, use the 'field' function; we want 'SECOFDAY', 'TPOW0710ADAWN' and 'TPOW0710ADUSK'
+    time = time_series_data.field("SECOFDAY")
+    power_dawn = time_series_data.field("TPOW0710ADAWN")
+    power_dusk = time_series_data.field("TPOW0710ADUSK")
     print(power_dawn)
     print(time)
 
@@ -55,39 +63,40 @@ def torus_plot(torus_filename):
     #### Plotting the data #####
     ############################
 
-    #set up a figure
+    # set up a figure
     f, ax = plt.subplots(1, 1)
 
-    #label the axes
-    ax.set_xlabel('Time (h)')
-    ax.set_ylabel('Intensity (GW)')
+    # label the axes
+    ax.set_xlabel("Time (h)")
+    ax.set_ylabel("Intensity (GW)")
 
-    #plot the data
-    ax.plot(time, power_dawn, label='Dawn')
-    ax.plot(time, power_dusk, label='Dusk')
+    # plot the data
+    ax.plot(time, power_dawn, label="Dawn")
+    ax.plot(time, power_dusk, label="Dusk")
 
-    #add a legend to the plot (it will automatically contain the labels defined above)
-    titlesp = str(time_series_data[0].field('YEAR')) + '-' + str(time_series_data[0].field('DAYOFYEAR'))
+    # add a legend to the plot (it will automatically contain the labels defined above)
+    titlesp = str(time_series_data[0].field("YEAR")) + "-" + str(time_series_data[0].field("DAYOFYEAR"))
     ax.legend()
     plt.title(titlesp)
 
-    #removes unnecessary whitespace from plot (comment this out to see the difference)
+    # removes unnecessary whitespace from plot (comment this out to see the difference)
     plt.tight_layout()
 
-    figname = 'EUV_intensity_vs_time.pdf'
+    # figname = 'EUV_intensity_vs_time.pdf'
 
     # spaces x-axis ticks to be every 2 hours
-    plt.xticks(np.arange(0, 86401, step = 14400))
+    plt.xticks(np.arange(0, 86401, step=14400))
 
-    # codes for formatting the time axis (x-axis) in H:M:S format or integer hours only, only use one at a time 
-    ax.xaxis.set_major_formatter(plt.FuncFormatter(HMS))
-    #ax.xaxis.set_major_formatter(plt.FuncFormatter(hours_conversion))
+    # codes for formatting the time axis (x-axis) in H:M:S format or integer hours only, only use one at a time
+    ax.xaxis.set_major_formatter(plt.FuncFormatter(hms_convert))
+    # ax.xaxis.set_major_formatter(plt.FuncFormatter(hours_conversion))
 
     plt.show()
 
-    #save the figure (this will save it in the current directory; to save it somewhere else edit the filename to include the desired directory)
-    #plt.savefig(figname, bbox_inches='tight')
+    # save the figure (this will save it in the current directory; to save it somewhere else edit the filename to include the desired directory)
+    # plt.savefig(figname, bbox_inches='tight')
+
 
 # file of interest (assumes file is in same directory as this script - if it isn't, you need to add the path to the file)
-torus_filename = fpath(r'datasets\Hisaki\Torus Power\exeuv_torus_20160507_lv03_LT00-24_dt00010_vr01_00.fits')
+torus_filename = fpath(r"datasets\Hisaki\Torus Power\exeuv_torus_20160507_lv03_LT00-24_dt00010_vr01_00.fits")
 torus_plot(torus_filename)

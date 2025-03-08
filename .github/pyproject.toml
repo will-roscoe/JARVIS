@@ -1,8 +1,58 @@
+[project]
+requires-python = ">=3.8"
+
+
 [tool.ruff]
-include = ["python/**/*.py"]
+#include = ["python/jarvis/**/*.py"]
 line-length = 120
+show-fixes= true
+#output-file = "/.github/ruff_junit.xml.out"
+
+[tool.ruff.analyze]
+direction = "Dependents"
+[tool.ruff.format]
+#exclude = ["python/tests/*.py","python/*.py"]
+#docstring-code-format = true
+indent-style = "space"
+skip-magic-trailing-comma = true
+
+[tool.ruff.lint.isort]
+split-on-trailing-comma = false
 [tool.ruff.lint]
-select = ["E4", "E7", "E9", "F", "N"]
+select = [
+        "E4", "E7", "E9", 
+        "F",
+        "N",
+        #"ANN001","ANN201",
+        "B002","B015","B018","B021",
+        "A",
+        "COM","C",
+        "EXE",
+        "ICN",
+        "T201",
+        "Q003","Q004",
+        "RET",
+        "SIM",
+        "TD002","TD006",
+        #"TC001","TC002","TC003","TC004",
+        "ARG",
+        "I",
+        "NPY",
+        "PD002",
+        "W",
+        "UP"
+        ]
+unfixable=["T201"]
+task-tags = ["TODO","todo","FIX"]
+mccabe.max-complexity= 16
+[tool.ruff.lint.per-file-ignores]
+# Also ignore `E402` in all `__init__.py` files.
+"**/__init__.py" = ["E402","F401"]
+#[tool.ruff.lint.per-file-includes]
+#"jarvis/*.py" = ["ANN001","ANN201"]
+[tool.ruff.lint.flake8-annotations]
+ignore-fully-untyped = true
+allow-star-arg-any = true
 
 [tool.interrogate] 
 # command : interrogate -vvv -c .\.github\pyproject.toml .\\python\\jarvis\

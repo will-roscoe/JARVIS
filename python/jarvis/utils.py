@@ -155,6 +155,7 @@ def fitsheader(hdul, *args, ind=FITSINDEX, cust=True):
         cust: if True, returns custom values for 'south', 'fixed_lon', 'fixed', else will return the header value corresponding to the key."""
     # print(hdulect[ind].header.__dict__)
     ret = []
+    obj= None
     # assert all(isinstance(arg, str) for arg in args), 'All arguments must be strings.'
     for arg in args:
         if cust:
@@ -193,7 +194,7 @@ def adapted_hdul(original_hdul, new_data=None, **kwargs):
     """Returns a new fits object with the same header as the original fits object, but with new data and/or new header values."""
     orig_header = [original_hdul[i].header.copy() for i in [0, 1]]
     orig_data = [original_hdul[i].data for i in [0, 1]]
-
+    
     for k, v in kwargs.items():
         orig_header[FITSINDEX][k] = v
     if new_data is not None:
@@ -203,7 +204,10 @@ def adapted_hdul(original_hdul, new_data=None, **kwargs):
             orig_header[FITSINDEX]["VERSION"] = 1
     else:
         new_data = orig_data[FITSINDEX]
-    return HDUList([PrimaryHDU(orig_data[0], header=orig_header[0]), ImageHDU(new_data, header=orig_header[1])])
+    new = HDUList([PrimaryHDU(orig_data[0], header=orig_header[0]), ImageHDU(new_data, header=orig_header[1])])
+    image_data = new[FITSINDEX].data
+    print(f"{np.mean(image_data)=}, {np.min(image_data)=}, {np.max(image_data)=}")
+    return new
     # print(fits_new.info(), original_hdul.info())
 
 

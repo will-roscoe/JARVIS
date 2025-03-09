@@ -11,7 +11,9 @@ adapted from dmoral's original code by the JAR:VIS team.
 import os
 from datetime import timedelta
 from glob import glob
+from typing import List, Union
 
+from matplotlib.axes import Axes
 import numpy as np
 
 # third party libraries
@@ -75,6 +77,7 @@ def prep_polarfits(fitsobj: HDUList) -> HDUList:
     end_time_jup = start_time_jup + exposure  # noqa: F841
     mid_ex_jup = start_time_jup + (exposure / 2.0)  # noqa: F841
     image_data = fitsobj[FITSINDEX].data
+    print(f"{np.mean(image_data)=}, {np.min(image_data)=}, {np.max(image_data)=}")
     latbins = np.radians(np.linspace(-90, 90, num=image_data.shape[0]))
     lonbins = np.radians(np.linspace(0, 360, num=image_data.shape[1]))
     mask = np.zeros((int(image_data.shape[0]), image_data.shape[1]))
@@ -86,6 +89,7 @@ def prep_polarfits(fitsobj: HDUList) -> HDUList:
     cliplim = np.cos(np.radians(89))
     clipind = np.squeeze([mask >= cliplim])
     image_data[clipind == False] = np.nan  # noqa: E712
+    print(f"{np.mean(image_data)=}, {np.min(image_data)=}, {np.max(image_data)=}")
     return adapted_hdul(fitsobj, new_data=image_data, FIXED="LT" if not is_lon else "LON")
 
 
@@ -109,6 +113,7 @@ def plot_polar(fitsobj: HDUList, ax: PolarAxes, **kwargs) -> PolarAxes:
     matplotlib.axes._subplots.PolarAxesSubplot: The axis object with the plot.
     """
     image_data = fitsobj[FITSINDEX].data
+    print(f"{np.mean(image_data)=}, {np.min(image_data)=}, {np.max(image_data)=}")
     cml, is_south, fixed_lon, crop, full, rlim = fitsheader(
         fitsobj, "CML", "south", "fixed_lon", "CROP", "FULL", "RLIM",
     )
@@ -225,14 +230,17 @@ def plot_polar(fitsobj: HDUList, ax: PolarAxes, **kwargs) -> PolarAxes:
     cmap, norm, shrink, pad = (kwargs.pop(k, v) for k, v in kwd.items())
     rho = np.linspace(0, 180, num=int(image_data.shape[0]))
     theta = np.linspace(0, 2 * np.pi, num=image_data.shape[1])
+    print(f"{np.mean(image_data)=}, {np.min(image_data)=}, {np.max(image_data)=}")
     image_centred = (
         image_data if fixed_lon else np.roll(image_data, int(cml - 180.0) * 4, axis=1)
     )  # shifting the image to have CML pointing southwards in the image
+
     corte = np.flip(image_centred, 0)[: (int((image_data.shape[0]) / crop)), :]
     if is_south:
         rho = rho[::-1]
         corte = np.roll(corte, 180 * 4, axis=1)
-
+    print(f"midplot, {corte.shape=}")
+    print(f"{np.mean(corte)=}, {np.min(corte)=}, {np.max(corte)=}")
     cmesh = ax.pcolormesh(
         theta, rho[: (int((image_data.shape[0]) / crop))], corte, norm=norm, cmap=cmap,
     )  # ~ <- Color of the plot
@@ -438,6 +446,16 @@ def plot_regions(fitsobj: HDUList, ax: PolarAxes) -> PolarAxes:
             ax.plot(*line, c, lw=lw)
     return ax
 
+def plot_boundaries(fits_obj: HDUList,ax:plt.Axes,fill=True):
+    if len(fits_obj)>2:
+        for i in range(2,len(fits_obj)):
+            if fits_obj[i].header["XTENSION"] == "BINTABLE" and fits_obj[i].header["TTYPE1"] == "colat" and fits_obj[i].header["TTYPE2"] == "lon":
+                colat,lon = fits_obj[i].data["colat"],fits_obj[i].data["lon"]
+                bound = ax.plot(np.radians(360-r for r in lon), colat,linewidth=3.0, zorder=100)
+                if fill:
+                    ax.fill(np.radians(360-r for r in lon), colat,alpha=0.1,color=bound[0].get_color(),zorder=98)
+    return ax
+
 
 def moind(
     fitsobj: HDUList,
@@ -447,8 +465,9 @@ def moind(
     full: bool = True,
     regions: bool = False,
     moonfp: bool = False,
+    region: bool = False,
     **kwargs,
-) -> Figure:
+) -> list:
     """
     Process and plot a FITS file in polar coordinates
     Parameters:
@@ -474,6 +493,8 @@ def moind(
         plot_regions(fits_obj, ax)
     if moonfp:
         plot_moonfp(fits_obj, ax)
+    if region:
+        plot_boundaries(fits_obj,ax)
     return fig, ax, fits_obj
 
 

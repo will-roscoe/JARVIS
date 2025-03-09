@@ -90,7 +90,7 @@ def imagexy(
     ax_background: str = "white",
     img_background: str = "black",
     crop: bool = True,
-    cmap: cmr.Colormap = cmr.neutral,
+    cmap: str = cmr.neutral,
     dpi: int = 300,
     **kwargs,
 ) -> np.ndarray:
@@ -241,7 +241,7 @@ def generate_contours(
 
 
 def identify_contour(
-    contours: List[np.ndarray], hierarchy: dict, img: np.ndarray, id_pixel: List[int, int] = None,
+    contours: List[np.ndarray], hierarchy: dict, img: np.ndarray, id_pixel: List[int] = None,
 ) -> np.ndarray:  # noqa: ARG001
     """Identify the contour that contains a given pixel. will open a plot if no pixel is provided.
     Args:
@@ -297,7 +297,7 @@ def plot_contourpoints(clist):
 
 
 def find_contour_basic(
-    fits_obj: fits.HDUList, id_pixel: List[int, int] = None, lrange: List[float, float] = (0.2, 0.4),
+    fits_obj: fits.HDUList, id_pixel: List[int] = None, lrange: List[float] = (0.2, 0.4),
 ) -> np.ndarray:
     """Basic convenience function to generate contours and identify a contour from a fits file.
     Args:

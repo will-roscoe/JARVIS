@@ -44,6 +44,7 @@ select = [
         ]
 unfixable=["T201"]
 task-tags = ["TODO","todo","FIX"]
+ignore = ["C901"]
 mccabe.max-complexity= 16
 [tool.ruff.lint.per-file-ignores]
 # Also ignore `E402` in all `__init__.py` files.

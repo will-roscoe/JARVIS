@@ -27,14 +27,13 @@ def stats(data, mean=True, median=True, std=True, vmax=False, vmin=False):
 
 def correlate(data1, data2):
     """Calculates the correlation between two datasets."""
-    plt.scatter(data1, data2)
-    plt.show()
-    correlation = si.correlate(data1, data2, mode="valid")
+    correlation = si.correlate(data1, data2)
+    correlation /= np.max(correlation)
     print(correlation)
-    lags = si.correlation_lags(len(data1), len(data2), mode="valid")
+    lags = si.correlation_lags(len(data1), len(data2))
     print(lags)
-    regression = st.linregress(data1, data2)
-    print(regression)
+    plt.plot(lags, correlation)
+    plt.show()
     return correlation
 
 
@@ -79,3 +78,7 @@ def std_dev(hist):
 def intensity_distribution(roidata, bins=100, irange=None):
     """Returns the intensity distribution of a given roidata."""
     return np.histogram(roidata, bins=bins, range=irange)
+
+data1 = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+data2 = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+correlate(np.array(data1 , dtype=float), np.array(data2, dtype=float))

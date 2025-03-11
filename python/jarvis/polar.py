@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""
-This module contains functions to generate polar projection plots of Jupiter's image data from FITS files.
+"""Module containing functions to generate polar projection plots of Jupiter's image data from FITS files.
+
 The main function, moind(), generates a polar projection plot of Jupiter's image data from a FITS file.
 The make_gif() function creates a GIF from a directory of FITS files.
 
@@ -11,9 +11,7 @@ adapted from dmoral's original code by the JAR:VIS team.
 import os
 from datetime import timedelta
 from glob import glob
-from typing import List, Union
 
-from matplotlib.axes import Axes
 import numpy as np
 
 # third party libraries
@@ -23,7 +21,6 @@ from fastgif import make_gif as makefastgif
 from imageio import imread, mimsave
 from matplotlib import pyplot as plt
 from matplotlib.colors import LogNorm
-from matplotlib.figure import Figure
 from matplotlib.patheffects import withStroke
 from matplotlib.projections.polar import PolarAxes
 from tqdm import tqdm
@@ -47,10 +44,11 @@ __all__ = ["moind", "make_gif", "plot_moonfp", "plot_regions", "plot_polar", "pr
 
 
 def prep_polarfits(fitsobj: HDUList) -> HDUList:
-    """
-    Processes a FITS file to apply transformations for polar plotting of a hemisphere. Uses header information to adjust the image data.
+    """Process a FITS file to apply transformations for polar plotting of a hemisphere. Use header information to adjust the image data.
+
     Args:
         fitsobj (HDUList): The FITS file object to be processed.
+
     Returns:
         HDUList: The processed FITS file object with updated data.
     The function performs the following steps:
@@ -62,6 +60,7 @@ def prep_polarfits(fitsobj: HDUList) -> HDUList:
     6. Creates a mask based on the latitude and longitude bins.
     7. Applies the mask to the image data to filter out invalid regions.
     8. Returns a new FITS file object with the processed image data.
+
     """
     cml, dece, exp_time, is_south = fitsheader(fitsobj, "CML", "DECE", "EXPT", "south")
     is_lon = fitsheader(fitsobj, "fixed_lon")
@@ -77,7 +76,7 @@ def prep_polarfits(fitsobj: HDUList) -> HDUList:
     end_time_jup = start_time_jup + exposure  # noqa: F841
     mid_ex_jup = start_time_jup + (exposure / 2.0)  # noqa: F841
     image_data = fitsobj[FITSINDEX].data
-    print(f"{np.mean(image_data)=}, {np.min(image_data)=}, {np.max(image_data)=}")
+    #print(f"{np.mean(image_data)=}, {np.min(image_data)=}, {np.max(image_data)=}")
     latbins = np.radians(np.linspace(-90, 90, num=image_data.shape[0]))
     lonbins = np.radians(np.linspace(0, 360, num=image_data.shape[1]))
     mask = np.zeros((int(image_data.shape[0]), image_data.shape[1]))
@@ -89,17 +88,18 @@ def prep_polarfits(fitsobj: HDUList) -> HDUList:
     cliplim = np.cos(np.radians(89))
     clipind = np.squeeze([mask >= cliplim])
     image_data[clipind == False] = np.nan  # noqa: E712
-    print(f"{np.mean(image_data)=}, {np.min(image_data)=}, {np.max(image_data)=}")
+    #print(f"{np.mean(image_data)=}, {np.min(image_data)=}, {np.max(image_data)=}")
     return adapted_hdul(fitsobj, new_data=image_data, FIXED="LT" if not is_lon else "LON")
 
 
 def plot_polar(fitsobj: HDUList, ax: PolarAxes, **kwargs) -> PolarAxes:
-    """
-    Plots a polar projection of the given FITS object data.
-    Parameters:
+    """Plot a polar projection of the given FITS object data.
+
+    Args:
     fitsobj (HDUList): The FITS file object containing the data to be plotted.
     ax (matplotlib.axes._subplots.PolarAxesSubplot): The matplotlib axis object to plot on.
     **kwargs: Additional keyword arguments for customization.
+
     Keyword Arguments:
     title (str): Title for the plot.
     suptitle (str): Supertitle for the plot.
@@ -109,14 +109,19 @@ def plot_polar(fitsobj: HDUList, ax: PolarAxes, **kwargs) -> PolarAxes:
     shrink (float): Shrink factor for the colorbar.
     pad (float): Padding for the colorbar.
     draw_cbar, draw_grid, draw_ticks, ax_params, ml, hemis (bool): Flags to draw the colorbar, grid, ticks, axis parameters, meridian lines, and hemisphere text. all default to True.
+
     Returns:
     matplotlib.axes._subplots.PolarAxesSubplot: The axis object with the plot.
+
     """
     image_data = fitsobj[FITSINDEX].data
-    print(f"{np.mean(image_data)=}, {np.min(image_data)=}, {np.max(image_data)=}")
+    #print(f"{np.mean(image_data)=}, {np.min(image_data)=}, {np.max(image_data)=}")
     cml, is_south, fixed_lon, crop, full, rlim = fitsheader(
         fitsobj, "CML", "south", "fixed_lon", "CROP", "FULL", "RLIM",
     )
+    rlim = 40
+    crop = 1
+
     if kwargs.pop("nodec", False):
         kwargs.update(
             {
@@ -212,8 +217,7 @@ def plot_polar(fitsobj: HDUList, ax: PolarAxes, **kwargs) -> PolarAxes:
                 linestyle="-.",
                 lw=1,
             )  # prime meridian (longitude 0)
-
-    # Actual plot and colorbar (change the vmin and vmax to play with the limits
+        # Actual plot and colorbar (change the vmin and vmax to play with the limits
     # of the colorbars, recommended to enhance/saturate certain features)
     ticks = kwargs.pop(
         "ticks",
@@ -221,26 +225,23 @@ def plot_polar(fitsobj: HDUList, ax: PolarAxes, **kwargs) -> PolarAxes:
         if int(fitsobj[1].header["EXPT"]) < 30
         else [10.0, 40.0, 100.0, 200.0, 400.0, 1000.0, 3000.0],
     )
-    kwd = {
-        "cmap": "viridis",
-        "norm": LogNorm(vmin=ticks[0], vmax=ticks[-1]),
-        "shrink": 1 if full else 0.75,
-        "pad": 0.06,
-    }
+    kwd = dict(cmap="viridis", norm=LogNorm(vmin=ticks[0], vmax=ticks[-1]), shrink=1 if full else 0.75, pad=0.06)
     cmap, norm, shrink, pad = (kwargs.pop(k, v) for k, v in kwd.items())
     rho = np.linspace(0, 180, num=int(image_data.shape[0]))
     theta = np.linspace(0, 2 * np.pi, num=image_data.shape[1])
-    print(f"{np.mean(image_data)=}, {np.min(image_data)=}, {np.max(image_data)=}")
-    image_centred = (
-        image_data if fixed_lon else np.roll(image_data, int(cml - 180.0) * 4, axis=1)
-    )  # shifting the image to have CML pointing southwards in the image
-
+    if fixed_lon:
+        image_centred = image_data
+    else:
+        image_centred = np.roll(
+            image_data, int(cml - 180.0) * 4, axis=1,
+        )  # shifting the image to have CML pointing southwards in the image
     corte = np.flip(image_centred, 0)[: (int((image_data.shape[0]) / crop)), :]
+
     if is_south:
         rho = rho[::-1]
         corte = np.roll(corte, 180 * 4, axis=1)
-    print(f"midplot, {corte.shape=}")
-    print(f"{np.mean(corte)=}, {np.min(corte)=}, {np.max(corte)=}")
+    #print(f"midplot, {corte.shape=}")
+    #print(f"{np.mean(corte)=}, {np.min(corte)=}, {np.max(corte)=}")
     cmesh = ax.pcolormesh(
         theta, rho[: (int((image_data.shape[0]) / crop))], corte, norm=norm, cmap=cmap,
     )  # ~ <- Color of the plot
@@ -279,16 +280,19 @@ def plot_polar(fitsobj: HDUList, ax: PolarAxes, **kwargs) -> PolarAxes:
 
 
 def plot_moonfp(fitsobj: HDUList, ax: PolarAxes) -> PolarAxes:
-    """
-    Plots the footprints of moons on a given axis based on the provided FITS object and the moonfploc function.
-    Parameters:
+    """Plot the footprints of moons on a given axis based on the provided FITS object and the moonfploc function.
+
+    Args:
     fitsobj (HDUList): The FITS object containing the data.
     ax (mpl.projections.polar.PolarAxes): The matplotlib axis on which to plot the moon footprints.
+
     Returns:
-    None
+    PolarAxes
+
     The function extracts relevant data from the FITS header, calculates the positions of the moons,
     and plots their footprints on the provided axis. It handles both northern and southern hemispheres
     and adjusts the plotting based on whether the longitude is fixed or not.
+
     """
     cml, is_south, fixed_lon = fitsheader(fitsobj, "CML", "south", "fixed_lon")
     lons = [fitsheader(fitsobj, f"IOLON{k}", f"EULON{k}", f"GALON{k}") for k in ("", 1, 2)]
@@ -387,18 +391,18 @@ def plot_moonfp(fitsobj: HDUList, ax: PolarAxes) -> PolarAxes:
 
 
 def plot_regions(fitsobj: HDUList, ax: PolarAxes) -> PolarAxes:
-    """
-    Plots various regions on a polar plot using the provided FITS object and matplotlib axis.
-    Parameters:
-    fitsobj : object
-        The FITS object containing the data and header information.
-    ax : mpl.projections.polar.PolarAxes
-        The matplotlib axis on which to plot the regions.
+    """Plot various regions on a polar plot using the provided FITS object and matplotlib axis.
+
+    Args:
+    fitsobj (HDUList): The FITS object containing the data and header information.
+    ax (mpl.projections.polar.PolarAxes): The matplotlib axis on which to plot the regions.
+
     The function plots the following regions:
     - Dusk boundary in red.
     - Dawn boundary in black or blue depending on the 'fixed_lon' header value.
     - Noon boundary in yellow.
     - Polar boundary in white dashed lines.
+
     """
     lon_fixed = fitsheader(fitsobj, "fixed_lon")
     updusk = np.linspace(np.radians(205), np.radians(170), 200)
@@ -446,14 +450,16 @@ def plot_regions(fitsobj: HDUList, ax: PolarAxes) -> PolarAxes:
             ax.plot(*line, c, lw=lw)
     return ax
 
-def plot_boundaries(fits_obj: HDUList,ax:plt.Axes,fill=True):
-    if len(fits_obj)>2:
-        for i in range(2,len(fits_obj)):
-            if fits_obj[i].header["XTENSION"] == "BINTABLE" and fits_obj[i].header["TTYPE1"] == "colat" and fits_obj[i].header["TTYPE2"] == "lon":
-                colat,lon = fits_obj[i].data["colat"],fits_obj[i].data["lon"]
-                bound = ax.plot(np.radians(360-r for r in lon), colat,linewidth=3.0, zorder=100)
-                if fill:
-                    ax.fill(np.radians(360-r for r in lon), colat,alpha=0.1,color=bound[0].get_color(),zorder=98)
+
+def plot_boundaries(fits_obj: HDUList, ax: plt.Axes, fill=True):
+    # if len(fits_obj)>2:
+    for i in range(2, len(fits_obj) + 1):
+        # if fits_obj[i].header["XTENSION"] == "BINTABLE" and fits_obj[i].header["TTYPE1"] == "colat" and fits_obj[i].header["TTYPE2"] == "lon":
+        colat, lon = fits_obj["BOUNDARY"].data["colat"], fits_obj["BOUNDARY"].data["lon"]
+        bound = ax.plot(lon, colat, linewidth=100, zorder=100, color="red", clip=False)
+        #print("vortgefe")
+        if fill:
+            ax.fill(colat, np.radians(360 - r for r in lon), alpha=0.1, color=bound[0].get_color(), zorder=98)
     return ax
 
 
@@ -465,12 +471,12 @@ def moind(
     full: bool = True,
     regions: bool = False,
     moonfp: bool = False,
-    region: bool = False,
+    region: bool = True,
     **kwargs,
-) -> list:
-    """
-    Process and plot a FITS file in polar coordinates
-    Parameters:
+) -> tuple:
+    """Process and plot a FITS file in polar coordinates.
+
+    Args:
     fitsobj (HDUList): The FITS file object to be processed.
     crop (float, optional): The crop factor for the FITS file. Default is 1.
     rlim (float, optional): The radial limit for the plot. Default is 40.
@@ -479,39 +485,45 @@ def moind(
     full (bool, optional): Whether to plot the full FITS file. Default is True.
     regions (bool, optional): Whether to plot regions on the FITS file. Default is False.
     moonfp (bool, optional): Whether to plot the moon footprint. Default is False.
+    region (bool, optional): whether to plot any boundaries found in the HDUList.
     **kwargs: Additional keyword arguments for plotting.
+
     Returns:
     Union[None, mpl.figure.Figure]: The matplotlib figure and axis objects if successful, otherwise None.
+
     """
     fits_obj = prep_polarfits(
         assign_params(fitsobj, crop=crop, rlim=rlim, fixed=fixed, full=full, regions=regions, moonfp=moonfp),
     )
     fig = plt.figure(figsize=(7, 6))
     ax = plt.subplot(projection="polar")
-    plot_polar(fits_obj, ax, **kwargs)
+    ax = plot_polar(fits_obj, ax, **kwargs)
     if regions and not fitsheader(fits_obj, "south"):
-        plot_regions(fits_obj, ax)
+        ax = plot_regions(fits_obj, ax)
     if moonfp:
-        plot_moonfp(fits_obj, ax)
+        ax = plot_moonfp(fits_obj, ax)
     if region:
-        plot_boundaries(fits_obj,ax)
+        ax = plot_boundaries(fits_obj, ax)
     return fig, ax, fits_obj
 
 
 def make_gif(fits_dir, fps=5, remove_temp=False, savelocation="auto", filename="auto", **kwargs):
-    """
-    Create a GIF from a directory of FITS files.
-    Parameters:
+    """Create a GIF from a directory of FITS files.
+
+    Args:
     fits_dir (str): The directory containing the FITS files.
     fps (int, optional): The frames per second for the GIF. Default is 5.
     remove_temp (bool, optional): Whether to remove temporary files. Default is False.
     savelocation (str, optional): The directory to save the GIF. Default is 'auto'.
     filename (str, optional): The name of the GIF file. Default is 'auto'.
     **kwargs: Additional keyword arguments for the moind function.
+
     Returns:
     None
+
     The function reads all FITS files in the specified directory, generates polar plots using the moind function,
     and creates a GIF from the images. The GIF is saved in the specified location with the given filename.
+
     """
     fitslist, fnames = fits_from_glob(fits_dir, names=True)
     imagesgif = []
@@ -521,7 +533,6 @@ def make_gif(fits_dir, fps=5, remove_temp=False, savelocation="auto", filename="
             fig, ax, f = moind(file, **kwargs)
             fig.savefig(fpath("temp/") + f"gifpart_{i}.jpg", dpi=300)
             plt.close(fig)
-            # tqdm.write(f'Image {i+1} of {len(fitslist)} created: {"IMPLEMENT"}')
             pb.update(1)
 
             imagesgif.append(imread(fpath("temp/") + f"gifpart_{i}.jpg"))
@@ -539,18 +550,21 @@ def make_gif(fits_dir, fps=5, remove_temp=False, savelocation="auto", filename="
 
 
 def makefast_gif(fitsobjs, initfunc=None, fps=5, showprogress=True, **kwargs):
-    """
-    Create a GIF from a list of FITS files using the fastgif module.
-    Parameters:
+    """Create a GIF from a list of FITS files using the fastgif module.
+
+    Args:
     fitsobjs (list): A list of FITS file objects.
     initfunc (function, optional): The initialization function for the GIF. this function should take an index as an argument and return a figure object. Default is None, which uses the moind function.
     fps (int, optional): The frames per second for the GIF. Default is 5.
     showprogress (bool, optional): Whether to show the progress bar. Default is True.
     **kwargs: Additional keyword arguments for the moind function. If 'saveto' is provided, the GIF is saved to the specified location.
+
     Returns:
     None
+
     The function generates a GIF from the list of FITS files using the fastgif module. It uses the initialization function to create the figure objects for each frame.
     The GIF is saved to the specified location if 'saveto' is provided in the keyword arguments.
+
     """
     if initfunc is None:
 

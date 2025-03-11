@@ -7,6 +7,7 @@ from jarvis import fpath, make_gif, moind
 
 
 class TestFileStructure:
+
     """Testing class independent functions"""
 
     def test_nothing(self):

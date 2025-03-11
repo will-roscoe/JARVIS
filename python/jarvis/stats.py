@@ -10,7 +10,7 @@ from scipy import stats as st
 
 # does all the stats we will need for analysis
 def stats(data, mean=True, median=True, std=True, vmax=False, vmin=False):
-    """Calculates common statistcal values for a given dataset."""
+    """Calculate common statistcal values for a given dataset."""
     stats = {}
     if mean:
         stats["mean"] = np.mean(data)
@@ -26,9 +26,16 @@ def stats(data, mean=True, median=True, std=True, vmax=False, vmin=False):
 
 
 def correlate(data1, data2):
+<<<<<<< Updated upstream
     """Calculates the correlation between two datasets."""
     correlation = si.correlate(data1, data2)
     correlation /= np.max(correlation)
+=======
+    """Calculate the correlation between two datasets."""
+    plt.scatter(data1, data2)
+    plt.show()
+    correlation = si.correlate(data1, data2, mode="valid")
+>>>>>>> Stashed changes
     print(correlation)
     lags = si.correlation_lags(len(data1), len(data2))
     print(lags)
@@ -41,7 +48,8 @@ def correlate(data1, data2):
 def get_statstext(
     hist, mode, symb, skewed=False,
 ):  # Function i pulled out of another project with skewed distribution analysis. kurtosis only works if there are two sides of the distribution though, not maximum at one of the extrema.
-    """Returns a string with the mode, average, standard deviation, kurtosis and skewness of a histogram.
+    """Return a string with the mode, average, standard deviation, kurtosis and skewness of a histogram.
+
     Args:
     hist: A histogram tuple. (generate from np.histogram)
     mode: The mode of the histogram.
@@ -67,7 +75,7 @@ def get_statstext(
 
 
 def std_dev(hist):
-    """Returns the standard deviation of a histogram. (normally distributed)"""
+    """Return the standard deviation of a histogram (normally distributed)."""
     counts, bins = hist[:2]
     mids = 0.5 * (bins[1:] + bins[:-1])
     probs = counts / np.sum(counts)
@@ -76,7 +84,7 @@ def std_dev(hist):
 
 
 def intensity_distribution(roidata, bins=100, irange=None):
-    """Returns the intensity distribution of a given roidata."""
+    """Return the intensity distribution of a given roidata."""
     return np.histogram(roidata, bins=bins, range=irange)
 
 data1 = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]

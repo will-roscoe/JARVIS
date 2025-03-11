@@ -10,9 +10,11 @@ show-fixes= true
 
 [tool.ruff.analyze]
 direction = "Dependents"
+
 [tool.ruff.format]
 #exclude = ["python/tests/*.py","python/*.py"]
-#docstring-code-format = true
+docstring-code-format = true
+docstring-code-line-length = 80
 indent-style = "space"
 skip-magic-trailing-comma = true
 
@@ -21,9 +23,11 @@ split-on-trailing-comma = false
 [tool.ruff.lint]
 select = [
         "E4", "E7", "E9", 
+        #"E2",
         "F",
         "N",
         #"ANN001","ANN201",
+        "RET",
         "B002","B015","B018","B021",
         "A",
         "COM","C",
@@ -40,17 +44,23 @@ select = [
         "NPY",
         "PD002",
         "W",
-        "UP"
+        "UP",
+        #"DOC",
+        "D",
+        "RUF0",
+        "ERA001"
         ]
-unfixable=["T201"]
+unfixable=["T201","ERA001"]
 task-tags = ["TODO","todo","FIX"]
-ignore = ["C901"]
+ignore = ["C901","D211","D213", "W191","E111","E114","E117","COM819"]
 mccabe.max-complexity= 16
+
 [tool.ruff.lint.per-file-ignores]
 # Also ignore `E402` in all `__init__.py` files.
 "**/__init__.py" = ["E402","F401"]
 #[tool.ruff.lint.per-file-includes]
 #"jarvis/*.py" = ["ANN001","ANN201"]
+
 [tool.ruff.lint.flake8-annotations]
 ignore-fully-untyped = true
 allow-star-arg-any = true

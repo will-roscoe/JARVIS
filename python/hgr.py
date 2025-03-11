@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 from datetime import datetime
+from random import choice
 
 import matplotlib as mpl
 import numpy as np
@@ -10,6 +11,7 @@ from jarvis.utils import group_to_visit
 from matplotlib import pyplot as plt
 from tqdm import tqdm
 
+mpl.rcParams["hatch.linewidth"] = 2
 infiles = [fpath("2025-03-06_17-30-59.txt"), fpath("2025-03-06_21-14-46.txt")]
 
 
@@ -204,7 +206,7 @@ def plot_visits_multi(
 
     for cdf in corr_:
         main_ax.scatter(cdf["EPOCH"], cdf[quantity], marker="x", s=5, c=cdf["color"], zorder=5)
-        main_ax.plot(cdf["EPOCH"], cdf[quantity], color="#aaf", linewidth=0.5, linestyle="--")
+        #main_ax.plot(cdf["EPOCH"], cdf[quantity], color="#aaf", linewidth=0.5, linestyle="--")
     visits = []
     ranges = {}
     main_ax.xaxis.tick_top()
@@ -284,14 +286,119 @@ def plot_visits_multi(
     return None
 
 
+def plot_visits_v2(
+    dfs, axs, quantities):  # corrected = False, True, None (remove negative values)
+    corr_, visits_ = [], []
+    for df in dfs:
+        df["EPOCH"] = pd.to_datetime(df["Date"] + " " + df["Time"])
+        df = df.sort_values(by="EPOCH")
+        visits = df["visit"].unique()
+        corr_.append(df)
+        visits_.append(visits)
+    visits = set()
+    for visit in visits_:
+        for v in visit:
+            if not any(v == u for u in visits):
+                visits.update({v})
+    df = dfs[0].copy()
+    for i, df_ in enumerate(dfs[1:]):
+        df = pd.merge(
+            df,
+            df_,
+            how="outer",
+            on=["visit", "Date", "Time", "Power", "PFlux", "Area", "EPOCH", "color","marker"],
+            suffixes=("", f"_{i+1}"),
+        )
+    fitsdirs = hst_fpath_list()[:-1]
+    uniquevisits = []
+    alt_xs = []
+    for f in fitsdirs:
+        mind, maxd = get_obs_interval(f)
+        mind = pd.to_datetime(mind)
+        maxd = pd.to_datetime(maxd)
+        # span over the interval
+        fvisit = group_to_visit(int(f.split("_")[-1][:2]))
+        if fvisit in visits:
+            col = "#aaa"
+            alt_xs.append([mind+(maxd-mind)/2,fvisit])
+            uniquevisits.append(fvisit)
+        else:
+            col = "#aaa5"
+        for ax in axs:
+            ax.axvspan(mind, maxd, alpha=0.5, color=col)
+    
+    #top plot
+    axs[-1].set_xticks([a[0] for a in alt_xs], labels=[f"v{a[1]}" for a in alt_xs])
+    hch = ["\\\\","//","--","||"]
+    # main scatter&plot loop
+    for x,cdf in enumerate(corr_):
+        for i in range(len(quantities)):
+            if quantities[i] is not None:
+                axs[i].scatter(cdf["EPOCH"], cdf[quantities[i]], marker=cdf["marker"][0], s=5, c=cdf["color"], zorder=5)
+                #axs[i].plot(cdf["EPOCH"], cdf[quantities[i]], color="#aaf", linewidth=0.5, linestyle="--")
+                # define minimums and maximums per visit, get minquant, maxquant, tmin, tmax.
+                ranges = []
+                for j,u in enumerate(uniquevisits):
+                    if u in cdf["visit"].unique():
+                        idfint = df.where(df["visit"] == u)
+                        dmax, dmin = [idfint["EPOCH"].max(), idfint["EPOCH"].min()]
+                        qmin, qmax = [idfint[quantities[i]].min(), idfint[quantities[i]].max()]
+                        ranges.append([dmin, qmin, qmax])
+                        ranges.append([dmax, qmin, qmax])
+                        print(dmin, dmax, qmin, qmax)
+
+                ranges=pd.DataFrame(ranges, columns=["time","min","max"])
+                ranges = ranges.dropna()
+                ranges = ranges.sort_values(by=["time"])
+                
+                
+                fl = axs[i].fill_between(ranges['time'],  ranges["max"], ranges["min"],facecolor=(cdf["color"][0],0.05), edgecolor=(cdf["color"][0],0.2),hatch=hch[x],linewidth=0.5,  interpolate=True)
+                #axs[i].fill_between(ranges['time'],  ranges["max"], ranges["min"],facecolor=(0,0,0,0), edgecolor=(1,1,1), interpolate=True)
+                
+               
+                
+                
+    # define lims per visit, per quantity
+    ranges = {q:{} for q in quantities if q is not None}
+    for quantity in quantities:
+        if quantity is not None:
+            for i,_ in enumerate(uniquevisits):
+                idfint = df.where(df["visit"] == uniquevisits[i])
+                dmax, dmin = [idfint["EPOCH"].max(), idfint["EPOCH"].min()]
+                qmin, qmax = [idfint[quantity].min(), idfint[quantity].max()]
+                ranges[quantity][i] = dmin, dmax, qmin, qmax
+    visits = []
+    lim = {q : [] for q in quantities if q is not None}
+    for q in quantities:
+        for i, [dmn, dmx, mn, mx] in ranges[q].items():
+            lim[q].extend([[dmn, mn, mx], [dmx, mn, mx]])
+
+        mmdf = pd.DataFrame(lim[q], columns=["EPOCH", "min", "max"])
+        mmdf = mmdf.dropna()
+        mmdf = mmdf.sort_values(by=["EPOCH"])
+        lim[q] = mmdf
+    # finally plot the fill_between
+    for i,q in enumerate(quantities):
+        if quantities[i] is not None:
+            pass#axs[i].fill_between(lim[q]["EPOCH"], lim[q]["min"], lim[q]["max"], color="#aaa5", alpha=0.5, interpolate=True)
+
+    return axes, (df["EPOCH"].min(), df["EPOCH"].max()), lim
+
+
+
 dfs = [
     pd.read_csv(f, sep=" ", index_col=False, names=["visit", "Date", "Time", "Power", "PFlux", "Area"]) for f in infiles
 ]
-clrs = ["r", "g", "b"]  # cmr.take_cmap_colors('rainbow', len(dfs), return_fmt='hex')
+
+clrs = ["xkcd:purple","xkcd:green","xkcd:blue","xkcd:magenta","xkcd:red","xkcd:brown"]
+mkrs = ["o","v","^","s","p"]                    # cmr.take_cmap_colors('rainbow', len(dfs), return_fmt='hex')
 for i, d in enumerate(dfs):
-    dfs[i]["color"] = [clrs[i] for _ in range(len(dfs[i]))]
-fig = plt.figure(figsize=(8, 6), constrained_layout=True)
-# subfig = fig.subfigures(1,3, wspace=0, )
+    dfs[i]["color"] = [choice(clrs),] * len(dfs[i])
+    clrs.remove(dfs[i]["color"][0])
+    dfs[i]["marker"] = [choice(mkrs),] * len(dfs[i])
+    mkrs.remove(dfs[i]["marker"][0])
+# fig = plt.figure(figsize=(8, 6), constrained_layout=True)
+# subfig = fig.subfigures(1,3, wspace=0, )  # noqa: ERA001
 
 table = TimeSeries.read(fpath("datasets/Hisaki_SW-combined.csv"))
 # remove nan values
@@ -304,23 +411,55 @@ table = TimeSeries().from_pandas(table)
 # plot_visits_multi(dfs, 'PFlux', unit='GW/km²',figure=subfig[0], ret='fig')
 # plot_visits_multi(dfs, 'Power', unit='GW', figure=subfig[1], ret='fig')
 # plot_visits_multi(dfs, 'Area', unit='km²', figure=subfig[2], ret='fig')
-fig, ax, axs, lims = plot_visits_multi(dfs, "PFlux", unit="GW/km²", figure=fig, ret="fig")
-for m in axs + [[ax]]:
-    for a in m:
-        ax0t = a.twinx()
-        ax0t.plot(table_sw.time.datetime64, table_sw["jup_sw_pdyn"], color="#f88", linewidth=0.7, linestyle="--")
-        ax0t.plot(table.time.datetime64, table["jup_sw_pdyn"], color="red", linewidth=0.7)
-        ax0t.scatter(table.time.datetime64, table["jup_sw_pdyn"], color="red", marker=".", s=5)
-        ax0tt = a.twinx()
-        ax0tt.plot(
-            table_torus.time.datetime64, table_torus["TPOW0710ADAWN"], color="#88f", linewidth=0.7, linestyle="--",
+
+
+fig,axes = plt.subplots(5, 1, figsize=(8, 5), dpi=100, gridspec_kw={"hspace": 0, "wspace": 0})
+axes, dlims,lims = plot_visits_v2(dfs,  axs=axes,quantities=["PFlux","Power","Area"])
+axes[0].xaxis.set_major_locator(mpl.dates.DayLocator(interval=2))
+axes[0].xaxis.set_major_formatter(mpl.dates.DateFormatter("%d/%m/%y"))
+axes[0].xaxis.set_minor_locator(mpl.dates.DayLocator(interval=1))
+axes[0].xaxis.tick_top()
+axes[3].plot(table_sw.time.datetime64, table_sw["jup_sw_pdyn"], color="#f88", linewidth=0.7, linestyle="--")
+axes[3].plot(table.time.datetime64, table["jup_sw_pdyn"], color="red", linewidth=0.7)
+axes[3].scatter(table.time.datetime64, table["jup_sw_pdyn"], color="red", marker=".", s=5)
+      
+axes[4].plot(
+            table_torus.time.datetime64, table_torus["TPOW0710ADUSK"], color="#88f", linewidth=0.7, linestyle="--",
         )
-        ax0tt.plot(table.time.datetime64, table["TPOW0710ADAWN"], color="blue", linewidth=0.7)
-        ax0tt.scatter(table.time.datetime64, table["TPOW0710ADAWN"], color="blue", marker=".", s=5)
-ax.set_xlim(lims[0] - pd.Timedelta(hours=1), lims[1] + pd.Timedelta(hours=1))
+axes[4].plot(table.time.datetime64, table["TPOW0710ADUSK"], color="blue", linewidth=0.7)
+axes[4].scatter(table.time.datetime64, table["TPOW0710ADUSK"], color="blue", marker=".", s=5)
+axes[4].plot(
+            table_torus.time.datetime64, table_torus["TPOW0710ADAWN"], color="#8F8", linewidth=0.7, linestyle="--",
+        )
+axes[4].plot(table.time.datetime64, table["TPOW0710ADAWN"], color="green", linewidth=0.7)
+axes[4].scatter(table.time.datetime64, table["TPOW0710ADAWN"], color="green", marker=".", s=5)
+
+
+for ax in axes:
+    ax.set_xlim(dlims[0] - pd.Timedelta(hours=24), dlims[1] + pd.Timedelta(hours=24))
 
 # print(lims, t, table.columns)
 
+conv = {"system":["initial","si","cgs"],
+        "Flux":[1*1e8,1e4,1e6],
+        "FluxU":["$\\times 10^{-8}~ GW~ km^{-2}$","$W~ m^{-2}$","$erg~ cm^{2}~ s^{-1}$"],
+        "Power":[1,1e9,1e16*1e-18],
+        "PowerU":["$GW$","$W$","$\\times 10^{18}~ erg~ s^{-1}$"],
+        "Area":[1*1e-9,1e6*1e-15,1e10*1e-18],
+        "AreaU":["$\\times 10^{9}~ km^{2}$","$\\times 10^{15}~ m^{2}$","$\\times 10^{18}~ cm^{2}$"],}
+USYS = conv["system"].index("initial")
+
+axes[0].yaxis.set_major_formatter(plt.FuncFormatter(lambda x, _: f"{x*conv["Flux"][USYS]:g}")) # 1[GW/km^2] -->  10^4[W/m^2] | 10^6 [erg cm^2 s^-1]
+axes[1].yaxis.set_major_formatter(plt.FuncFormatter(lambda x, _: f"{x*conv["Power"][USYS]:g}")) # 1[GW] --> 10^9 [W] | 10^16 [erg s^-1]
+axes[2].yaxis.set_major_formatter(plt.FuncFormatter(lambda x, _: f"{x*conv["Area"][USYS]:g}")) # 1[km^2] --> 10^6 [m^2] | 10^10 [cm^2]
+
+#TODO @samoo2000000 @will-roscoe @Yeefhan @RonanSzeto check units
+axes[0].set_ylabel("Flux [{}]".format(conv["FluxU"][USYS]))
+axes[1].set_ylabel("Power [{}]".format(conv["PowerU"][USYS]))
+axes[2].set_ylabel("Area [{}]".format(conv["AreaU"][USYS]))
+
+axes[3].set_ylabel(r"SW $[nPa]$")
+axes[4].set_ylabel(r"Torus Power $[W/m^{2}]$")
 
 plt.show()
 
@@ -330,4 +469,9 @@ plt.show()
 # df.plot(x='EPOCH',y='TPOW0710ADAWN')
 # plt.show()
 
-# get the first color value:
+# # get the first color value:
+# 
+#  axs[0].set_ylabel(f"{quantity}" + (f" [{unit}]" if unit else ""))
+#     axs[0].set_ylim([0, df[quantity].max()])
+#     
+#     axs[0].set_title(f'{quantity} over visits {df['visit'].min()} to {df['visit'].max()}', fontsize=20)

@@ -34,10 +34,10 @@ from astropy.io import fits
 # import pandas as pd
 from dateutil.parser import parse
 from jarvis import fpath
-from jarvis.const import KERNELDIR
+from jarvis.const import Dirs
 from matplotlib import path
 
-spice.furnsh(KERNELDIR + "jupiter.mk")  # SPICE kernels
+spice.furnsh(Dirs.KERNEL + "jupiter.mk")  # SPICE kernels
 fs = 12  # font size for plots
 # ctrs  = pathtest()# dictionary of contour paths
 # print(ctrs)

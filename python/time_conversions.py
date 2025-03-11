@@ -5,11 +5,11 @@ from datetime import datetime
 
 import numpy as np
 import spiceypy as spice
-from jarvis.const import KERNELDIR
+from jarvis.const import Dirs
 
 # load lsk if not loaded already
 lsk = (
-    KERNELDIR + "naif0012.tls"
+    Dirs.KERNEL + "naif0012.tls"
 )  #'/Users/sarah/OneDrive - Lancaster University/Prog/Python/Galileo/kernels/naif0012.tls'
 try:
     spice.kinfo(lsk)

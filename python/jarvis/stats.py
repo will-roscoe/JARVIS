@@ -26,27 +26,25 @@ def stats(data, mean=True, median=True, std=True, vmax=False, vmin=False):
 
 
 def correlate(data1, data2):
-<<<<<<< Updated upstream
-    """Calculates the correlation between two datasets."""
-    correlation = si.correlate(data1, data2)
-    correlation /= np.max(correlation)
-=======
     """Calculate the correlation between two datasets."""
-    plt.scatter(data1, data2)
-    plt.show()
-    correlation = si.correlate(data1, data2, mode="valid")
->>>>>>> Stashed changes
+    correlation = si.correlate(data1, data2, mode="full")
+    correlation /= np.max(correlation)
     print(correlation)
-    lags = si.correlation_lags(len(data1), len(data2))
+    lags = si.correlation_lags(len(data1), len(data2), mode="full")
     print(lags)
     plt.plot(lags, correlation)
+    plt.xlabel("Lags")
+    plt.ylabel("Correlation")
+    plt.title("Correlation between data sets")
     plt.show()
-    if len(data1) != len(data2):
-        print("Data sets are not the same length")
-    else:
+    if len(data1) == len(data2):
         pearson = st.pearsonr(data1, data2)
         print(pearson)
-    return pearson
+        return pearson
+    else:
+        print("Data sets are not the same length. Data set 1 length: ", len(data1), "Data set 2 length: ", len(data2))
+        return None
+ 
 
 
 # Not sure but log or gamma (with θ/α >2) distribution may match data? ~~Will

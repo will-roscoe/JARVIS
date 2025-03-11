@@ -97,7 +97,7 @@ ax[1].set_xlabel('Time (Days)')
 ax[1].set_ylabel('Torus Power (GW)')
 
 ax[2].set_xlabel('Time (Days)')
-ax[2].set_ylabel('Dyanmic Pressure (Pa)')
+ax[2].set_ylabel('Dyanmic Pressure (nPa)')
 
 ax[0].scatter(aurora_time_all, aurora_power_all, s = 0.5, label = 'Aurora Power')
 ax[1].scatter(torus_time_all, power_dawn_all, s = 0.5, label = 'Dawn')
@@ -107,6 +107,9 @@ ax[2].scatter(table['Time_UT'].to_list(), table['jup_sw_pdyn'].to_list(), s = 0.
 ax[0].legend()
 ax[1].legend()
 ax[2].legend()
+
+ax[0].set_title('Aurora Power, Io Dawn/Dusk Power and Solar Wind Power over Time')
+
 
 plt.tight_layout
 

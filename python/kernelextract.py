@@ -21,7 +21,7 @@ import argparse
 import os
 import tarfile
 
-from jarvis.const import KERNELDIR
+from jarvis.const import Dirs
 from jarvis.utils import fpath
 from tqdm import tqdm
 
@@ -66,8 +66,8 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    ARCHIVE_DIR = fpath(KERNELDIR + "archive") if args.archive_dir == "." else fpath(args.archive_dir)
-    KERNEL_DIR = fpath(KERNELDIR) if args.kernel_dir == "." else fpath(args.kernel_dir)
+    ARCHIVE_DIR = fpath(Dirs.KERNEL + "archive") if args.archive_dir == "." else fpath(args.archive_dir)
+    KERNEL_DIR = fpath(Dirs.KERNEL) if args.kernel_dir == "." else fpath(args.kernel_dir)
     KERNELFILES = getattr(args, "files", ["de430.bsp", "jup365.bsp", "mk00062a.tsc", "naif0012.tls", "pck00011.tpc"])
     CHUNKSIZE_BYTES = getattr(args, "chunksize_mb", 100) * 1024 * 1024
     DECOMPRESS_OVERWRITE = getattr(args, "force", False)  # Use getattr to provide a default value

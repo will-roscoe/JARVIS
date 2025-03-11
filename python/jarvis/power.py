@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 # --------------- HST_emission_power.py->power.py->jarvis.power ----------------#
-"""
-This module contains functions for calculating the total power emitted from an auroral region in GW and the power per unit area in GW/km².
+"""functions for calculating the total power emitted from an auroral region in GW and the power per unit area in GW/km².
 
 Translation between unprojected/projected images is partly handled by IDL pipeline legacy code from Boston University, and partly from python code provided by Jonny Nichols at Leicester. (broject function)
 Emission power computed as per Gustin+ 2012.
@@ -11,7 +10,8 @@ Contributors:
 J Nichols;
 Juwhan Kim, 03 / 01 / 2005;
 Joe Kinrade - 08 / 01 /2025;
-JAR:VIS team - 21 / 02 / 2025;"""
+JAR:VIS team - 21 / 02 / 2025;
+"""
 
 from typing import Tuple
 
@@ -21,35 +21,31 @@ import spiceypy as spice
 from astropy.io import fits
 from matplotlib import path
 
-from .const import FITSINDEX, KERNELDIR
+from .const import Power, FITSINDEX, Dirs, CONST
 from .utils import fitsheader, get_datetime
 
 # --------------------------------- CONSTANTS ----------------------------------#
 # Nichols constants:
-au_to_km = 1.495978707e8
-gustin_conv_factor = 9.04e-10  # 1.02e-9 #> "Conversion factor to be multiplied by the squared HST-planet distance (km) to determine the total emitted power (Watts) from observed counts per second."
-# > If 1 / conversion factor is ~3994, this implies a colour ratio of 1.10. for Saturn with a STIS SrF2 image (see Gustin+ 2012 Table 1):
-# > And this in turn means that the counts-per-second to total emitted power (Watts). conversion factor is 9.04e-10 (Gustin+2012 Table 2), for STIS SrF2:
+
 # > Load SPICE kernels, and define planet radii and oblateness:
-spice.furnsh(KERNELDIR + "jupiter.mk")  # SPICE kernels
+spice.furnsh(Dirs.KERNEL + "jupiter.mk")  # SPICE kernels
 # Nichols spice stuff:
 planets = ["Mercury", "Venus", "Earth", "Mars", "Jupiter", "Saturn", "Uranus", "Neptune", "Pluto", "Vulcan"]
 inx = planets.index("Jupiter")
 naifobj = 99 + (inx + 1) * 100
 radii = spice.bodvcd(naifobj, "RADII", 3)
-# // print(radii)
+# // print(radii)   
 rpeqkm = radii[1][0]
 rpplkm = radii[1][2]
 oblt = 1.0 - rpplkm / rpeqkm
+
 deltas = {"Mars": 0.0, "Jupiter": 240.0, "Saturn": 1100.0, "Uranus": 0.0}
-delrpkm = deltas["Jupiter"]
+
 # > In some fits files (Jupiter), these 'delta' values for auroral emission altitude are listed as DELRPKM in the header:
 # //delrpkm = fits_obj[0].header['DELRPKM']    # auroral emission altitudes at homopause in km, a.k.a 'deltas'
 # > If not (Saturn), it's hard-wired in here depending on the target planet (probably Saturn!):
 # -------------------------------- MODULE CONFIG -------------------------------#
-WRITETO = "powers.txt"  # > file to write power results to
-DISPLAY_PLOTS = False  # > whether to output plots to screen
-DISPLAY_MSGS = False  # > whether to output messages to screen
+
 
 
 # ------------------------------------------------------------------------------#
@@ -58,14 +54,14 @@ def __null(*args, **kwargs):
 
 
 __write_to_file, __print, __plot = __null, __null, __null
-if WRITETO:
+if Power.WRITETO:
 
-    def __write_to_file(visit, stime, tpe_roi, ppa, area, writeto=WRITETO):
+    def __write_to_file(visit, stime, tpe_roi, ppa, area, writeto=Power.WRITETO):
         with open(writeto, "a") as f:
             f.write(" ".join([str(x) for x in [visit, stime, tpe_roi, ppa, area, "\n"]]))
 
 
-if DISPLAY_PLOTS:
+if Power.DISPLAY_PLOTS:
     from .extensions import QuickPlot as Qp
 
     funcdict = {
@@ -87,7 +83,7 @@ if DISPLAY_PLOTS:
         plt.show()
 
 
-if DISPLAY_MSGS:
+if Power.DISPLAY_MSGS:
 
     def __print(*args):
         print(args)  # tqdm.write(*args)  # noqa: T201
@@ -97,17 +93,25 @@ if DISPLAY_MSGS:
 # Nicked from Jonny's pypline.py file:
 # Numpy vectorization & loop optimizations for python 3.8+ implemented by W. Roscoe, 2025
 def _cylbroject(pimage, cml, dece, dmeq, xcen, ycen, psize, nppa, req, obt, ndiv=2, correct=True):
-    """
-    cml: central meridian longitude (degrees)
-    dece: declination of the equator (degrees)
-    dmeq: mean equatorial diameter (degrees)
-    xcen,ycen: x,y-coordinate of the planet centre (pixels)
-    psize: pixel size (arcsec)
-    nppa: north pole position angle (degrees)
-    req: equatorial radius (km)
-    obt: oblateness
-    ndiv: number of divisions per pixel
-    correct: correct for area effect
+    """Brojection (back projection) core function.
+
+    Args:
+        pimage (np.ndarray): image array to back project.
+        cml (float): central meridian longitude (degrees).
+        dece (float): declination of the equator (degrees).
+        dmeq (float): mean equatorial diameter (degrees).
+        xcen (int): x-coordinate of the planet centre (pixels).
+        ycen (int): y-coordinate of the planet centre (pixels).
+        psize (float): pixel size (arcsec).
+        nppa (float): north pole position angle (degrees).
+        req (float): equatorial radius (km).
+        obt (float): oblateness.
+        ndiv (int): number of divisions per pixel.
+        correct (bool): correct for area effect.
+
+    Returns:
+        np.ndarray
+
     """
     if nppa == 999:
         nppa = 0  # 999 is a flag for no NPPA in IDL code?
@@ -166,7 +170,7 @@ def _cylbroject(pimage, cml, dece, dmeq, xcen, ycen, psize, nppa, req, obt, ndiv
 
 
 def area_calc(vertices):
-    """Calculates the area in units of degrees^2 of the ROI"""
+    """Calculate the area in units of degrees^2 of the ROI."""
     n = len(vertices)
     area = 0.0
     for i in range(n):
@@ -177,7 +181,7 @@ def area_calc(vertices):
 
 
 def area_to_km2(area_deg, rad_km):
-    """Converts the area from degrees^2 to km^2"""
+    """Convert the area from degrees^2 to km^2."""
     return area_deg * (np.pi / 180.0) ** 2 * rad_km**2
 
 
@@ -192,7 +196,7 @@ def cylbroject(img, fits_obj, ndiv=2):
     return _cylbroject(
         image,
         *fitsheader(fits_obj, "CML", "DECE", "DIST", "PCX", "PCY", "PXSEC", "NPPA"),
-        rpeqkm + delrpkm,
+        rpeqkm + CONST.delrp_jup,
         oblt,
         ndiv,
         True,
@@ -203,20 +207,23 @@ def powercalc(
     fits_obj: fits.HDUList, dpr_coords: np.ndarray = None, **kwargs,
 ) -> Tuple[float, float, np.ndarray, np.ndarray]:
     """Calculate the total power emitted from the ROI in GW and the power per unit area in GW/km².
-    Args:
-    fits_obj (fits.HDUList): The fits object.
-    dpr_coords (np.ndarray): The DPR coordinates.
-    Returns:
-    Tuple[float, float, np.ndarray, np.ndarray]:
-    - The total power emitted from the ROI in GW,
-    - the power per unit area in GW/km²,
-    - the area,
-    - and the full image.
-    kwargs:
-    - writeto (str): The file to write the power results to.
-    - extname (str): The extension name.
-    """
 
+    Args:
+        fits_obj (fits.HDUList): The fits object.
+        dpr_coords (np.ndarray): The DPR coordinates.
+        **kwargs:
+            - writeto(str): alternative file to write to.
+            - extname (str): The extension name.
+
+    Returns:
+        Tuple[float,float,np.ndarray,np.ndarray]
+            - The total power emitted from the ROI in GW,
+            - the power per unit area in GW/km²,
+            - the area,
+            - and the full image.
+
+
+    """
     # -------------------- FUNC INPUT CHECKS & PREPROCESSING -------------------#
     extname = kwargs.get("extname", "BOUNDARY")
     if not isinstance(dpr_coords, np.ndarray):
@@ -306,9 +313,9 @@ def powercalc(
     # -------------------------- EMISSION POWER CALC ---------------------------#
     # > Once the back-projected image looks OK, we can proceed with the emission power calculation here.
     # > ISOLATE THE ROI INTENSITIES IN A FULL 1440*720 PROJECTED IMAGE (all other pixels set to nans/zeros)
-    distance_squared = (dist * au_to_km) ** 2  # > AU in km
+    distance_squared = (dist * CONST.au_to_km) ** 2  # > AU in km
     # > calculate emitted power from ROI in GW (exposure time not required here as kR intensities are per second):
-    total_power_emitted_from_roi = np.nansum(bimage_roi) * cts2kr * distance_squared * gustin_conv_factor / 1e9
+    total_power_emitted_from_roi = np.nansum(bimage_roi) * cts2kr * distance_squared * CONST.gustin_factor / 1e9
     area = area_to_km2(area_calc(dpr_coords), rpeqkm + 240)
     power_per_area = total_power_emitted_from_roi / area
     __print(f"Total power emitted from ROI in GW:\n{total_power_emitted_from_roi}")
@@ -319,7 +326,7 @@ def powercalc(
         total_power_emitted_from_roi,
         power_per_area,
         area,
-        writeto=kwargs.get("writeto", WRITETO),
+        writeto=kwargs.get("writeto", Power.WRITETO),
     )
     return total_power_emitted_from_roi, power_per_area, area, full_image, bimage_roi
 

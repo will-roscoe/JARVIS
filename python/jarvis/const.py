@@ -1,27 +1,57 @@
 #!/usr/bin/env python3
-"""
-This module contains constants and default values used throughout the project.
-"""
+"""Constants and default values used throughout the project."""
 
 from pathlib import Path
-
+import cmasher as cmr
+import cv2
+from os.path import exists
+FITSINDEX = 1 # DEFAULT FITSINDEX: the default target HDU within a fits file.
 # ~ defines the project root directory (as the root of the gh repo)
-GHROOT = Path(__file__).parents[2]
-# ~ if you move this file/folder, you need to change this line to match the new location.
+GHROOT = Path(__file__).parents[2]# ~ if you move this file/folder, you need to change this line to match the new location.
 # ~ index matches the number of folders to go up from where THIS file is located: /[2] python/[1] jarvis/[0] const.py
+class ConfigLike:
+
+    """A class containing constants for a file or group of functions."""
+
+    def __init__(self,doc=""):
+        """Initialize a config object, assigning a doc."""
+        self.__doc__ = doc
+        self.__dict__ = {}  # Stores attributes dynamically
+
+    def __setattr__(self, name, value):
+        """Set an attribute, eg abc.xyz = '123'."""
+        if not name.startswith("__"):
+            self.__dict__[name] = value  # Set attributes dynamically
+            self.__doc__ += f"\n{name}: {str(value).replace("\n", "")}"
+
+    def __getattr__(self, name):
+        """Get an attribute, eg x= abc.xyz."""
+        if name in self.__dict__:
+            return self.__dict__[name]  # Get attributes dynamically
+        raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '{name}'")
+    def __repr__(self) -> str:
+        return 'Config:'+{k:v for k,v, in self.__dict__.items if not k.startswith("__") }
+    def __str__(self):
+        return "Config:\n"+self.__doc__
+
+######## Dirs ##################################################################
 # DEFAULT PATHS
-DATADIR = GHROOT / "datasets"
-PYDIR = GHROOT / "python"
-PKGDIR = PYDIR / "jarvis"
-KERNELDIR = "datasets/kernels/"
-HST_DIR = DATADIR / "HST"
-HISAKI_DIR = DATADIR / "Hisaki"
-TORUS_DIR = HISAKI_DIR / "Torus Power"
-AURORA_DIR = HISAKI_DIR / "Aurora Power"
-# DEFAULT FITSINDEX: the default target HDU within a fits file.
-FITSINDEX = 1
+Dirs = ConfigLike("Default paths for the project")
+Dirs.ROOT = GHROOT
+Dirs.DATA = GHROOT / "datasets"
+Dirs.PY = GHROOT / "python"
+Dirs.JARVIS = Dirs.PY / "jarvis"
+Dirs.KERNEL = "datasets/kernels/"
+Dirs.HST = Dirs.DATA / "HST"
+Dirs.HISAKI = Dirs.DATA / "Hisaki"
+Dirs.TORUS = Dirs.HISAKI / "Torus Power"
+Dirs.AURORA = Dirs.HISAKI / "Aurora Power"
+Dirs.TEMP = GHROOT / "temp"
+Dirs.gv_map ={"group": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20], "visit": [1, 2, 5, 4, 3, 8, 9, 10, 13, 15, 11, 12, 16, 18, 19, 20, 21, 23, 24, 29]}
+######## DPR ###################################################################
+DPR = ConfigLike("DPR region coordinates for HST images")
 # XY COORDS FOR IN DPR REGION OF IMAGES
-DPR_IMXY = {
+DPR.IMXY = { # dictionary containing manual DPR identifying poinits per group
     "01": (584, 1098),
     "02": (592, 1150),
     "03": (742, 1413),
@@ -43,4 +73,262 @@ DPR_IMXY = {
     "19": (607, 1159),
     "20": ("", ""),
 }
-DPR_JSON = DATADIR / "HST" / "custom" / "boundarypaths.json"
+DPR.JSON = Dirs.DATA / "HST" / "custom" / "boundarypaths.json"
+######## CONST #################################################################
+CONST = ConfigLike("Specific scientific constants for the project")
+CONST.au_to_km = 1.495978707e8
+CONST.gustin_factor = 9.04e-10 # 1.02e-9 #> "Conversion factor to be multiplied by the squared HST-planet distance (km) to determine the total emitted power (Watts) from observed counts per second."
+# > If 1 / conversion factor is ~3994, this implies a colour ratio of 1.10. for Saturn with a STIS SrF2 image (see Gustin+ 2012 Table 1):
+# > And this in turn means that the counts-per-second to total emitted power (Watts). conversion factor is 9.04e-10 (Gustin+2012 Table 2), for STIS SrF2:
+CONST.delrp_jup = 240#km
+CONST.kr_per_count = 1/CONST.gustin_factor
+######## Power #################################################################
+Power = ConfigLike("power subpackage configurations")
+Power.WRITETO = "powers.txt"  # > file to write power results to
+Power.DISPLAY_PLOTS = False  # > whether to output plots to screen
+Power.DISPLAY_MSGS = False  # > whether to output messages to screen
+######## PF ####################################################################
+#  naming convention:
+#    - flag (RETR, CHAIN, MORPH, KSIZE, ...) -> axes label name, configuration parameter
+#    - label (EXTERNAL, LIST, SIMPLE, ...) -> value name, configuration option
+#    - value -> the value of the configuration option, at [0] in _cvtrans[flag][label]
+#    - index -> the index of the configuration option, usually the same as value, otherwise the index of the value in the translation list, trans
+# required for each configuration flag dictionary:
+#    - info: a description of the flag
+#    - 'FLAG' : for each flag option, a list of the form [value, keybinding,description, extension], where:
+#      if the flag is a boolean, or otherwise has no labels, use the flag name as the label
+#    - kbtemplate: a string template for the keybinding tooltip, opitionally using the variables
+#                   - flag,
+#                   - label,
+#                   - extension (extension being an optional index 3 value in each label list),
+#                   - tooltip (the entire tooltip string),
+#                   - info (the flag info).
+# not required:
+#    - trans: a list of the values in the order they should be displayed in the GUI, if not present, it is assumed to be values [0,1,2,3,....].
+PF = ConfigLike("pathfinder configurations")
+PF.MAXPOINTSPERCONTOUR = 2000
+PF.MAXCONTOURDRAWS = 125
+PF.MAXLEGENDITEMS = 50
+PF.TWOCOLS = True
+PF._cvtrans = {
+    "RETR": {
+        "info": "modes to find the contours",
+        "kbtemplate": "$flag mode: $label",
+        "EXTERNAL": [cv2.RETR_EXTERNAL, "a", "retrieves only the extreme outer contours"],  # 0
+        "LIST": [
+            cv2.RETR_LIST,
+            "s",
+            "retrieves all of the contours without establishing any hierarchical relationships",
+        ],  # 1
+        "CCOMP": [
+            cv2.RETR_CCOMP,
+            "d",
+            "retrieves all of the contours and organizes them into a two-level hierarchy, where external contours are on the top level and internal contours are on the second level",
+        ],  # 2
+        "TREE": [
+            cv2.RETR_TREE,
+            "f",
+            "retrieves all of the contours and reconstructs a full hierarchy of nested contours",
+        ],  # 3
+    },
+    "CHAIN": {
+        "info": "methods to approximate the contours",
+        "kbtemplate": "$flag mode: $label",
+        "trans": (1, 2, 3, 4),  # 0 is floodfill, but not used here
+        "NONE": [
+            cv2.CHAIN_APPROX_NONE,
+            "z",
+            "stores absolutely all the contour points. That is, any 2 subsequent points (x1,y1) and (x2,y2) of the contour will be either horizontal, vertical or diagonal neighbors, that is, max(abs(x1-x2),abs(y2-y1))==1.",
+        ],  # 1
+        "SIMPLE": [
+            cv2.CHAIN_APPROX_SIMPLE,
+            "x",
+            "compresses horizontal, vertical, and diagonal segments and leaves only their end points. For example, an up-right rectangular contour is encoded with 4 points.",
+        ],  # 2
+        "TC89_L1": [
+            cv2.CHAIN_APPROX_TC89_L1,
+            "c",
+            "applies one of the flavors of the Teh-Chin chain approximation algorithm.",
+        ],  # 3
+        "TC89_KCOS": [
+            cv2.CHAIN_APPROX_TC89_KCOS,
+            "v",
+            "applies one of the flavors of the Teh-Chin chain approximation algorithm.",
+        ],  # 4
+    },
+    "MORPH": {
+        "info": "morphological operations to apply to the mask before finding the contours",
+        "kbtemplate": "$flag: toggle $label",
+        "ERODE": [cv2.MORPH_ERODE, "q", "Erodes away the boundaries of foreground object"],  # 0
+        "DILATE": [cv2.MORPH_DILATE, "w", "Increases the object area"],  # 1
+        "OPEN": [cv2.MORPH_OPEN, "e", "Remove small noise"],  # 2
+        "CLOSE": [cv2.MORPH_CLOSE, "r", "Fill small holes"],  # 3
+        "GRADIENT": [cv2.MORPH_GRADIENT, "t", "Difference between dilation and erosion of an image."],  # 4
+        "TOPHAT": [cv2.MORPH_TOPHAT, "y", "Difference between input image and Opening of the image"],  # 5
+        "BLACKHAT": [cv2.MORPH_BLACKHAT, "u", "Difference between the closing of the input image and input image"],  # 6
+        "HITMISS": [cv2.MORPH_HITMISS, "i", "Extracts a particular structure from the image"],  # 7
+    },
+    "KSIZE": {
+        "info": "kernel size for the morphological operations. Larger values will smooth out the contours more",
+        "kbtemplate": "Change kernel size: $label",
+        "Increase": [True, "=", "Increase the kernel size"],  # 0
+        "Decrease": [False, "-", "Decrease the kernel size"],
+    },
+    "CVH": {
+        "info": "whether to use convex hulls of the contours. Reduces the complexity of the contours",
+        "kbtemplate": "Toggle $label",
+        "Convex Hull": [0, "f7", "whether to use convex hulls of the contours. Reduces the complexity of the contours"],
+    },
+    "ACTION": {
+        "info": "Select the action when clicking on a point in the image",
+        "kbtemplate": "Click mode: $label",
+        "trans": (0, 1, -1, 2, -2),
+        "None": [0, "0", ""],
+        "Add Luminosity": [1, "1", "Add a luminosity sample at the clicked point"],
+        "Remove Luminosity": [-1, "2", "Remove a luminosity sample closest to the clicked point"],
+        "Add IDPX": [2, "3", "Add an ID pixel at the clicked point"],
+        "Remove IDPX": [-2, "4", "Remove an ID pixel closest to the clicked point"],
+    },
+    "CLOSE": {"info": "Close the viewer", "kbtemplate": "$info", "CLOSE": [0, "escape", "Close the viewer"]},
+    "SAVE": {
+        "info": "Save the selected contour, either to the current fits file or to a new file if a path has been provided.",
+        "kbtemplate": "$tooltip",
+        "SAVE": [0, "insert", "Save the selected contour"],
+    },
+    "SAVECLOSE": {
+        "info": "Save the selected contour, and then close the GUI.",
+        "kbtemplate": "$tooltip",
+        "SAVECLOSE": [0, "enter", "Save the selected contour, and close the viewer"],
+    },
+    "RESET": {
+        "info": "Reset the viewer pixel selections",
+        "kbtemplate": "Reset selections",
+        "RESET": [0, "f10", "Reset the viewer pixel selections"],
+    },
+    "FSCRN": {
+        "info": "Toggle fullscreen mode",
+        "kbtemplate": "Toggle Fullscreen",
+        "FSCRN": [0, "f11", "Toggle Fullscreen"],
+    },
+    "KILL": {
+        "info": "Kill the current process",
+        "kbtemplate": "$tooltip",
+        "KILL": [0, "delete", "Kill the current process"],
+    },
+    "MASK": {"info": "Cycle mask display", "kbtemplate": "$tooltip", "MASK": [0, "f3", "Cycle mask display"]},
+    "CMAP": {"info": "Cycle colormap", "kbtemplate": "$tooltip", "CMAP": [0, "f4", "Cycle colormap"]},
+    "NOTES": {"info": "Toggle note textbox", "kbtemplate": "$tooltip", "NOTES": [0, "f1", "Toggle note textbox"]},
+    "TOOLTIP": {
+        "info": "Toggle tooltips",
+        "kbtemplate": "$tooltip",
+        "TOOLTIP": [0, "f2", "Toggle tooltips"],
+        "ONSCREEN": [1, "f12", "Toggle onscreen tooltips"],
+        "CLI": [2, "`", "Print CLI help"],
+    },
+    "FIXLRANGE": {
+        "info": "Controls for altering the fixed luminance range, which is the lower and upper limit of valid luminances",
+        "kbtemplate": "$flag: $tooltip",
+        "Lower+": [0, "]", "Increase lower limit"],
+        "Lower-": [1, "[", "Decrease lower limit"],
+        "Upper+": [2, "#", "Increase upper limit"],
+        "Upper-": [3, "'", "Decrease upper limit "],
+        "Reset": [4, "f6", "Reset range to initial"],
+        "Toggle": [5, "f5", "Toggle fixed luminance range"],
+        "Cycle": [6, "f8", "Cycle through steps"],
+    },
+}
+PF._legendkws = {"loc": "lower left", "fontsize": 8,"labelcolor": "linecolor","frameon": False,"mode": "expand","ncol": 3,}  # > active contour list styling
+PF.cmap_cycler = [cmr.neutral,cmr.neutral_r,cmr.toxic,cmr.nuclear,cmr.emerald,cmr.lavender,cmr.dusk,cmr.torch,cmr.eclipse,]
+# App Icon and Font Path
+PF._iconpath = GHROOT/"python/jarvis/resources/aa_asC_icon.ico"
+PF._fontpath = GHROOT/"python/jarvis/resources/FiraCodeNerdFont-Regular.ttf"
+PF._bgs = {"main": "#000", "sidebar": "#fff", "legend": "#000"}  # > Background colors (hierarchical) based on axes labels
+PF.PALLETE_SELECT = "RGB"  #'DEFAULT' #> Default color pallete choice
+PF.COLORPALLETTE = {
+    "RGB": ["#FF0000FF", "#00FF00FF", "#FF0000FF", "#0000FFFF"],
+    "DEFAULT": ["#FF0000FF", "#FF5500FF", "#FF0000FF", "#FFFF0055"],
+    "BLUE": ["#0077FFFF", "#7700FFFF", "#0000FFFF", "#00FFFF55"],
+    "GREEN": ["#00FF00FF", "#00FF55FF", "#00FF00FF", "#55FF0055"],
+    "BW": ["#000", "#FFF", "#000000FF", "#FFFFFF55"]}
+PF.HELPKEYS = [k for k in [PF._cvtrans["TOOLTIP"].get(k, [None, None])[1] for k in ["ONSCREEN", "CLI"]] if k is not None]
+PF._idpxkws = {"s": 20, "color": PF.COLORPALLETTE[PF.PALLETE_SELECT][0], "zorder": 12, "marker": "x"}  # Identifier Pixel scatter style
+PF._clickedkws = {"s": 20, "color": PF.COLORPALLETTE[PF.PALLETE_SELECT][1], "zorder": 12, "marker": "x"}  # Clicked Pixel scatter style
+PF._selectclinekws = {"s": 0.3, "color": PF.COLORPALLETTE[PF.PALLETE_SELECT][2], "zorder": 10}  # Selected Contour line style
+PF._selectctextkws = {"fontsize": 8, "color": PF._selectclinekws["color"]}  # Selected Contour text style
+PF._otherclinekws = {"s": 0.2, "color": PF.COLORPALLETTE[PF.PALLETE_SELECT][3], "zorder": 10}  # Other Contour line style
+PF._otherctextkws = {"fontsize": 8, "color": PF._otherclinekws["color"]}  # Other Contour text style
+PF._defclinekws = {
+    "s": PF._selectclinekws["s"],
+    "color": PF._selectclinekws["color"],
+    "zorder": PF._selectclinekws["zorder"],
+}  # Default Contour line style
+PF._defctextkws = {"fontsize": 8, "color": PF._defclinekws["color"]}  # Default Contour text style
+PF._handles = {  # > Legend handle styling and static elements (unused)
+    "selectedc": {"color": PF._selectclinekws["color"], "lw": 2},
+    "otherc": {"color": PF._otherclinekws["color"], "lw": 2},
+    "defc": {"color": PF._defclinekws["color"], "lw": 2},
+}
+PF._infotextkws = {"fontsize": 8,"color": "black", "ha": "center", "va": "center"}
+PF._tablekws = {"colWidths": [0.14, 1],"colLabels": None,"rowLabels": None,
+                    "colColours": None,"rowColours": None,"colLoc": "center", "rowLoc": "center","loc": "bottom left","bbox": [0.02, 0.02, 0.96, 0.8], "zorder": 0,"cellLoc": "right",}
+PF._radioprops = {
+                "facecolor": ["#000", PF._clickedkws["color"], PF._clickedkws["color"], PF._idpxkws["color"], PF._idpxkws["color"]],
+                "edgecolor": ["#000", PF._clickedkws["color"], PF._clickedkws["color"], PF._idpxkws["color"], PF._idpxkws["color"]],
+                "marker": ["o", "o", "X", "o", "X"],
+            }
+PF._labelprops = {
+                "color": ["#000", PF._clickedkws["color"], PF._clickedkws["color"], PF._idpxkws["color"], PF._idpxkws["color"]],
+            }
+def __validatecfg():
+    """Validate the configuration. This is run on initialization of extensions.py."""
+    for k, v in PF._cvtrans.items():
+        assert "info" in v, f"{k} must have an info key"
+        assert "kbtemplate" in v, f"{k} must have a kbtemplate key"
+        trans = v.get("trans", False)
+        if trans:
+            assert (
+                len(v) - 3 == len(trans)
+            ), f'{k}\'s index translation length does not match the number of flags: "trans": {trans}, flags: {list(v.keys())}'
+        else:
+            maxflag = max(val[0] for label, val in v.items() if label not in ["info", "kbtemplate"])
+            lenflags = len(v) - 3  # zero indexed, and accounting for`info','kbtemplate' and no `trans'
+            assert (
+                lenflags == maxflag
+            ), f"{k}'s index translation length does not match the number of flags, highest flag value: {maxflag}, flags: {list(v.keys())} (length: {lenflags}+2)"
+        for label, val in v.items():
+            if label not in ["trans", "info", "kbtemplate"]:
+                assert (
+                    len(val) >= 3
+                ), f"{k}'s index translation values must be a list of length 3 or more, containing the flag value (or index),keybinding, and description"
+                assert isinstance(
+                    val[0], (int, bool),
+                ), f"{k}'s index translation values must be integers or booleans, not {type(val[0])}: {val[0]}"
+                assert isinstance(
+                    val[1], str,
+                ), f"{k}'s index translation keybindings must be strings, not {type(val[1])}: {val[1]}"
+                assert isinstance(
+                    val[2], str,
+                ), f"{k}'s index translation descriptions must be strings, not {type(val[2])}: {val[2]}"
+                if len(val) > 3:
+                    assert isinstance(
+                        val[3], str,
+                    ), f"{k}'s index translation extensions must be strings, not {type(val[3])}: {val[3]}"
+    for k, v in PF._keybindings.items():
+        assert (
+            len(v) == 3
+        ), f"{k}'s keybinding must be a tuple of length 3 containing the flag, value, and a short description"
+    assert exists(PF._iconpath), "Icon file not found"
+    assert exists(PF._fontpath), "Font file not found"
+PF.validatecfg = __validatecfg
+PF.defaults = ConfigLike()
+PF.defaults.view_config = {"REGISTER_KEYS": True, "cmap": 0, "mask": 0}
+PF.defaults.cv_config ={
+                "ACTION": 0,
+                "MORPH": [cv2.MORPH_OPEN, cv2.MORPH_CLOSE],
+                "CHAIN": cv2.CHAIN_APPROX_SIMPLE,
+                "CVH": False,
+                "KSIZE": 5,
+                "RETR": cv2.RETR_EXTERNAL,
+                "FIXEDRANGE": {"ACTIVE":False,"RANGE":[0.001,0.4], "STEP":0.01}
+            }
+

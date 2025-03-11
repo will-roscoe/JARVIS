@@ -1,8 +1,5 @@
 #!/usr/bin/env python3
-"""
-This module provides various utility functions for managing paths and directories, interfacing with FITS files,
-handling FITS headers and data, and performing time series operations.
-"""
+"""Provides various utility functions for managing paths and directories, interfacing with FITS files, handling FITS headers and data, and performing time series operations."""
 
 import os
 from datetime import datetime, timedelta
@@ -20,15 +17,14 @@ from astropy.table import Table, vstack
 from matplotlib.colors import to_rgba
 from tqdm import tqdm
 
-from .const import FITSINDEX, GHROOT
+from .const import FITSINDEX, GHROOT, Dirs
+
 
 #################################################################################
 #                   PATH/DIRECTORY MANAGMENT
 #################################################################################
-
-
 def ensure_dir(file_path):
-    """this function checks if the file path exists, if not it will create one"""
+    """Check if the file path exists, if not create one."""
     if file_path[-1] != os_sep:
         file_path += os_sep
     if not path.exists(file_path):
@@ -36,7 +32,7 @@ def ensure_dir(file_path):
 
 
 def ensure_file(file_path):
-    """this function checks if the file path exists, if not it will create one"""
+    """Check if the file path exists, if not create one."""
     if file_path[-1] == os_sep:
         file_path = file_path[:-1]
     if not path.isfile(file_path):
@@ -51,24 +47,27 @@ def __testpaths():
 
 
 def fpath(x):
-    """Returns the absolute path of a file or directory in the project root."""
+    """Return the absolute path of a file or directory in the project root."""
     return path.join(GHROOT, x)
 
 
 def rpath(x):
-    """Returns the relative path of a file or directory in the project root."""
+    """Return the relative path of a file or directory in the project root."""
     return path.relpath(x, GHROOT)
 
 
 def filename_from_path(x, ext=False):
-    """Returns the filename from a path, if ext is True, returns the filename with the extension, else returns the base filename."""
+    """Return the filename from a path.
+
+    If ext is True, return the filename with the extension, else return the base filename.
+    """
     parts = x.split("/")
     parts = parts[-1].split("\\") if "\\" in parts[-1] else parts
     return parts[-1].split(".")[0] if not ext else parts[-1]
 
 
 def split_path(x, include_sep=True):
-    """Splits a path into its parts, returns a list of the parts."""
+    """Split a path into its parts, return a list of the parts."""
     parts = Path(x).parts
     if include_sep:
         parts = [p + os_sep for p in parts[0:-1]] + [parts[-1]]
@@ -83,7 +82,7 @@ def split_path(x, include_sep=True):
 def fits_from_glob(
     fits_dir: str, suffix: str = "/*.fits", recursive: bool = True, sort: bool = True, names: bool = False,
 ) -> list[HDUList]:
-    """Returns a list of fits objects from a directory."""
+    """Return a list of fits objects from a directory."""
     if isinstance(fits_dir, str):
         fits_dir = [fits_dir]
     fits_file_list = []
@@ -92,21 +91,23 @@ def fits_from_glob(
             fits_file_list.append(g)
     if sort:
         fits_file_list.sort()
-    tqdm.write(f"Found {len(fits_file_list)} files in the directory.")
+    #tqdm.write(f"Found {len(fits_file_list)} files in the directory.")
     if names:
         return [fopen(f) for f in fits_file_list], [filename_from_path(f) for f in fits_file_list]
     return [fopen(f) for f in fits_file_list]
 
 
 def hst_fpath_list(byvisit="visit", full=False):
-    """Convienence function to return a list of file paths for the HST fits files.
-    if full is True, returns a list of lists of file paths, else returns a list of file paths."""
+    """Return a list of file paths for the HST fits files.
+
+    If full is True, return a list of lists of file paths, else return a list of file paths.
+    """
     fitspaths = []
-    for g in gv_translation["group"]:
+    for g in Dirs.gv_map["group"]:
         fitspaths.append(fpath(f"datasets/HST/group_{g:0>2}"))
     if byvisit == "visit":
         # sort the file paths by their respective visit number
-        fitspaths = [fitspaths[i] for i in np.argsort(gv_translation["visit"])]
+        fitspaths = [fitspaths[i] for i in np.argsort(Dirs.gv_map["visit"])]
     if full:
         for i, f in enumerate(fitspaths):
             files = os.listdir(f)
@@ -115,7 +116,10 @@ def hst_fpath_list(byvisit="visit", full=False):
 
 
 def hst_fpath_segdict(segments=4, byvisit=True):
-    """Returns a dictionary of file paths for the HST fits files, segmented into the specified number subgroups."""
+    """Return a dictionary of file paths for the HST fits files.
+
+    The files are segmented into the specified number of subgroups.
+    """
     fitspaths = hst_fpath_list(full=True)
     fdict = {}
     for i, f in enumerate(fitspaths, 1):
@@ -130,7 +134,7 @@ def hst_fpath_segdict(segments=4, byvisit=True):
 
 
 def hst_fpath_dict(byvisit=True):
-    """Returns a dictionary of file paths for the HST fits files."""
+    """Return a dictionary of file paths for the HST fits files."""
     fitspaths = hst_fpath_list(full=True)
     fdict = {}
     for i, f in enumerate(fitspaths, 1):
@@ -147,17 +151,20 @@ def hst_fpath_dict(byvisit=True):
 
 
 def fitsheader(hdul, *args, ind=FITSINDEX, cust=True):
-    """Returns the header value of a fits object.
+    """Return the header value of a fits object.
+
     Args:
-        hdulect: HDUList
-        *args: list of header keys to return
-        ind: index of the fits object in the HDUList
-        cust: if True, returns custom values for 'south', 'fixed_lon', 'fixed', else will return the header value corresponding to the key."""
-    # print(hdulect[ind].header.__dict__)
+        hdul (HDUList): FITS object to look in.
+        *args: List of header keys to return
+        ind: Index of the fits object in the HDUList
+        cust: If True, return custom values for 'south', 'fixed_lon', 'fixed', else return the header value corresponding to the key.
+
+    """
     ret = []
-    obj= None
-    # assert all(isinstance(arg, str) for arg in args), 'All arguments must be strings.'
+
+    assert all(isinstance(arg, (str,int)) for arg in args), 'All arguments must be str or int type.'
     for arg in args:
+        obj = None
         if cust:
             if arg.lower() == "south":  # returns if_south as bool
                 obj_l = hdul[ind].header["HEMISPH"].lower()[0]
@@ -177,7 +184,10 @@ def fitsheader(hdul, *args, ind=FITSINDEX, cust=True):
 
 
 def silent_fitsheader(hdul, *args, ind=FITSINDEX):
-    """Returns the header value of a fits object, if the key does not exist, returns an empty string. This method does not raise an error if the key does not exist."""
+    """Return the header value of a fits object.
+
+    If the key does not exist, return an empty string. This method does not raise an error if the key does not exist.
+    """
     try:
         return fitsheader(hdul, *args, ind=ind)
     except KeyError:
@@ -191,10 +201,13 @@ def silent_fitsheader(hdul, *args, ind=FITSINDEX):
 
 
 def adapted_hdul(original_hdul, new_data=None, **kwargs):
-    """Returns a new fits object with the same header as the original fits object, but with new data and/or new header values."""
+    """Return a new fits object with the same header as the original fits object.
+
+    The new fits object has new data and/or new header values.
+    """
     orig_header = [original_hdul[i].header.copy() for i in [0, 1]]
     orig_data = [original_hdul[i].data for i in [0, 1]]
-    
+
     for k, v in kwargs.items():
         orig_header[FITSINDEX][k] = v
     if new_data is not None:
@@ -204,24 +217,22 @@ def adapted_hdul(original_hdul, new_data=None, **kwargs):
             orig_header[FITSINDEX]["VERSION"] = 1
     else:
         new_data = orig_data[FITSINDEX]
-    new = HDUList([PrimaryHDU(orig_data[0], header=orig_header[0]), ImageHDU(new_data, header=orig_header[1])])
-    image_data = new[FITSINDEX].data
-    print(f"{np.mean(image_data)=}, {np.min(image_data)=}, {np.max(image_data)=}")
-    return new
-    # print(fits_new.info(), original_hdul.info())
-
+    return HDUList([PrimaryHDU(orig_data[0], header=orig_header[0]), ImageHDU(new_data, header=orig_header[1])])
 
 def assign_params(
     hdul: HDUList,
-    regions: bool = False,
+    regions=False,
     moonfp: bool = False,
     fixed: str = "lon",
-    rlim: int = 40,
+    rlim: int = 90,
     full: bool = True,
     crop: float = 1,
     **kwargs,
-) -> HDUList:
-    """Returns a fits object with specified header values, which can be used for processing."""
+):
+    """Return a fits object with specified header values.
+
+    The returned fits object can be used for processing.
+    """
     kwargs.update(
         {
             "REGIONS": bool(regions),
@@ -234,20 +245,12 @@ def assign_params(
     )
     return adapted_hdul(hdul, **kwargs)
 
-
 def filename_from_hdul(hdul: HDUList) -> str:
-    """
-    Returns a filename based on the FITS header values.
+    """Return a filename based on the FITS header values.
 
     The filename is constructed using various header values and a timestamp.
     The format of the filename is:
     'jup_v{visit:0<2}_{doy:0<3}_{year}_{udate.strftime("%H%M%S")}_{expt:0>4}({extras})'
-
-    Args:
-        hdul (HDUList): The HDUList object containing the FITS header data.
-
-    Returns:
-        str: The generated filename.
     """
     # might be better to alter the filename each time we process or plot something.
     args = ["CML", "HEMISPH", "FIXED", "RLIM", "FULL", "CROP", "REGIONS", "MOONFP", "VISIT", "DOY", "YEAR", "EXPTIME"]
@@ -272,7 +275,7 @@ def filename_from_hdul(hdul: HDUList) -> str:
 
 
 def update_history(hdul, *args):
-    """Updates the HISTORY field of the fits header with the current time."""
+    """Update the HISTORY field of the fits header with the current time."""
     curr_hist = fitsheader(hdul, "HISTORY")
     if args is None:
         return curr_hist
@@ -282,11 +285,13 @@ def update_history(hdul, *args):
 
 
 def debug_fitsheader(hdul: HDUList) -> None:
+    """Print the header of the fits object."""
     header = hdul[FITSINDEX].header
     tqdm.write("\n".join([f"{k}: {v}" for k, v in header.items()]))
 
 
 def debug_fitsdata(hdul: HDUList) -> None:
+    """Print the data of the fits object."""
     data = hdul[FITSINDEX].data
     tqdm.write(
         data.shape,
@@ -296,7 +301,7 @@ def debug_fitsdata(hdul: HDUList) -> None:
 
 
 def hdulinfo(hdul: HDUList, include_ver: bool = False) -> list[dict]:
-    """Returns a list of dictionaries containing the name and type of each HDU in the fits object."""
+    """Return a list of dictionaries containing the name and type of each HDU in the fits object."""
     ret = []
     for i, hdu in enumerate(hdul):
         name = (hdu.name + f"v{hdu.ver}") if include_ver else hdu.name
@@ -311,7 +316,7 @@ def hdulinfo(hdul: HDUList, include_ver: bool = False) -> list[dict]:
 
 
 def mcolor_to_lum(*colors):
-    """Converts color(s) to luminance values using matplotlib's color converter."""
+    """Convert color(s) to luminance values using matplotlib's color converter."""
     col = []
     for i, c in enumerate(colors):
         if not isinstance(c, int):
@@ -332,7 +337,7 @@ def mcolor_to_lum(*colors):
 
 
 def clock_format(x_rads, _):
-    """Converts radians to clock format."""
+    """Convert radians to clock format."""
     # x_rads => 0, pi/4, pi/2, 3pi/4, pi, 5pi/4, 3pi/2, 7pi/4, ...
     # returns=> 00, 03, 06, 09, 12, 15, 18, 21,..., 00,03,06,09,12,15,18,21,
     cnum = int(np.degrees(x_rads) / 15)
@@ -340,65 +345,61 @@ def clock_format(x_rads, _):
 
 
 def await_confirmation(prompt=""):
-    """provides a CLI confirmation prompt for yes/no questions. returns bool"""
+    """Provide a CLI confirmation prompt for yes/no questions.
+
+    Return bool.
+    """
     return cutie.prompt_yes_or_no(prompt)
 
 
 def __await_option(prompt="", **options):
-    # wholeprompt = f"{prompt} {', '.join([f'{k}({v})' for k,v in options.items()])} (Enter={list(options.keys())[0]}): "
-    # print(wholeprompt)
+    """Not yet implemented."""
     raise NotImplementedError("This function is not yet implemented.")
 
 
-gv_translation = {
-    "group": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20],  # group numbers
-    "visit": [1, 2, 5, 4, 3, 8, 9, 10, 13, 15, 11, 12, 16, 18, 19, 20, 21, 23, 24, 29],
-}
+
 
 
 def group_to_visit(*args):
-    """Converts group number to visit number. If multiple arguments are passed, returns a list of visit numbers."""
-    ret = []
-    for arg in args:
-        arg = int(arg)
-        if arg in gv_translation["group"]:
-            ret.append(gv_translation["visit"][gv_translation["group"].index(arg)])
-        else:
-            ret.append(None)
+    """Convert group number to visit number.
+
+    If multiple arguments are passed, return a list of visit numbers.
+    """
+    ret = [Dirs.gv_map["visit"][Dirs.gv_map["group"].index(arg)] if arg in Dirs.gv_map["group"] else None for arg in args]
     if len(ret) == 1:
         return ret[0]
-    if len(ret) == 0:
-        raise ValueError(f"None found for {args}")
     return ret
 
 
 def visit_to_group(*args):
-    """Converts visit number to group number. If multiple arguments are passed, returns a list of group numbers."""
-    ret = []
-    for arg in args:
-        arg = int(arg)
-        if arg in gv_translation["visit"]:
-            ret.append(gv_translation["group"][gv_translation["visit"].index(arg)])
-        else:
-            ret.append(None)
+    """Convert visit number to group number.
+
+    If multiple arguments are passed, return a list of group numbers.
+    """
+    ret = [Dirs.gv_map["group"][Dirs.gv_map["visit"].index(arg)] if arg in Dirs.gv_map["visit"] else None for arg in args]
     if len(ret) == 1:
         return ret[0]
     return ret
 
 
 def translate(*args, init="visit", to="visit"):
-    """Translates group numbers to visit numbers,as int, and vice versa. If multiple arguments are passed, returns a list of translated values."""
-    if init.startswith() == "g" and to.startswith() == "v":
-        return group_to_visit(*args)
-    if init.startswith() == "v" and to.startswith() == "g":
-        return visit_to_group(*args)
+    """Translate group numbers to visit numbers, as int, and vice versa.
+
+    If multiple arguments are passed, return a list of translated values.
+    """
+    if init!=to:
+        init, to = ({"v": "visit", "g": "group"}.get(k, k) for k in [init, to])
+        ret = [Dirs.gv_map[to][Dirs.gv_map[init].index(arg)] if arg in Dirs.gv_map[init] else None for arg in args]
+        if len(ret) == 1:
+            return ret[0]
+        return ret
     if init == to:
         return args
-    raise ValueError(f"Invalid translation type {to}.")
+    raise ValueError(f"Invalid translation types. {init=},{to=}.")
 
 
 def get_obs_interval(fits_dirs):
-    """Returns the observation interval from a list of fits directories or filepaths"""
+    """Return the observation interval from a list of fits directories or filepaths."""
     if isinstance(fits_dirs, str):
         fits_dirs = [fits_dirs]
     fobjs = []
@@ -416,13 +417,13 @@ def get_obs_interval(fits_dirs):
 
 
 def get_datetime(fits_object: HDUList) -> datetime:
-    """Returns a datetime object from the fits header."""
+    """Return a datetime object from the fits header."""
     udate = fitsheader(fits_object, "UDATE")
     return datetime.strptime(udate, "%Y-%m-%d %H:%M:%S")  # '2016-05-19 20:48:59'
 
 
 def get_datetime_interval(fits_object: HDUList) -> tuple[datetime]:
-    """Returns a tuple of the start and end datetimes of the observation interval from the fits header."""
+    """Return a tuple of the start and end datetimes of the observation interval from the fits header."""
     date_obs = fitsheader(fits_object, "DATE-OBS")
     if len(date_obs) < 19:
         date_obs += f"T{fitsheader(fits_object, 'TIME-OBS')}"
@@ -436,30 +437,34 @@ def get_datetime_interval(fits_object: HDUList) -> tuple[datetime]:
 
 
 def get_timedelta(fits_object: HDUList) -> timedelta:
-    """Returns the timedelta of the observation interval from the fits header."""
+    """Return the timedelta of the observation interval from the fits header."""
     start_time, end_time = get_datetime_interval(fits_object)
     return end_time - start_time
 
 
 def datetime_to_yrdoysod(dt: datetime) -> tuple[int]:
-    """Converts a datetime object to a tuple of year, day of year, and seconds of day."""
+    """Convert a datetime object to a tuple of year, day of year, and seconds of day."""
     dtt = dt.timetuple()
     return (dtt.tm_year, dtt.tm_yday, dtt.tm_hour * 3600 + dtt.tm_min * 60 + dtt.tm_sec)
 
 
 def yrdoysod_to_datetime(year: int, doy: int, sod: int) -> datetime:
-    """Converts a tuple of year, day of year, and seconds of day to a datetime object."""
+    """Convert a tuple of year, day of year, and seconds of day to a datetime object."""
     return datetime(year, 1, 1) + timedelta(days=doy - 1, seconds=sod)
 
 
 def get_data_over_interval(
     fitsobjs: list[HDUList], chosen_interval: list[datetime], data_index: int = 2, include_parts: bool = False,
 ) -> Table:
-    """Combines the data from the fits objects, and returns a table with the data over the given interval.
-    fitsobjs: list of fits objects
-    chosen_interval: list of two datetime objects, the interval to extract the data from
-    data_index: the index of the data table in the fits object
-    include_parts: if True, includes the parts of the each dataset that overlap with the interval, if False, only includes the data from fits that are completely within the interval."""
+    """Combine the data from the fits objects, and return a table with the data over the given interval.
+
+    Args:
+        fitsobjs: List of fits objects
+        chosen_interval: List of two datetime objects, the interval to extract the data from
+        data_index: The index of the data table in the fits object
+        include_parts: If True, includes the parts of the each dataset that overlap with the interval, if False, only includes the data from fits that are completely within the interval.
+
+    """
     valids = []
     interval_yds = {
         k: (st, en)
@@ -480,8 +485,8 @@ def get_data_over_interval(
             if segment_interval[0] >= chosen_interval[0] and segment_interval[1] <= chosen_interval[1]:
                 valids.append(f)
     assert all(
-        isinstance(f[data_index], (BinTableHDU, TableHDU)) for f in fitsobjs
-    ), f"The HDU at index {data_index} is not a BinTableHDU or TableHDU for all fits objects."
+        isinstance(f[data_index], (BinTableHDU, TableHDU)) for f in valids
+    ), f"The HDU at index {data_index} is not a BinTableHDU or TableHDU for all valid fits objects."
     if len(valids) == 0:
         return None
     data = vstack([Table(f[data_index].data) for f in valids])
@@ -492,3 +497,6 @@ def get_data_over_interval(
     # finally add the epoch collumn, 0 = J2000
     data["EPOCH"] = data["YEAR"] + (data["DAYOFYEAR"] + data["SECOFDAY"] / 86400) / 365.25
     return data
+
+
+

@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
-"""This module contains functions for transforming image arrays and FITS ImageHDUs into different coordinate systems or processed arrays."""
+"""Functions for transforming image arrays and FITS ImageHDUs into different coordinate systems or processed arrays."""
+from typing import Optional
 
 import numpy as np
-from astropy.io.fits import HDUList
+from astropy.io import fits
+from astropy.io.fits import HDUList, getdata
 from scipy.signal import convolve2d
 
 from .const import FITSINDEX
@@ -13,10 +15,16 @@ from .utils import adapted_hdul, fitsheader
 #                            COORDINATE SYSTEM TRANSFORMS
 ##########################################################################################################
 def fullxy_to_polar(x: int, y: int, img: np.ndarray, rlim: int = 40) -> tuple:
-    """transforms a point on an image (x,y=0,0 at top_left) to polar colatitude and longitude.
-    x,y: x,y coordinates of the point
-    img: the image the coordinates are from
-    rlim: the maximum colatitude value
+    """Transform a point on an image (x,y=0,0 at top_left) to polar colatitude and longitude.
+
+    Args:
+        x (int): x "pixel" coordinate.
+        y (int): y "pixel" coordinate.
+        img: the image the coordinates are from.
+        rlim: the maximum colatitude value.
+
+    Returns: tuple(float,float): colatitude and longitude.
+
     """
     r0 = img.shape[1] / 2
     x_ = x - r0
@@ -31,11 +39,14 @@ def fullxy_to_polar(x: int, y: int, img: np.ndarray, rlim: int = 40) -> tuple:
     return (colat, lon)
 
 
-def fullxy_to_polar_arr(xys: list[tuple[int, int]], img: np.ndarray, rlim: int = 40) -> np.ndarray:
-    """transforms a list of coordinates of points on an image (x,y=0,0 at top_left) to polar colatitude and longitude.
-    xy: list of x,y coordinates of the points [[x1,y1],[x2,y2],...]
-    img: the image the coordinates are from
-    rlim: the maximum colatitude value
+def fullxy_to_polar_arr(xys: list[tuple[int]], img: np.ndarray, rlim: int = 40) -> np.ndarray:
+    """Transform a list of coordinates of points on an image (x,y=0,0 at top_left) to polar colatitude and longitude.
+
+    Args:
+    xys (list,np.ndarray): list of x,y coordinates of the points [[x1,y1],[x2,y2],...]
+    img (np.ndarray): the image the coordinates are from
+    rlim (float): the maximum colatitude value
+
     """
     cl = []
     r0 = img.shape[1] / 2
@@ -54,11 +65,14 @@ def fullxy_to_polar_arr(xys: list[tuple[int, int]], img: np.ndarray, rlim: int =
 
 
 def polar_to_fullxy(colat: float, lon: float, img: np.ndarray, rlim: float) -> np.ndarray:
-    """transforms polar colatitude and longitude to full image coordinates.
+    """Transform polar colatitude and longitude to full image coordinates.
+
+    Args:
     colat: the colatitude value
     lon: the longitude value
     img: the image the coordinates are from
     rlim: the maximum colatitude value
+
     """
     r0 = img.shape[1] / 2
     x_ = r0 * np.cos(np.radians(lon - 90))
@@ -69,55 +83,60 @@ def polar_to_fullxy(colat: float, lon: float, img: np.ndarray, rlim: float) -> n
     return [x, y]
 
 
-def azimuthal_equidistant(fits_obj, rlim=40, clip_negatives=False, meridian_pos="N", origin="upper", **kwargs):
-    """
-    converts colatitude,longitude array to a "polar projection" aka azimuthal equidistant projection
-    Parameters:
+def azimuthal_equidistant(data, rlim=40, meridian_pos="N", origin="upper",clip_low=0,clip_high=3000, **kwargs):
+    """Convert colatitude,longitude array to a "polar projection" aka azimuthal equidistant projection.
+
+    Args:
+        data (`Any`): HDUList or np.array to get the original data from.
         img (`np.ndarray`): 2D array (colatitude, longitude) with data.
         rlim (`float`): Maximum colatitude to include in degrees (default: `40`).
-        clip_negatives (`bool`): make all negative values in the returned array 0 (default: `False`)
+        clip_low (`float`): value to clip on the low limit. default = 0, set to -np.inf for no lim
+        clip_high (float): value to set as maximum. all above this will be set to this value. set to np.inf for no lim. default = 3000
         meridian_pos (`str`): which direction to align the meridian (0° longitude) to. (default: `False`)
         origin (`str`): where the origin of the array is (`upper`= imshow default, yaxis faces down; `lower`=pcolormesh, axis in standard arrangement). (Default: `upper`)
+        **kwargs:
+            - south (bool): explicitly identify whether the projection should be north or south.
+            - drawcml (float): if provided, will fill in points along the cml with it.
+            - clip_angle (float): define the longitude boundary in angle away from CML in degrees symmetrically.
+            - clip_angle (tuple[float]): two angles defining the longitude boundary, relative to the CML.
+            - proj_bg (): background value of the circle. default is MAX
+            - arr_bg (): background value of the array. default is 0.
+
     Returns:
         np.ndarray: Projected image in azimuthal equidistant coordinates.
-    """
-    copies = {}
-    img = fits_obj[FITSINDEX].data
-    copies["1.raw"] = img.copy()
-    cml, is_south = fitsheader(fits_obj, "CML", "south")
-    if kwargs.get("south") is not None:
-        is_south = kwargs.get("south")
 
+    """
+    sgn = 1 if origin == "upper" else -1
+    if isinstance(data,str):
+        d = getdata(data, FITSINDEX)
+        img = np.asarray(d.astype(np.float32))
+        fits_obj=fits.open(data)
+    else:
+        img = np.asarray(data[FITSINDEX].data)
+        fits_obj=data
+    cml, is_south = fitsheader(fits_obj, "CML", "south")
+    is_south = kwargs.get("south",is_south)
+    cm = kwargs.get("clip_angles", *[(-1*c, c) for c in [kwargs.get("clip_angle",90)]])
     n_theta, n_phi = img.shape  # Grid size of input (θ, φ)
     output_size = n_theta  # Output image size (square)
-    # cml=90 #if long0_at_0 else 0
     # Convert longitude limits to radians
     corrected_cml = (-cml) % 360
-    lon_clip = [(cml - 90) % 360, (cml + 90) % 360]
-
+    lon_clip = [(cml+cm[0]) % 360, (cml+cm[1]) % 360]
     if not is_south:
         img = np.flip(img, axis=0)  # flip to have north pole at 0 index (image data is south at 0)
-    copies["2.flipped"] = img.copy()
-
     # Compute the pixel corresponding to the longitude
     cml_pixel = int(corrected_cml / 360 * n_phi)
     lon_clip_pixel = [int(i / 360 * n_phi) for i in lon_clip]
-    # Annotate the line vertically at the correct longitude
-    img[:, cml_pixel] = 1e7  # You can set to NaN or a specific value for the line
-    copies["3. cml annotated"] = img.copy()
-
-    lon_mask = np.zeros_like(img, dtype=bool)
+    if kwargs.get("drawcml",False): # Annotate the line vertically at the correct longitude
+        img[:, cml_pixel] = kwargs["drawcml"]
+    lon_mask = np.zeros_like(img, dtype=bool) # masking out the longitudes we dont want
     lon_mask[:, lon_clip_pixel[0] : lon_clip_pixel[1]] = True
-    copies["4. clipped +/- 90 cml"] = img.copy()
-    if origin == "upper":
-        sh = n_phi // 4
-    else:
-        sh = -n_phi // 4
-        img = np.flip(img, axis=1)
-        img = np.roll(img, shift=n_phi // 2, axis=1)
-    # else:
-    #
-
+    #img[lon_mask==False] = kwargs.get("arr_bg",0) # set unused longitudes to the square bg. # noqa: ERA001
+    img = np.nan_to_num(img, nan=kwargs.get("proj_bg",np.max(np.nan_to_num(img)))) # turn nan values to circle bg
+    img = np.clip(img, clip_low, clip_high) # clipping out useless data.
+    if origin == "lower":
+        img = np.roll(np.flip(img, axis=1), shift=n_phi // 2, axis=1)
+    sh = n_phi//4 * sgn
     p = meridian_pos.lower()
     if p.startswith("t") or p.startswith("n"):
         img = np.roll(img, shift=2 * sh, axis=1)  # roll to have 0° long at top (0 indexed)
@@ -127,66 +146,25 @@ def azimuthal_equidistant(fits_obj, rlim=40, clip_negatives=False, meridian_pos=
         img = np.roll(img, shift=3 * sh, axis=1)
     elif p.startswith("r") or p.startswith("e"):
         img = np.roll(img, shift=sh, axis=1)
-
-    copies["5. rolled"] = img.copy()
-
     theta_lim_rad = np.radians(rlim)
     # Create a coordinate grid for the output image
     y, x = np.meshgrid(np.linspace(-1, 1, output_size), np.linspace(-1, 1, output_size))
     r = np.sqrt(x**2 + y**2)  # Radial distance from center
     mask = r <= 1  # Valid points inside the projection circle
-
+    # colatitude θ
     theta = np.arcsin(r * np.sin(theta_lim_rad)) * (n_theta - 1) / np.pi  # Scale to input grid
-
-    # theta = np.arcsin(r) * (N_theta - 1) / np.pi  # Scale to input grid
-    # theta = theta * (N_theta - 1) / np.pi  # Scale to input grid
-
     # Compute longitude φ
     phi = np.arctan2(y, x)  # Angle in radians
     phi[phi < 0] += 2 * np.pi  # Convert to [0, 2π]
     phi = phi / (2 * np.pi) * (n_phi - 1)  # Scale to input grid indices
-    # if not flip_for_pcolormesh:
-    #       phi = np.flip(phi)
-    # if lon_min_rad <= lon_max_rad:
-    #     lon_mask = (phi >= lon_min_rad) & (phi <= lon_max_rad)
-    # # elif lon_min_rad == lon_max_rad:
-    # #       lon_mask = phi == phi
-    # else:
-    #     lon_mask = (phi >= lon_min_rad) | (phi <= lon_max_rad)  # Wrap-around case
-    # mask &= lon_mask  # Combine with existing mask
-
     # Create empty projected image
-    projected_array = np.full((output_size, output_size), np.nan)
-
+    projected_array = np.full((output_size, output_size),kwargs.get("arr_bg",0))
     # Nearest-neighbor interpolation
     theta_idx = np.clip(np.round(theta).astype(int), 0, n_theta - 1)
     phi_idx = np.clip(np.round(phi).astype(int), 0, n_phi - 1)
-
-    # Fill projected array
-    # projected_array[:] = img[theta_idx, phi_idx]
     # # Fill the projected array using the computed indices
     projected_array[mask] = img[theta_idx[mask], phi_idx[mask]]
-    # copies = {}
-    copies["6. projected"] = projected_array.copy()
-    if clip_negatives:
-        projected_array = np.clip(projected_array, 0, None)
-        copies["7. clipped <0"] = projected_array.copy()
-    # Normalize longitude to [0, 360]
-
-    # Plot result
-    # ncols = int(np.ceil(np.sqrt(len(copies))))
-    # nrows = int(np.ceil(len(copies) / ncols))
-    # fig,axs=plt.subplots(nrows,ncols,figsize=(ncols*3, nrows*3))
-    # axs = axs.flatten()
-    # for i,(text,array) in enumerate(copies.items()):
-    #     axs[i].pcolormesh(array,cmap='viridis', norm=LogNorm(vmin=1,vmax=3000),)
-    #     #axs[i].axis("off")
-    #     axs[i].set(xticks=[],yticks=[])
-    #     axs[i].set_title(f'{text}',fontsize=10, pad=0)
-    # plt.show()
-
-    return projected_array, copies
-
+    return projected_array#, copies
 
 ##########################################################################################################
 #                             IMAGE ARRAY TRANSFORMS
@@ -195,8 +173,14 @@ def gaussian_blur(
     input_arr: np.ndarray, radius: int, amount: float, boundary: str = "wrap", mode: str = "same",
 ) -> np.ndarray:
     """Return the input array convolved with the kernel2d convolution kernel.
-    radius = pixel radius of the kernel
-    amount = standard deviation of the gaussian kernel
+
+    Args:
+    input_arr (np.ndarray): input array to apply the kernel to.
+    radius (int): pixel radius of the kernel.
+    amount (float): standard deviation of the gaussian kernel.
+    boundary (str): see scipy.signals.convolve2d.
+    mode (str): see scipy.signals.convolve2d.
+
     """
     kernel2d = np.exp(-(np.arange(-radius, radius + 1) ** 2) / (2 * amount**2))
     kernel2d = np.outer(kernel2d, kernel2d)
@@ -211,10 +195,14 @@ def gradmap(
     mode: str = "same",
 ) -> np.ndarray:
     """Return the gradient of the input array using the kernel2d convolution kernel.
+
     convolution kernels used are from Swithenbank-Harris, B.G., Nichols, J.D., Bunce, E.J. 2019
-    Gx = [[-1  0  1]    Gy = [[-1 -2 -1]                      G= [[-1-1j 0-2j 1-1j]
-          [-2  0  2]          [ 0  0  0]  ==> G = Gx + j*Gy =     [-2    0     2  ]
-          [-1  0  1]]         [ 1  2  1]]                         [-1+1j 0+2j  1+1j]
+    ```
+    Gx = [[-1  0  1],[-2  0  2],[-1  0  1]]
+    Gy = [[-1 -2 -1],[ 0  0  0],[ 1  2  1]]
+               ((==> G = Gx + j*Gy ==>))
+    G= [[-1-1j 0-2j 1-1j],[-2    0     2  ],[-1+1j 0+2j  1+1j]]
+    ```
     """
     complexret = convolve2d(input_arr, kernel2d, mode=mode, boundary=boundary)
     return np.abs(complexret)
@@ -225,8 +213,12 @@ def dropthreshold(input_arr: np.ndarray, threshold: float) -> np.ndarray:
     return np.where(input_arr < threshold, 0, input_arr)
 
 
-def coadd(input_arrs: list[np.ndarray], weights: list[float] = None) -> np.ndarray:
+
+
+
+def coadd(input_arrs: list[np.ndarray], weights: Optional[list[float]] = None) -> np.ndarray:
     """Coadd a list of arrays with optional weights.
+
     input arrs N arrays of x*y shape
     """
     if weights is None:

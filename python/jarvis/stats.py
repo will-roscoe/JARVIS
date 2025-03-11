@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """This module contains functions for statistical analysis of data."""
 
-# import pandas as pd
+import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy.signal as si
@@ -34,7 +34,12 @@ def correlate(data1, data2):
     print(lags)
     plt.plot(lags, correlation)
     plt.show()
-    return correlation
+    if len(data1) != len(data2):
+        print("Data sets are not the same length")
+    else:
+        pearson = st.pearsonr(data1, data2)
+        print(pearson)
+    return pearson
 
 
 # Not sure but log or gamma (with θ/α >2) distribution may match data? ~~Will
@@ -79,6 +84,3 @@ def intensity_distribution(roidata, bins=100, irange=None):
     """Returns the intensity distribution of a given roidata."""
     return np.histogram(roidata, bins=bins, range=irange)
 
-data1 = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-data2 = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-correlate(np.array(data1 , dtype=float), np.array(data2, dtype=float))

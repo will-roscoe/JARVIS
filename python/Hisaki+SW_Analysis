@@ -42,8 +42,8 @@ torus_counter = 0
 
 aurora_fitspath = glob.glob(r"C:datasets/Hisaki/Aurora Power/*.fits")
 torus_fitspath = glob.glob(r"C:datasets/Hisaki/Torus Power/*.fits")
-aurora_groups_list = aurora_fitspath[2:42]
-torus_groups_list = torus_fitspath[2:42]
+aurora_groups_list = aurora_fitspath[2:43]
+torus_groups_list = torus_fitspath[2:43]
 
 aurora_power_all = np.array([])
 aurora_time_all = np.array([])
@@ -86,7 +86,7 @@ pd.options.display.max_rows = 9999
 
 sw_filename = r"datasets\Solar_Wind.txt"
 table = pd.read_csv(fpath(sw_filename), header=0,sep=r'\s+')
-table['Time_UT'] = pd.to_datetime(table['Time_UT'], format='%Y-%m-%d-%H:%M:%S.%f') # see https://strftime.org/ for format codes
+table['Time_UT'] = pd.to_datetime(table['Time_UT'], format='%Y-%m-%dT%H:%M:%S.%f') # see https://strftime.org/ for format codes
 
 f, ax = plt.subplots(3)
 

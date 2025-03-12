@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """This module contains functions for statistical analysis of data."""
 
-# import pandas as pd
+import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy.signal as si
@@ -27,15 +27,24 @@ def stats(data, mean=True, median=True, std=True, vmax=False, vmin=False):
 
 def correlate(data1, data2):
     """Calculate the correlation between two datasets."""
-    plt.scatter(data1, data2)
-    plt.show()
-    correlation = si.correlate(data1, data2, mode="valid")
+    correlation = si.correlate(data1, data2, mode="full")
+    correlation /= np.max(correlation)
     print(correlation)
-    lags = si.correlation_lags(len(data1), len(data2))
+    lags = si.correlation_lags(len(data1), len(data2), mode="full")
     print(lags)
     plt.plot(lags, correlation)
+    plt.xlabel("Lags")
+    plt.ylabel("Correlation")
+    plt.title("Correlation between data sets")
     plt.show()
-    return correlation
+    if len(data1) == len(data2):
+        pearson = st.pearsonr(data1, data2)
+        print(pearson)
+        return pearson
+    else:
+        print("Data sets are not the same length. Data set 1 length: ", len(data1), "Data set 2 length: ", len(data2))
+        return None
+ 
 
 
 # Not sure but log or gamma (with θ/α >2) distribution may match data? ~~Will
@@ -81,6 +90,3 @@ def intensity_distribution(roidata, bins=100, irange=None):
     """Return the intensity distribution of a given roidata."""
     return np.histogram(roidata, bins=bins, range=irange)
 
-data1 = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-data2 = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-correlate(np.array(data1 , dtype=float), np.array(data2, dtype=float))

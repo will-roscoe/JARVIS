@@ -90,6 +90,6 @@ url = {https://github.com/will-roscoe/JARVIS}
 if not os.path.exists(Dirs.DATA):
     raise FileNotFoundError(f"Neccesary directory not found at {Dirs.DATA}, containing data files.")
 
-JLOGGER = logging.getLogger(__name__)
-JLOGGER.setLevel(logging.INFO)
-JLOGGER.info("JAR:VIS package loaded.")
+# JLOGGER = logging.getLogger(__name__)
+# JLOGGER.setLevel(logging.INFO)
+# JLOGGER.info("JAR:VIS package loaded.")

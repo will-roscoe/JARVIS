@@ -1,19 +1,27 @@
 #!/usr/bin/env python3
 from datetime import datetime
 from random import choice
+from sqlite3 import Time
 
 import matplotlib as mpl
 import numpy as np
 import pandas as pd
 from astropy.timeseries import TimeSeries
 from jarvis import fpath, get_obs_interval, hst_fpath_list
-from jarvis.utils import group_to_visit
+from jarvis.utils import group_to_visit, rpath
 from matplotlib import pyplot as plt
 from tqdm import tqdm
 
 mpl.rcParams["hatch.linewidth"] = 2
-infiles = [fpath("2025-03-06_17-30-59.txt"), fpath("2025-03-06_21-14-46.txt")]
-
+infiles =[fpath(x) for x in [
+    #"2025-03-06_17-30-59.txt",
+    "2025-03-06_21-14-46.txt",
+    #"2025-03-11T14-04-20_powers_coadds.txt",
+    "2025-03-11T18-34-00_DPR.txt",
+    "2025-03-11T18-34-05_DPR.txt",
+    "2025-03-11T18-35-00_DPR.txt",
+    "2025-03-11T18-36-00_DPR.txt",
+    ]]
 
 def plot_visits(
     df, quantity="PFlux", corrected=None, ret="showsavefig", unit=None,
@@ -329,7 +337,7 @@ def plot_visits_v2(
     
     #top plot
     axs[-1].set_xticks([a[0] for a in alt_xs], labels=[f"v{a[1]}" for a in alt_xs])
-    hch = ["\\\\","//","--","||"]
+    hch = ["\\\\","//","--","||","oo","xx","**"]
     # main scatter&plot loop
     for x,cdf in enumerate(corr_):
         for i in range(len(quantities)):
@@ -352,7 +360,7 @@ def plot_visits_v2(
                 ranges = ranges.sort_values(by=["time"])
                 
                 
-                fl = axs[i].fill_between(ranges['time'],  ranges["max"], ranges["min"],facecolor=(cdf["color"][0],0.05), edgecolor=(cdf["color"][0],0.2),hatch=hch[x],linewidth=0.5,  interpolate=True)
+                #fl = axs[i].fill_between(ranges['time'],  ranges["max"], ranges["min"],facecolor=(cdf["color"][0],0.05), edgecolor=(cdf["color"][0],0.2),hatch=hch[x],linewidth=0.5,  interpolate=True)
                 #axs[i].fill_between(ranges['time'],  ranges["max"], ranges["min"],facecolor=(0,0,0,0), edgecolor=(1,1,1), interpolate=True)
                 
                
@@ -380,27 +388,51 @@ def plot_visits_v2(
     # finally plot the fill_between
     for i,q in enumerate(quantities):
         if quantities[i] is not None:
-            pass#axs[i].fill_between(lim[q]["EPOCH"], lim[q]["min"], lim[q]["max"], color="#aaa5", alpha=0.5, interpolate=True)
+            axs[i].fill_between(lim[q]["EPOCH"], lim[q]["min"], lim[q]["max"], color="#aaa5", alpha=0.5, interpolate=True)
+            axs[i].set_ylim([0, df[quantities[i]].max()])
 
+       
     return axes, (df["EPOCH"].min(), df["EPOCH"].max()), lim
 
-
+def plot_discontinuous_angle(ax,ts, colname, threshold=180,  **kwargs):
+    time = ts.time
+    angles = ts[colname]    # Compute differences to identify discontinuities
+    diffs = np.abs(np.diff(angles))
+    discontinuities = np.where(diffs > threshold)[0]    # Split indices at discontinuities
+    segments = np.split(np.arange(len(angles)), discontinuities + 1)
+    for segment in segments:
+        t_seg = time[segment]
+        ang_seg = angles[segment]# Extend segment at both ends if possible
+        if len(segment) > 1:
+            t_extended = time[[segment[0], *segment, segment[-1]]]  # Keep as Time object
+            ang_extended = np.array([ang_seg[0], *ang_seg, ang_seg[-1]])
+        else:
+            t_extended, ang_extended = t_seg, ang_seg
+        ax.plot(t_extended.datetime64, ang_extended, **kwargs)
+    ax.set_ylim([0, 360])
+    ax.yaxis.set_major_locator(plt.MultipleLocator(90))
 
 dfs = [
-    pd.read_csv(f, sep=" ", index_col=False, names=["visit", "Date", "Time", "Power", "PFlux", "Area"]) for f in infiles
+    pd.read_csv(f, sep=" ", index_col=False, names=["visit", "Date", "Time", "Power", "PFlux", "Area","EXTNAME","lmin","lmax","NUMPTS"]) for f in infiles
 ]
 
-clrs = ["xkcd:purple","xkcd:green","xkcd:blue","xkcd:magenta","xkcd:red","xkcd:brown"]
-mkrs = ["o","v","^","s","p"]                    # cmr.take_cmap_colors('rainbow', len(dfs), return_fmt='hex')
+clrs = ["#0aa","#00f", "#a0f","#f0f","#d00","#ff5500","#fa0","#0f0","#070"]  # cmr.take_cmap_colors('rainbow', len(dfs), return_fmt='hex')
+mkrs = ["1","2","3","4","x","+","1","2","3","4","x","+",]                    # cmr.take_cmap_colors('rainbow', len(dfs), return_fmt='hex')
 for i, d in enumerate(dfs):
-    dfs[i]["color"] = [choice(clrs),] * len(dfs[i])
-    clrs.remove(dfs[i]["color"][0])
+    dfs[i]["color"] = [clrs.pop(-1),] * len(dfs[i])
+    #clrs.remove(dfs[i]["color"][0])
     dfs[i]["marker"] = [choice(mkrs),] * len(dfs[i])
-    mkrs.remove(dfs[i]["marker"][0])
+    #mkrs.remove(dfs[i]["marker"][0])
+    # for each df, make any values < 0  equal 0
+    # dfs[i]["PFlux"] = dfs[i]["PFlux"].where(dfs[i]["PFlux"] > 0, 0)
+    # dfs[i]["Power"] = dfs[i]["Power"].where(dfs[i]["Power"] > 0, 0)
+    # dfs[i]["Area"] = dfs[i]["Area"].where(dfs[i]["Area"] > 0, 0)
 # fig = plt.figure(figsize=(8, 6), constrained_layout=True)
 # subfig = fig.subfigures(1,3, wspace=0, )  # noqa: ERA001
 
 table = TimeSeries.read(fpath("datasets/Hisaki_SW-combined.csv"))
+def hisaki_sw_get_safe(col):
+    return TimeSeries().from_pandas(table.to_pandas().loc[np.isfinite(table[col])])
 # remove nan values
 table = table.to_pandas()
 table_sw = table.loc[np.isfinite(table["jup_sw_pdyn"])]
@@ -408,12 +440,12 @@ table_sw = TimeSeries().from_pandas(table_sw)
 table_torus = table.loc[np.isfinite(table["TPOW0710ADAWN"])]
 table_torus = TimeSeries().from_pandas(table_torus)
 table = TimeSeries().from_pandas(table)
-# plot_visits_multi(dfs, 'PFlux', unit='GW/km²',figure=subfig[0], ret='fig')
-# plot_visits_multi(dfs, 'Power', unit='GW', figure=subfig[1], ret='fig')
-# plot_visits_multi(dfs, 'Area', unit='km²', figure=subfig[2], ret='fig')
+plot_visits_multi(dfs, 'PFlux', unit='GW/km²', ret='saveshow')
+plot_visits_multi(dfs, 'Power', unit='GW' , ret='saveshow')
+plot_visits_multi(dfs, 'Area', unit='km²', ret='saveshow')
 
 
-fig,axes = plt.subplots(5, 1, figsize=(8, 5), dpi=100, gridspec_kw={"hspace": 0, "wspace": 0})
+fig,axes = plt.subplots(6, 1, figsize=(8, 5), dpi=100, gridspec_kw={"hspace": 0, "wspace": 0})
 axes, dlims,lims = plot_visits_v2(dfs,  axs=axes,quantities=["PFlux","Power","Area"])
 axes[0].xaxis.set_major_locator(mpl.dates.DayLocator(interval=2))
 axes[0].xaxis.set_major_formatter(mpl.dates.DateFormatter("%d/%m/%y"))
@@ -433,11 +465,14 @@ axes[4].plot(
         )
 axes[4].plot(table.time.datetime64, table["TPOW0710ADAWN"], color="green", linewidth=0.7)
 axes[4].scatter(table.time.datetime64, table["TPOW0710ADAWN"], color="green", marker=".", s=5)
-
+# make legend from filename and line2d object based on assigned props for each df 
+handles = [mpl.lines.Line2D([0], [0], color=dfs[i]["color"][0], marker=dfs[i]["marker"][0], linestyle="--", label=f"{rpath(infiles[i])}") for i in range(len(dfs))]
+fig.legend(handles=handles, title="Files", fontsize="small")
 
 for ax in axes:
     ax.set_xlim(dlims[0] - pd.Timedelta(hours=24), dlims[1] + pd.Timedelta(hours=24))
-
+axes[5].set_ylabel("CML [°]")
+plot_discontinuous_angle(axes[5],hisaki_sw_get_safe("CML"),"CML", threshold=45, color="black", linewidth=0.7)
 # print(lims, t, table.columns)
 
 conv = {"system":["initial","si","cgs"],

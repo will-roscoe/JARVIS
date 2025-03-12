@@ -3,14 +3,15 @@ import datetime
 import os
 
 from astropy.io import fits
-from jarvis import fpath
+from numpy import True_
+from jarvis import fpath, fits_from_glob
 from jarvis.cvis import generate_coadded_fits, generate_rollings
 from jarvis.extensions import extract_conf, pathfinder
 from jarvis.power import powercalc
-from jarvis.stats import correlate, stats  # noqa: F401
-from jarvis.utils import await_confirmation, ensure_dir, hst_fpath_dict, hst_fpath_segdict, rpath, split_path, translate
+#from jarvis.stats import correlate, stats  # noqa: F401
+from jarvis.utils import await_confirmation, ensure_dir, ensure_file, fitsheader, hst_fpath_dict, hst_fpath_segdict, rpath, split_path, statusprint, translate
 from tqdm import tqdm
-
+from jarvis.const import log
 # makes an image
 # n = fpath(r'datasets\HST\v04\jup_16-140-20-48-59_0103_v04_stis_f25srf2_proj.fits')
 # fitsfile = fits.open(n)
@@ -172,6 +173,7 @@ if (
         force=False,
         **kwargs,
     ):
+        F = []
         failed = []
         ignores, conf_fpath, conf_as_kwargs = (
             kwargs.pop("ignores", []),
@@ -186,10 +188,11 @@ if (
             pbar4 = progressbar
             pbar4.reset(total=sum(len(avgpaths[i]) for i in avgpaths))
         outfile = (
-            f"{extname.upper()}_" + datetime.datetime.now().strftime("%Y-%m-%dT%H-%M-%S") + ".txt"
+            fpath(f"{extname.upper()}_" + datetime.datetime.now().strftime("%Y-%m-%dT%H-%M-%S") + ".txt")
             if outfile == "auto"
             else outfile
         )
+        ensure_file(outfile)
         if overwrite:
             open(outfile, "w").close()
         else:
@@ -211,44 +214,47 @@ if (
                 conf = alt_conf
             if force or conf:
                 for j, f in enumerate(fitspaths):
-                    persists = {"extname": extname, "steps": False, "show": False}
+                    persists = {"extname": extname, "steps": False, "show": False} #"old":True}
                     if conf_as_kwargs:
                         persists.update(conf)
                     else:
                         persists["conf"] = conf
                     persists.update({})
                     persists.update(kwargs)
-                    pf = pathfinder(f, steps=False, show=False, **persists)
+                    pf = pathfinder(f,  **persists)
                     path = pf[1]
                     if pf[0]:
-                        pc = powercalc(fits.open(f), path, writeto=outfile, extname=extname)
+                        pc = powercalc(fits.open(f), path)
+                        F.append(f"{fitsheader(fits.open(f),"VISIT")} {pc[0]} {pc[1]} {pc[2]}\n")
                         if progressbar is not None:
                             pbar4.update()
-                            pbar4.set_postfix_str(f"P={pc[0]:.3f}GW,I={pc[1]*1e8:.3f}x10⁻⁸GW/km²")
+                            pbar4.set_postfix_str(f"SR:{statusprint(len(F)/(len(F)+len(failed)), True)}, P={pc[0]:.3f}GW,I={pc[1]*1e8:.3f}x10⁻⁸GW/km²")
                     else:
                         failed.append([f, copath, path])  # this is a list of paths that failed pathfinder.
                         if progressbar is not None:
                             pbar4.update()
-                            pbar4.set_postfix_str(f"Failed on {"/".join(split_path(f)[-2:])}")
-                        tqdm.write(f"F{len(failed):0>3}failed on: {rpath(f)} using config: {path}")
+                            pbar4.set_postfix_str(f"FR:{statusprint(len(failed)/(len(failed)+len(F)))}, Failed on {"".join(split_path(f)[-2:])[:40]+"..."},")
+                        log.write(f"F{len(failed):0>3} failed on: {rpath(f)} using config: {path}")
             else:
                 if progressbar is not None:
                     pbar4.update(len(fitspaths))
                 tqdm.write(f"No boundary found for {visit=!s}")
         if progressbar is True:
             pbar4.close()
-        for file in failed:
-            print(f"failed on: {rpath(file[0])} using {rpath(file[1])} config: {file[2]}")
-        print(f"{len(failed)=}")
-        print(f"Power fluxes written to {outfile}")
+        #for file in failed:
+            #p1,p2,p3 = file[2]
+            #log.write(f"failed on: {rpath(file[0])} using {rpath(file[1])} config:{file[2]}")
+        log.write("Succcesful Calcs:\n", *F)
+        tqdm.write(f"{len(failed)=}/{len(failed)+ len(F)}")
+        tqdm.write(f"Power fluxes written to {outfile}")
 
     def run_path_powercalc(
         ignores={"groups": [], "visits": []},
-        byvisit=True,
-        segments=3,
+        byvisit=True, 
+        segments=2,
         coadd_dir=fpath("temp/coadds"),
         avg_dir=fpath("temp/rollavgs"),
-        outfile=fpath("temp/powers.txt"),
+        outfile="auto",
         extname="BOUNDARY",
         remove="none",
     ):
@@ -256,7 +262,7 @@ if (
         filepaths_seg = hst_fpath_segdict(segments, byvisit=byvisit)
 
         # to ignore any visit or group (or segment in either), we translate all to the correct form and format.
-        ignores_ = []
+        ignores_ = ["v01","v02","v03","v04","v05","v06","v07","v08"]
         ident = "v" if byvisit else "g"
         ign = [item for sublist in [[[k, v] for v in ignores[k]] for k in ignores] for item in sublist]
         for iden, num in ign:
@@ -264,12 +270,18 @@ if (
                 ignores_.append(f"{ident}{translate(num, init=iden,to=ident):0>2}")
             else:
                 ignores_.append(f"{ident}{num[0] if num[0]!=iden[0] else ''}{num[1:]}")
+        destbyv = []
         for visit in filepaths_byv:
             if any(i in visit for i in ignores_):
-                filepaths_byv.pop(visit)
+                destbyv.append(visit)
+        destseg = []
         for visit in filepaths_seg:
             if any(i in visit for i in ignores_):
-                filepaths_seg.pop(visit)
+                destseg.append(visit)
+        for i in destbyv:
+            filepaths_byv.pop(i)
+        for i in destseg:
+            filepaths_seg.pop(i)
         ## main part of function
 
         # generate coadded fits in each segment
@@ -291,6 +303,7 @@ if (
                 for p in os.listdir(avg_dir + f"/{visit}"):
                     if os.path.isfile(p):
                         os.remove(p)
+        
 
     run_path_powercalc()
 
@@ -304,10 +317,17 @@ if (
 #         copath = fpath(f'datasets/HST/custom/g{i:0>2},v{group_to_visit(i):0>2}_[3,1]gaussian-coadded.fits')
 #         fit = generate_coadded_fits(fitsg, saveto=copath, gaussian=(3,1), overwrite=True,indiv=False, coadded=True)
 #         fit.close()
-# # loop to only run pathfinder ------------------------------------------------
-# for i in tqdm(gps):
-#     copath = fpath(f'datasets/HST/custom/g{i:0>2},v{group_to_visit(i):0>2}_[3,1]gaussian-coadded.fits')
-#     pt = pathfinder(copath)
+
+
+    # writeto = f"{datetime.datetime.now().strftime('%Y-%m-%dT%H-%M-%S')}_powers_coadds.txt"
+    # p = fpath("datasets/HST/custom/coadds/")
+    
+    # copath = fits_from_glob(p)
+    # for cp in copath:
+    #     if "BOUNDARY" in cp:
+    #             pt = powercalc(cp, writeto=writeto)
+        
+        #pt = pathfinder(copath)
 # loop to only run powercalc -------------------------------------------------
 # for i in tqdm(gps):
 #     basefitpath = fpath(f'datasets/HST/group_{i:0>2}')

@@ -16,7 +16,7 @@ from astropy.io.fits import open as fopen
 from astropy.table import Table, vstack
 from matplotlib.colors import to_rgba
 from tqdm import tqdm
-
+from colorist import ColorHSL
 from .const import FITSINDEX, GHROOT, Dirs
 
 
@@ -212,9 +212,9 @@ def adapted_hdul(original_hdul, new_data=None, **kwargs):
         orig_header[FITSINDEX][k] = v
     if new_data is not None:
         try:
-            orig_header[FITSINDEX]["VERSION"] += 1
+            orig_header[FITSINDEX]["EXTVER"] += 1
         except KeyError:
-            orig_header[FITSINDEX]["VERSION"] = 1
+            orig_header[FITSINDEX]["EXTVER"] = 1
     else:
         new_data = orig_data[FITSINDEX]
     return HDUList([PrimaryHDU(orig_data[0], header=orig_header[0]), ImageHDU(new_data, header=orig_header[1])])
@@ -329,6 +329,13 @@ def mcolor_to_lum(*colors):
     if len(col) == 1:
         return col[0]
     return col
+
+def statusprint(num, fail_low=False):
+    # if fail_low: 0 corresopnds to H=0, 1 --> H=109 
+    # if not fail_low: 0 corresponds to H=109, 1 --> H=0
+    h = num*109 if fail_low else 109-num*109
+    col = ColorHSL(int(h), 100,50)
+    return f"{col}{num:.2%}{col.OFF}"
 
 
 #################################################################################

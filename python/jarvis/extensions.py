@@ -30,19 +30,20 @@ from matplotlib.text import Text
 from matplotlib.widgets import Button, CheckButtons, RadioButtons, Slider, TextBox
 from tqdm import tqdm
 
-from .const import PF  #CONST,
+from .const import PF,log
 from .cvis import contourhdu, imagexy
 from .polar import prep_polarfits
-from .transforms import azimuthal_equidistant, fullxy_to_polar_arr
+from .transforms import azimuthal_equidistant, contrast_adjust, fullxy_to_polar_arr
 from .utils import assign_params, filename_from_path, fitsheader, fpath, get_datetime, hdulinfo, rpath, split_path
 
 try:
     from PyQt6 import QtGui  # type: ignore #
 except ImportError:
+    log.write("Handling PyQt6 import error, trying PyQt5")
     try:
         from PyQt5 import QtGui  # type: ignore #
     except ImportError:
-        tqdm.write("Warning: PyQt6 or PyQt5 not found, pathfinder app may not function correctly")
+        log.write("Warning: PyQt6 or PyQt5 not found, pathfinder app may not function correctly")
 
 def __getflaglabels(flag: str):
     """Return the ordered list of labels for a given flag."""
@@ -155,7 +156,7 @@ def pathfinder(
     fits_dir: HDUList,
     show_tooltips: bool = True,
     headername: str = "BOUNDARY",
-    steps: bool = True,
+    do_steps: bool = False,
     show: bool = True,
     old=False,
     autosave=True,
@@ -170,7 +171,7 @@ def pathfinder(
     Args:
         fits_dir (str): The fits file to open.
         show_tooltips (bool): Whether to show tooltips when hovering over buttons.
-        steps (bool): whether to save snapshots of the image at each step.
+        do_steps (bool): whether to save snapshots of the image at each step.
         headername (str): initial extname.
         show (bool): whether to show the GUI.
         old (bool): whether to use the old version of the pathfinder, which uses a different method of selecting contours, limited to 16 bit accuracy.
@@ -216,37 +217,45 @@ def pathfinder(
 
     """
     use("QtAgg")
+    log.write(f"Starting pathfinder with params: {",".join([str(fl) for fl in [fits_dir,show_tooltips,headername,do_steps,show,old,autosave,persists]])}")
     fontManager.addfont(fpath("python/jarvis/resources/FiraCodeNerdFont-Regular.ttf"))
     with rc_context(rc={"font.family": "FiraCode Nerd Font", "axes.unicode_minus": False,"toolbar": "None","font.size": 8,"keymap.fullscreen": "","keymap.home": "","keymap.back": "","keymap.forward": "","keymap.pan": "","keymap.zoom": "","keymap.save": "","keymap.quit": "","keymap.grid": "","keymap.yscale": "","keymap.xscale": "","keymap.copy": "",},):
         global ACTIVE_FITS,imlim,normlim  #:HDUList
         ACTIVE_FITS = fopen(fits_dir, "readonly")
         # generate a stripped down, grey scale image of the fits file, and make normalised imagempl.rcParams['toolbar'] = 'None'
         if old:
+            log.write("Using old pathfinder method")
             proc = prep_polarfits(assign_params(ACTIVE_FITS, fixed="LON", full=True))
             img = imagexy(proc, cmap=cmr.neutral, ax_background="white", img_background="black")
             cliplims = [0,255]
+            normed = img
         else:
-            cliplims = [0, 3000]
-            img_p = azimuthal_equidistant(ACTIVE_FITS, clip_low=cliplims[0], clip_high=cliplims[1])
+            cliplims = [0, 1000]
+            img_p = azimuthal_equidistant(ACTIVE_FITS, clip_low=cliplims[0], clip_high=cliplims[1],
+                                           arr_bg=cliplims[0], proj_bg=cliplims[1])
             # multiply by some factor since we have to convert to int:
             img = img_p#*CONST.gustin_factor# * 1000 #* now in Rayleighs (from counts)
             # new image outputs with actual pixel values, and negatives clipped. we would want to normalize this still,
             # taking into consideration that the highest value is likely 6-10+ orders of magnitude higher than the target
-        normed = img#cv2.normalize(img, None, 0,255, cv2.NORM_MINMAX)
+            # make normed logaritmic, maximum at 1
+            
+            #img = contrast_adjust(img) # np.sqrt(log(img + 1))
+            normed = img
 
         def normalize01(lum_val,cliplim=cliplims, invert=False):
             """Take a value in the range of the image, and return the value in the range of the normalised image (ie 0-1024), if normalize=True."""
-            if not invert:
-                return lum_val/cliplim[1]
-            return lum_val*cliplim[1]
+            ret = lum_val / cliplim[1] if not invert else lum_val * cliplim[1]
+            log.write(f"Normalizing {lum_val} to {ret} with {cliplim} as lims and {invert=}")
+            return ret
 
         global view_config, cv_config, active_selections, result, FIRST_RUN
         result = {"EXTNAME": persists.get("EXTNAME", headername),"path": persists.get("path"),"snapshots": {},"attrs": {},}
-        if steps:
+        if do_steps:
             result["snapshots"]["img_0.png"] = img.copy()
         oldlen = len(ACTIVE_FITS)
 
         if FIRST_RUN:
+            log.write("Running first run cfgs")
             if show:
                 _get_pathfinderhead()  # tqdm.write('(Press # to print keybindings)')
             FIRST_RUN = False
@@ -255,9 +264,15 @@ def pathfinder(
                 view_config.update({"tooltips": show_tooltips})
             cv_config = PF.defaults.cv_config
             active_selections = {"LUMXY": [], "IDXY": [], "AUTOID": None}
+        log.write("Initial Configs: "+f"{view_config=}" if show else ""+f"{cv_config=}"+f"{active_selections=}"+f"{result=}")
+        
         for k, v in cv_config.items():
             if k.upper() ==  "FIXEDRANGE":
-                cv_config["FIXEDRANGE"]["RANGE"]=v
+                if "FIXEDRANGE" in persists:
+                    if "RANGE" in persists["FIXEDRANGE"]:
+                        cv_config["FIXEDRANGE"] =  persists["FIXEDRANGE"]
+                    else:
+                        cv_config["FIXEDRANGE"]["RANGE"] = persists["FIXEDRANGE"]
             cv_config[k] = persists.get(k, persists.get(k.lower(), persists.get(k.upper(), v)))
         if show:
             for k, v in view_config.items():
@@ -268,10 +283,11 @@ def pathfinder(
             result[k] = persists.get(k, persists.get(k.lower(), persists.get(k.upper(), v)))
 
         if len(cv_config["FIXEDRANGE"]["RANGE"])!=2:
-            cv_config["FIXEDRANGE"]["RANGE"] = [0.05,0.3]
+            cv_config["FIXEDRANGE"]["RANGE"] = PF.defaults.cv_config["FIXEDRANGE"]["RANGE"]
         cv_config["FIXEDRANGE"]["DEF"] = cv_config["FIXEDRANGE"]["RANGE"]
         # set up global variables needed for the click event and configuration options
         result["attrs"] = {"LMIN": -np.inf,"LMAX": np.inf,"NUMPTS": np.nan,"XYA_CT": np.nan,"XYA_CTP": np.nan,"XYA_IMG": (np.pi * (normed.shape[0] / 2) ** 2) / 2,}
+        log.write("Configs:"f"{view_config=}" if show else ""f"{cv_config=}"f"{active_selections=}"f"{result=}")
 
         def __approx_contour_area_pct(contourarea):
             num = contourarea / result["attrs"]["XYA_IMG"] * 100
@@ -281,6 +297,7 @@ def pathfinder(
 
         # set up the figure and axes
         if show:
+            log.write("Setting up figure")
             fig = plt.figure(figsize=(12.8, 7.2))
             qapp = fig.canvas.manager.window
             qapp.setWindowTitle(f"JAR:VIS Pathfinder ({fits_dir})")
@@ -335,14 +352,14 @@ def pathfinder(
         def __event_save(*_):
             global result, ACTIVE_FITS
             if result["path"] is not None:
-                
+                log.write("Saving contour to fits file at index"+str(len(ACTIVE_FITS)))
                 ACTIVE_FITS.close(closed=True)
                 #del ACTIVE_FITS
                 ACTIVE_FITS = fopen(fits_dir, "update") #> WARNING: we need to be careful here now, because changes to data or header will autosave.
-                #print(f"{ACTIVE_FITS._file.mode=!s}, {repr(ACTIVE_FITS._file)=!s}")
+                log.write(f"{ACTIVE_FITS._file.mode=!s}, {repr(ACTIVE_FITS._file)=!s}")
                 pth = result["path"].reshape(-1, 2)
                 pth = fullxy_to_polar_arr(pth, normed, 40)
-                if steps:
+                if do_steps:
                     for k, v in result["snapshots"].items():
                         cv2.imwrite(fpath(f"figures/{k}"), v)
                 nhattr = result["attrs"]
@@ -366,7 +383,7 @@ def pathfinder(
                     ch = contourhdu(pth, name=extname, header=header)
                 ACTIVE_FITS.append(ch)
                 ACTIVE_FITS.flush()
-                #print(a in ACTIVE_FITS)
+                log.write(",".join(str(a) in ACTIVE_FITS))
                 #assert len(ACTIVE_FITS) == oldlen + 1, f"Save Failed: {len(ACTIVE_FITS)} != {oldlen+1}\n"
                 tqdm.write(f"Save Successful, contour added to fits file at index {len(ACTIVE_FITS)-1}")
                 linfax.clear()
@@ -381,7 +398,7 @@ def pathfinder(
             else:
                 tqdm.write("Save Failed: No contour selected to save")
 
-        stepmap = [i*10**j for (i,j) in [(1,-5),(0.5,-5),(1,-4),(0.5,-4),(1,-3),(0.5,-3),(1,-2),(0.5,-2),(1,-1),(0.5,-1),(1,0),(1,0)]]
+        stepmap = [i*10**j for (i,j) in [(1,-5),(5,-5),(1,-4),(5,-4),(1,-3),(5,-3),(1,-2),(5,-2),(1,-1),(5,-1),]]
         def __range_change_key(val):
             """Ranges are stored as float between 0-1."""
             val = __getflagindex("FIXLRANGE", val)
@@ -389,7 +406,7 @@ def pathfinder(
             is_active = cv_config["FIXEDRANGE"]["ACTIVE"]
             step = cv_config["FIXEDRANGE"]["STEP"]
             if val == 4: # reset
-                fixedrange =cv_config["FIXEDRANGE"]["DEF"]
+                fixedrange =cv_config["FIXEDRANGE"]["DEF"] 
             elif val < 4: #increase/decrease limit
                 ind = int(val > 1)  # 0 for min, 1 for max val::{L+,L-,U+,U-,T,R)
                 fixedrange[ind] = np.clip(fixedrange[ind]+step*(1 - 2 * (val % 2)) ,0,1)
@@ -401,11 +418,14 @@ def pathfinder(
                     if stepmap.index(step) < len(stepmap) - 1
                     else 0
                 ]
+            log.write(f"FixedRange changing {val=}, {fixedrange=}, {is_active=}, {step=}")
             cv_config["FIXEDRANGE"].update({"RANGE":fixedrange, "ACTIVE":is_active, "STEP":step})
         if show:
             def __draw_contours(axes, contours, clinekws, ctextkws, limit=True):
                 for i, contour in contours:
                     global __MAXCDRAWS
+                    if '__MAXCDRAWS' not in globals():
+                        __MAXCDRAWS = 0
                     if i == 0:
                         __MAXCDRAWS = 0
                     if limit:
@@ -421,7 +441,7 @@ def pathfinder(
         # main update function
         def __redraw_main(_):
             global active_selections, cv_config, view_config, result
-            if steps:
+            if do_steps:
                 result["snapshots"]["img_1.png"] = normed.copy()
             if show:
                 # debug print(cl)
@@ -441,7 +461,7 @@ def pathfinder(
                         max(min(c[0] for c in active_selections["LUMXY"]), lrange[0]),
                         min(max(c[0] for c in active_selections["LUMXY"]), lrange[1])]
                 mask = cv2.inRange(img, *[normalize01(lr, invert=True) for lr in lrange])
-                if steps:
+                if do_steps:
                     result["snapshots"]["img_2.png"] = mask.copy()
                 result["attrs"].update(
                     {"LMIN": lrange[0],"LMAX": lrange[1],"LMETHOD":"FIXEDL" if cv_config["FIXEDRANGE"]["ACTIVE"] else "IDPX"})
@@ -449,11 +469,11 @@ def pathfinder(
                 kernel = np.ones([cv_config["KSIZE"]] * 2)  # Small kernel to smooth edges
                 for i, morph in enumerate(cv_config["MORPH"]):
                     mask = cv2.morphologyEx(mask, morph, kernel)
-                    if steps:
+                    if do_steps:
                         result["snapshots"][f"img_2_{i}.png"] = mask.copy()
-
-                if view_config["mask"] != 0 and show:
-                    ax.imshow(mask, cmap=cmr.neutral if (view_config["mask"] in [1, 2]) else (cmr.neutral_r if view_config["mask"] in [3, 4] else cmr.guppy), alpha=(0.5 if view_config["mask"] in [1, 3, 5] else 1), zorder=0.1)
+                if show:
+                    if view_config["mask"] != 0:
+                        ax.imshow(mask, cmap=cmr.neutral if (view_config["mask"] in [1, 2]) else (cmr.neutral_r if view_config["mask"] in [3, 4] else cmr.guppy), alpha=(0.5 if view_config["mask"] in [1, 3, 5] else 1), zorder=0.1)
                 # find the contours of the mask
                 contours, hierarchy = cv2.findContours(image=mask, mode=cv_config["RETR"], method=cv_config["CHAIN"])
                 if cv_config["CVH"]:  # Convex hull of the contours which reduces the complexity of the contours
@@ -463,8 +483,8 @@ def pathfinder(
                 if show:
                     txt = ""
                     if cv_config["FIXEDRANGE"]["ACTIVE"]:
-                        txt += ("FIXED" + f"({cv_config["FIXEDRANGE"]["STEP"]:g})")
-                    linfax.text(0.5,0.75,f"LRG=({lrange[0]:.4f},{lrange[1]:.4f})" + txt,**PF._infotextkws)
+                        txt += ("FIXED" + f"({cv_config["FIXEDRANGE"]["STEP"]:e})")
+                    linfax.text(0.5,0.75,f"LRG=({lrange[0]:g},{lrange[1]:g})" + txt,**PF._infotextkws)
                 # ------- Contour Selection -------#
                 if len(active_selections["IDXY"]) > 0 or isinstance(
                     active_selections["AUTOID"], (list, tuple),
@@ -564,9 +584,9 @@ def pathfinder(
                         **PF._infotextkws,
                     )
                     lax.set_facecolor(__get_bg(ax))
-            if steps:
-                fig.savefig(fpath("figures/img_3.png"))
             if show:
+                if do_steps:
+                    fig.savefig(fpath("figures/img_3.png"))
                 fig.canvas.draw()
                 fig.canvas.flush_events()
         def __on_click_event(event):
@@ -603,63 +623,65 @@ def pathfinder(
                         cv_config["ACTION"] == 0 and event.button == 3
                     ):  # if not in any mode, right click to auto select the closest contour
                         active_selections["AUTOID"] = click_coords
+                log.write(f"Click Event: {event.button=}, {event.xdata=}, {event.ydata=}, {active_selections=}")
                 __redraw_main(None)
-        def __redraw_displayed_attrs():
-                global ACTIVE_FITS
-                visit, tel, inst, filt, pln, hem, cml, doy = fitsheader(ACTIVE_FITS, "VISIT", "TELESCOP", "INSTRUME", "FILTER", "PLANET", "HEMISPH", "CML", "DOY",)
-                dt = get_datetime(ACTIVE_FITS)
-                fitinfoax.text(0.04, 0.96, "FITS File Information", fontsize=10, color="black", ha="left", va="top")
-                pth = str(fits_dir)
-                pthparts = []
-                if len(pth) > 30:
-                    parts = split_path(rpath(pth))
-                    while len(parts) > 0:
-                        stick = parts.pop(-1)
-                        if len(parts) > 0:
-                            if len(stick) + len(parts[-1]) < 30:
-                                parts[-1] += stick
+        if show:
+            def __redraw_displayed_attrs():
+                    global ACTIVE_FITS
+                    visit, tel, inst, filt, pln, hem, cml, doy = fitsheader(ACTIVE_FITS, "VISIT", "TELESCOP", "INSTRUME", "FILTER", "PLANET", "HEMISPH", "CML", "DOY",)
+                    dt = get_datetime(ACTIVE_FITS)
+                    fitinfoax.text(0.04, 0.96, "FITS File Information", fontsize=10, color="black", ha="left", va="top")
+                    pth = str(fits_dir)
+                    pthparts = []
+                    if len(pth) > 30:
+                        parts = split_path(rpath(pth))
+                        while len(parts) > 0:
+                            stick = parts.pop(-1)
+                            if len(parts) > 0:
+                                if len(stick) + len(parts[-1]) < 30:
+                                    parts[-1] += stick
+                                else:
+                                    pthparts.append(stick)
                             else:
                                 pthparts.append(stick)
-                        else:
-                            pthparts.append(stick)
-                else:
-                    pthparts.append(pth)
-                pthparts.reverse()
-                hdulinf = hdulinfo(ACTIVE_FITS, include_ver=True)
+                    else:
+                        pthparts.append(pth)
+                    pthparts.reverse()
+                    hdulinf = hdulinfo(ACTIVE_FITS, include_ver=True)
 
-                def hdupart(hdul):
-                    template = "{i} {name} ({type})"
-                    lent = len(hdul)
-                    hduc = [template.format(i=i, name=h["name"], type=h["type"]) for i, h in enumerate(hdul)]
-                    rows = 4 if lent >= 7 else 3 if lent >= 3 else lent
-                    maxwidth = max([len(h) for h in hduc])
-                    hduc = [h.ljust(maxwidth) for h in hduc]
-                    addempties = rows - (lent % rows)
-                    if addempties < rows:
-                        hduc += [" ".ljust(maxwidth) for _ in range(addempties)]
-                    # split into 4 parts
-                    hduc = [hduc[i::rows] for i in range(rows)]
-                    hduc = [" ".join(hduc[i]) for i in range(rows)]
-                    return [["HDUs", hduc[0]]] + [[" ", hduc[i]] for i in range(1, rows)]
+                    def hdupart(hdul):
+                        template = "{i} {name} ({type})"
+                        lent = len(hdul)
+                        hduc = [template.format(i=i, name=h["name"], type=h["type"]) for i, h in enumerate(hdul)]
+                        rows = 4 if lent >= 7 else 3 if lent >= 3 else lent
+                        maxwidth = max([len(h) for h in hduc])
+                        hduc = [h.ljust(maxwidth) for h in hduc]
+                        addempties = rows - (lent % rows)
+                        if addempties < rows:
+                            hduc += [" ".ljust(maxwidth) for _ in range(addempties)]
+                        # split into 4 parts
+                        hduc = [hduc[i::rows] for i in range(rows)]
+                        hduc = [" ".join(hduc[i]) for i in range(rows)]
+                        return [["HDUs", hduc[0]]] + [[" ", hduc[i]] for i in range(1, rows)]
 
-                hdup = hdupart(hdulinf)
-                ctxt = [["File", f"{pthparts[0]}"],*[[" ", f"{p}"] for p in pthparts[1:]],["Inst.", f"{inst} ({tel}, {filt} filter)"],["Obs.", f"visit {visit} of {pln} ({hem})"],
-                ["Date", f'{dt.strftime("%d/%m/%Y")}, day {doy}'],["Time", f'{dt.strftime("%H:%M:%S")}(ICRS)'],["CML", f"{cml:.4f}°"], *hdup,]
-                # ['HDUs',f"{0} {hdulinf[0]['name']}({hdulinf[0]['type']})"], *[[" ", f"{i} {h['name']}({h['type']})"] for i,h in enumerate(hdulinf[1:],1)]]
-                tl = fitinfoax.table(cellText=ctxt,cellColours=[[PF._bgs["sidebar"], PF._bgs["sidebar"]] for i in range(len(ctxt))],**PF._tablekws)
-                tl.visible_edges = ""
-                tl.auto_set_font_size(False)
-                tl.set_fontsize(8)
-                for key, cell in tl.get_celld().items():
-                    cell.set_linewidth(0)
-                    cell.PAD = 0
-                    if key[0] < len(pthparts) and key[1] == 1:
-                        cell.set_fontsize(max(8 - len(pthparts) + 1, 5))
-                    if key[0] >= len(pthparts) + 5 and key[1] == 1:
-                        cell.set_fontsize(max(8 - len(hdulinf) + 1, 5))
-                fig.canvas.blit(fitinfoax.bbox)
+                    hdup = hdupart(hdulinf)
+                    ctxt = [["File", f"{pthparts[0]}"],*[[" ", f"{p}"] for p in pthparts[1:]],["Inst.", f"{inst} ({tel}, {filt} filter)"],["Obs.", f"visit {visit} of {pln} ({hem})"],
+                    ["Date", f'{dt.strftime("%d/%m/%Y")}, day {doy}'],["Time", f'{dt.strftime("%H:%M:%S")}(ICRS)'],["CML", f"{cml:.4f}°"], *hdup,]
+                    # ['HDUs',f"{0} {hdulinf[0]['name']}({hdulinf[0]['type']})"], *[[" ", f"{i} {h['name']}({h['type']})"] for i,h in enumerate(hdulinf[1:],1)]]
+                    tl = fitinfoax.table(cellText=ctxt,cellColours=[[PF._bgs["sidebar"], PF._bgs["sidebar"]] for i in range(len(ctxt))],**PF._tablekws)
+                    tl.visible_edges = ""
+                    tl.auto_set_font_size(False)
+                    tl.set_fontsize(8)
+                    for key, cell in tl.get_celld().items():
+                        cell.set_linewidth(0)
+                        cell.PAD = 0
+                        if key[0] < len(pthparts) and key[1] == 1:
+                            cell.set_fontsize(max(8 - len(pthparts) + 1, 5))
+                        if key[0] >= len(pthparts) + 5 and key[1] == 1:
+                            cell.set_fontsize(max(8 - len(hdulinf) + 1, 5))
+                    fig.canvas.blit(fitinfoax.bbox)
 
-        __redraw_displayed_attrs()
+            __redraw_displayed_attrs()
 
         def __generate_conf_output():
             """Return the current configuration options in a dictionary, encoding the values as integers or binary strings to save to the fits file."""
@@ -670,23 +692,30 @@ def pathfinder(
             m_ = "".join([str(i) for i in m_])
             returnparts = {x: cv_config.get(x) for x in ["RETR", "CHAIN", "CVH", "KSIZE"]}
             returnparts |= {"MORPH": m_, "CONTTIME": datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
+            log.write("cv_config requested export:", returnparts)
             return returnparts
 
         def __load_conf_output(conf):
             """Load the configuration options from a dictionary, decoding the values from integers or binary strings."""
+            log.write(f"cv_config requested import: {conf}")
             global cv_config
             lrange_ = [0, 1]
             for k, v in conf.items():
                 if k == "MORPH":
                     cv_config["MORPH"] = [i for i in range(8) if v[i] == "1"]
+                    log.write(f"{cv_config['MORPH']=} from {v=}")
                 elif k in cv_config:
                     cv_config[k] = v
+                    log.write(f"{k=} {v=}")
                 if k == "LMIN":
                     lrange_[0] = v
+
                 elif k == "LMAX":
                     lrange_[1] = v
             if lrange_ != [0, 1]:
-                cv_config["FIXEDRANGE"] = lrange_
+                log.write(f"{lrange_=}")
+                cv_config["FIXEDRANGE"]["RANGE"] = lrange_
+                cv_config["FIXEDRANGE"]["ACTIVE"] = True
 
         def __generate_coord_output():
             """Return the current selected coordinates to save to the fits file."""
@@ -698,25 +727,32 @@ def pathfinder(
                 ret[f"IDXY_{i}"] = f"({coord[0]},{coord[1]})"
             if active_selections["AUTOID"] is not None:
                 ret["AUTOID"] = f"({active_selections['AUTOID'][0]},{active_selections['AUTOID'][1]})"
+            log.write(f"active_selections requested export: {ret}")
             return ret
 
         def __load_coord_output(conf):
             """Load the selected coordinates from a dictionary."""
             global active_selections
+            log.write(f"active_selections requested import: {conf}")
             for k in active_selections:
                 active_selections[k] = []
             for k, v in conf.items():
                 if k.startswith("LUMXY"):
-                    lum = float(v.split(",")[0])
+                    spl =v.split(",")
+                    lum = float(spl[0])
+                    xy = [int(spl[1][1:]), int(spl[2][:-1])]
                     x = int(v.split("(")[1].split(",")[0])
-                    y = int(v.split(",")[1].split(")")[0])
-                    active_selections["LUMXY"].append([lum, [x, y]])
+                    y = int(v.split(",")[1].split(")")[0].replace("(",""))
+                    log.write(f"LUMXY={v} ---> {[lum, xy]}")
+                    active_selections["LUMXY"].append([lum, xy])
                 elif k.startswith("IDXY"):
                     xy = v.replace("(", "").replace(")", "").split(",")
                     active_selections["IDXY"].append([int(xy[0]), int(xy[1])])
+                    log.write(f"IDXY={v} ---> {[int(xy[0]), int(xy[1])]}")
                 elif k == "AUTOID" or k == "AUTOCL":
                     xy = v.replace("(", "").replace(")", "").split(",")
                     active_selections["AUTOID"] = [int(xy[0]), int(xy[1])]
+                    log.write(f"AUTOID={v} ---> {[int(xy[0]), int(xy[1])]}")
         def __load_conf(conf):
             """Load the configuration and selected coordinates from a dictionary."""
             __load_conf_output(conf)
@@ -744,7 +780,7 @@ def pathfinder(
                 for key in view_config:
                     if key in ["mask", "cmap"]:
                         view_config[key] = persists.get(key, view_config[key])
-
+                __range_change_key(4)
                 __redraw_main(None)
 
             breset.on_clicked(__event_reset)
@@ -1115,10 +1151,11 @@ def pathfinder(
                     __redraw_main(None)
 
             key_event = fig.canvas.mpl_connect("key_press_event", __on_key_press_event)  # noqa: F841
-
+            log.write("PATHFINDER: setup complete in GUI ACTIVE mode.")
             plt.show()
 
         else:
+            log.write("PATHFINDER: setup complete in GUI INACTIVE mode.")
             __redraw_main(None)
             if result["path"] is None:
                 plt.close()
@@ -1129,10 +1166,12 @@ def pathfinder(
         if result["path"] is not None:
             pth = result["path"].reshape(-1, 2)
             ret = [True, fullxy_to_polar_arr(pth, normed, 40)]
+            log.write(f"PATHFINDER: returning path {ret}")
         else:
-            ret = [False, [__generate_conf_output(), __generate_coord_output()]]
+            ret = [False, [__generate_conf_output(), __generate_coord_output(), result]]
+            log.write(f"PATHFINDER: path not found {ret}")
         if show and noteattrs["text"] not in ["", None]:
-            tqdm.write(f'{filename_from_path(fits_dir)}:\n {noteattrs["text"]}')
+            log.write(f'{filename_from_path(fits_dir)}:\n {noteattrs["text"]}')
 
         with suppress(Exception):
             ACTIVE_FITS.close()

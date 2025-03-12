@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Constants and default values used throughout the project."""
 
+import logging
 from pathlib import Path
 import cmasher as cmr
 import cv2
@@ -329,6 +330,19 @@ PF.defaults.cv_config ={
                 "CVH": False,
                 "KSIZE": 5,
                 "RETR": cv2.RETR_EXTERNAL,
-                "FIXEDRANGE": {"ACTIVE":False,"RANGE":[0.001,0.4], "STEP":0.01}
+                "FIXEDRANGE": {"ACTIVE":True,"RANGE":[0.0001,0.01], "STEP":0.001}
             }
 
+IMG = ConfigLike("Image configurations")
+IMG.contrast = ConfigLike("Func and configurations for the contrast enchancement of images")
+IMG.contrast.power = 1.4
+
+
+log = ConfigLike("Logging")
+log.ACTIVE = True
+log.logger = logging.getLogger("jarvis")
+log.logger.setLevel(logging.DEBUG)
+log.logger.addHandler(logging.FileHandler(GHROOT / "jarvis.log", mode="w"))
+#log.logger.addHandler(logging.StreamHandler())
+log.write = log.logger.debug
+log.write("Logging initialized")

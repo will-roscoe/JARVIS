@@ -26,16 +26,10 @@ def stats(data, mean=True, median=True, std=True, vmax=False, vmin=False):
 
 
 def correlate(data1, data2):
-<<<<<<< Updated upstream
-    """Calculates the correlation between two datasets."""
-    correlation = si.correlate(data1, data2)
-    correlation /= np.max(correlation)
-=======
     """Calculate the correlation between two datasets."""
     plt.scatter(data1, data2)
     plt.show()
     correlation = si.correlate(data1, data2, mode="valid")
->>>>>>> Stashed changes
     print(correlation)
     lags = si.correlation_lags(len(data1), len(data2))
     print(lags)

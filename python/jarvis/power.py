@@ -13,6 +13,7 @@ Joe Kinrade - 08 / 01 /2025;
 JAR:VIS team - 21 / 02 / 2025;
 """
 
+import datetime
 from typing import Tuple
 
 import matplotlib.pyplot as plt
@@ -55,10 +56,9 @@ def __null(*args, **kwargs):
 
 __write_to_file, __print, __plot = __null, __null, __null
 if Power.WRITETO:
-
-    def __write_to_file(visit, stime, tpe_roi, ppa, area, writeto=Power.WRITETO):
+    def __write_to_file(*args, writeto=Power.WRITETO):
         with open(writeto, "a") as f:
-            f.write(" ".join([str(x) for x in [visit, stime, tpe_roi, ppa, area, "\n"]]))
+            f.write(" ".join([str(x) for x in [*list(args), "\n"]]))
 
 
 if Power.DISPLAY_PLOTS:
@@ -231,11 +231,15 @@ def powercalc(
             dpr_coords = fits_obj[dpr_coords].data
         else:  # > check in the hdulist with the name 'BOUNDARY' and take the newest one
             b_inds = [i for i in range(len(fits_obj)) if fits_obj[i].name == extname]
+            ind_ = b_inds[0]
             newestb = fits_obj[b_inds[0]]
             for bo in b_inds:
-                if fits_obj[bo].header["EXTVER"] > newestb.header["EXTVER"]:
+                
+                if fits_obj[bo].ver > newestb.ver:
                     newestb = fits_obj[bo]
-            dpr_coords = newestb.data
+                    ind_ = bo
+            data = newestb.data
+            dpr_coords = np.array([data["colat"], data["lon"]], dtype=np.float64)
     if dpr_coords.shape[0] == 2:
         dpr_coords = dpr_coords.T
     dpr_path = path.Path(dpr_coords)
@@ -320,13 +324,15 @@ def powercalc(
     power_per_area = total_power_emitted_from_roi / area
     __print(f"Total power emitted from ROI in GW:\n{total_power_emitted_from_roi}")
     __print(f"Power per unit area in GW/km²:\n{power_per_area}")
+    # VISIT DATETIME POWER FLUX AREA EXTNAME LMIN LMAX NUMPTS CALCTIME
     __write_to_file(
         fitsheader(fits_obj, "VISIT"),
         get_datetime(fits_obj),
         total_power_emitted_from_roi,
         power_per_area,
         area,
-        writeto=kwargs.get("writeto", Power.WRITETO),
+        *fitsheader(fits_obj, "LMIN", "LMAX", "NUMPTS"),
+        datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S"),
     )
     return total_power_emitted_from_roi, power_per_area, area, full_image, bimage_roi
 

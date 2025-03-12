@@ -7,7 +7,7 @@ from astropy.io import fits
 from astropy.io.fits import HDUList, getdata
 from scipy.signal import convolve2d
 
-from .const import FITSINDEX
+from .const import FITSINDEX, IMG
 from .utils import adapted_hdul, fitsheader
 
 
@@ -106,7 +106,8 @@ def azimuthal_equidistant(data, rlim=40, meridian_pos="N", origin="upper",clip_l
         np.ndarray: Projected image in azimuthal equidistant coordinates.
 
     """
-    sgn = 1 if origin == "upper" else -1
+    sgn = 1 if origin == "upper" else -1 # flip the sign if origin is upper
+    # differentiate between data and fits object
     if isinstance(data,str):
         d = getdata(data, FITSINDEX)
         img = np.asarray(d.astype(np.float32))
@@ -114,7 +115,10 @@ def azimuthal_equidistant(data, rlim=40, meridian_pos="N", origin="upper",clip_l
     else:
         img = np.asarray(data[FITSINDEX].data)
         fits_obj=data
+
     cml, is_south = fitsheader(fits_obj, "CML", "south")
+
+
     is_south = kwargs.get("south",is_south)
     cm = kwargs.get("clip_angles", *[(-1*c, c) for c in [kwargs.get("clip_angle",90)]])
     n_theta, n_phi = img.shape  # Grid size of input (θ, φ)
@@ -133,6 +137,8 @@ def azimuthal_equidistant(data, rlim=40, meridian_pos="N", origin="upper",clip_l
     lon_mask[:, lon_clip_pixel[0] : lon_clip_pixel[1]] = True
     #img[lon_mask==False] = kwargs.get("arr_bg",0) # set unused longitudes to the square bg. # noqa: ERA001
     img = np.nan_to_num(img, nan=kwargs.get("proj_bg",np.max(np.nan_to_num(img)))) # turn nan values to circle bg
+    # if zero, also set to proj_bg. 
+    img = np.where(img<=1, kwargs.get("proj_bg",np.max(np.nan_to_num(img))), img)
     img = np.clip(img, clip_low, clip_high) # clipping out useless data.
     if origin == "lower":
         img = np.roll(np.flip(img, axis=1), shift=n_phi // 2, axis=1)
@@ -169,6 +175,17 @@ def azimuthal_equidistant(data, rlim=40, meridian_pos="N", origin="upper",clip_l
 ##########################################################################################################
 #                             IMAGE ARRAY TRANSFORMS
 ##########################################################################################################
+def contrast_adjust(im:np.ndarray, **kwargs):
+    r"""Contrast enhancement function for images. Ensures the minimum and maximum values are unchanged.
+
+    $$K(v)=v_{min}+(v_{max}-v_{min}) (\\frac{v-v_{min}}{v_{max}-v_{min}}}^{\\frac{1}{k}}$$
+    """
+    v_min,v_max = kwargs.get("lims",(np.min(im),np.max(im)))
+    return v_min + (v_max - v_min) * ((im - v_min) / (v_max - v_min))**(1/kwargs.get("k",IMG.contrast.power))
+
+
+
+
 def gaussian_blur(
     input_arr: np.ndarray, radius: int, amount: float, boundary: str = "wrap", mode: str = "same",
 ) -> np.ndarray:

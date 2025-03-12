@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-"""
-Created on Tue Jan 25 11:15:23 2022
+"""Created on Tue Jan 25 11:15:23 2022.
 
 This code uses both the Hess 2011 table of ephemeris and the longitude of
 each Jovian moon (read in the header of every fits file) to output the
@@ -16,10 +15,7 @@ from .utils import fpath
 
 
 def moonfploc(iolon, eulon, galon):
-    """uses both the Hess 2011 table of ephemeris and the longitude of
-    each Jovian moon (read in the header of every fits file) to output the
-    expected latitude and longitude of the four Galilean moons."""
-
+    """Use both the Hess 2011 table of ephemeris and the longitude of each Jovian moon (read in the header of every fits file) to output the expected latitude and longitude of the four Galilean moons."""
     tablename = fpath("datasets/hess2011_table1.txt")
     lista = []
     with open(tablename) as table:

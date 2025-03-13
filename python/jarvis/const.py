@@ -48,6 +48,7 @@ Dirs.HISAKI = Dirs.DATA / "Hisaki"
 Dirs.TORUS = Dirs.HISAKI / "Torus Power"
 Dirs.AURORA = Dirs.HISAKI / "Aurora Power"
 Dirs.TEMP = GHROOT / "temp"
+Dirs.GEN = Dirs.DATA / "Generated"
 Dirs.gv_map ={"group": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20], "visit": [1, 2, 5, 4, 3, 8, 9, 10, 13, 15, 11, 12, 16, 18, 19, 20, 21, 23, 24, 29]}
 ######## DPR ###################################################################
 DPR = ConfigLike("DPR region coordinates for HST images")

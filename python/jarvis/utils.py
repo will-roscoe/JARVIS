@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Provides various utility functions for managing paths and directories, interfacing with FITS files, handling FITS headers and data, and performing time series operations."""
 
+from calendar import c
+from contextlib import contextmanager
 import os
 from datetime import datetime, timedelta
 from glob import glob
@@ -8,16 +10,20 @@ from os import listdir, makedirs, path
 from os import sep as os_sep
 from os.path import isfile
 from pathlib import Path
-
+from contextlib import contextmanager
+import functools
+import cProfile
+import profile
 import cutie
 import numpy as np
 from astropy.io.fits import BinTableHDU, HDUList, ImageHDU, PrimaryHDU, TableHDU
 from astropy.io.fits import open as fopen
 from astropy.table import Table, vstack
+from colorist import ColorHSL
 from matplotlib.colors import to_rgba
 from tqdm import tqdm
-from colorist import ColorHSL
-from .const import FITSINDEX, GHROOT, Dirs
+import pstats
+from .const import FITSINDEX, GHROOT, Dirs, log
 
 
 #################################################################################
@@ -365,7 +371,31 @@ def __await_option(prompt="", **options):
 
 
 
+def jprofile(base:str="jarvis"):
+    """Profile a block of code using cProfile. Save the profile to a file."""
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            profiler = cProfile.Profile()
+            profiler.enable()
+            try:
+                return func(*args, **kwargs)
+            finally:
+                profiler.disable()
+                relpath = f".github/profiler/{base}"
+                profile_path = fpath(relpath)
+                ensure_dir(fpath(r".github\profiler"))
+                ensure_file(profile_path+".prof")
+                ensure_file(profile_path+".pstat")
+                profiler.dump_stats(profile_path+".prof")
+                stats = pstats.Stats(profile_path+".prof")
+                stats.strip_dirs()
+                stats.dump_stats(profile_path+".pstat")
+                import subprocess
+                subprocess.call(f'python -m gprof2dot -f pstats {profile_path}.pstat | dot -Tpng -o {fpath(f".github/imgs/{base}.png")}', shell=True)
 
+        return wrapper
+    return decorator
 
 def group_to_visit(*args):
     """Convert group number to visit number.

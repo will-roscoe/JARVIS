@@ -13,10 +13,14 @@ Classes:
 
 from contextlib import suppress
 from datetime import datetime
-from typing import ClassVar, Iterable, Union
+import os
+from typing import ClassVar, Iterable, Union, Optional
+import warnings
 
+from click import progressbar
 import cmasher as cmr
 import cv2
+import imageio
 import matplotlib.pyplot as plt
 import numpy as np
 from astropy.io.fits import HDUList, Header
@@ -34,7 +38,7 @@ from .const import PF,log
 from .cvis import contourhdu, imagexy
 from .polar import prep_polarfits
 from .transforms import azimuthal_equidistant, contrast_adjust, fullxy_to_polar_arr
-from .utils import assign_params, filename_from_path, fitsheader, fpath, get_datetime, hdulinfo, rpath, split_path
+from .utils import assign_params, ensure_dir, filename_from_path, fitsheader, fpath, get_datetime, hdulinfo, rpath, split_path
 
 try:
     from PyQt6 import QtGui  # type: ignore #
@@ -367,10 +371,11 @@ def pathfinder(
                 nhattr |= __generate_conf_output()
                 nhattr |= __generate_coord_output()
                 nhattr |= {m: fitsheader(ACTIVE_FITS, m) for m in ["UDATE", "YEAR", "VISIT", "DOY", "EXPT"]}
-                if noteattrs["text"] not in ["", None]:
-                    notes = noteattrs["text"].replace("\n", " " * 32)
-                    notes = "".join([char if ord(char) < 128 else f"\\x{ord(char):02x}" for char in notes])
-                    nhattr["NOTES"] = notes
+                if show:
+                    if noteattrs["text"] not in ["", None]:
+                        notes = noteattrs["text"].replace("\n", " " * 32)
+                        notes = "".join([char if ord(char) < 128 else f"\\x{ord(char):02x}" for char in notes])
+                        nhattr["NOTES"] = notes
                 for k, v in nhattr.items():
                     if v in [np.nan, np.inf, -np.inf]:
                         raise KeyError(f"Key Mismatch: {v} is not a valid number, please check the value of {k}")
@@ -383,18 +388,19 @@ def pathfinder(
                     ch = contourhdu(pth, name=extname, header=header)
                 ACTIVE_FITS.append(ch)
                 ACTIVE_FITS.flush()
-                log.write(",".join(str(a) in ACTIVE_FITS))
                 #assert len(ACTIVE_FITS) == oldlen + 1, f"Save Failed: {len(ACTIVE_FITS)} != {oldlen+1}\n"
                 tqdm.write(f"Save Successful, contour added to fits file at index {len(ACTIVE_FITS)-1}")
-                linfax.clear()
-                linfax.text(
-                    0.5,
-                    0.5,
-                    "Save Successful, contour added\n to fits file at index" + str(len(ACTIVE_FITS) - 1),
-                    **PF._infotextkws,
-                )
-                fig.canvas.blit(linfax.bbox)
-                __redraw_displayed_attrs()
+                if show:
+                    
+                    linfax.clear()
+                    linfax.text(
+                        0.5,
+                        0.5,
+                        "Save Successful, contour added\n to fits file at index" + str(len(ACTIVE_FITS) - 1),
+                        **PF._infotextkws,
+                    )
+                    fig.canvas.blit(linfax.bbox)
+                    __redraw_displayed_attrs()
             else:
                 tqdm.write("Save Failed: No contour selected to save")
 
@@ -510,6 +516,17 @@ def pathfinder(
                         if chosen[0] is not None:
                             selected_contours.append([chosen[0], sortedcs[chosen[0]]])
                         other_contours = [[i, contour] for i, contour in enumerate(sortedcs) if i != chosen[0]]
+                    if len(selected_contours) > 0:
+                            result["path"] = selected_contours[0][1]
+                            result["attrs"].update(
+                                {
+                                    "NUMPTS": len(result["path"]),
+                                    "XYA_CT": cv2.contourArea(result["path"]),
+                                    "XYA_CTP": __approx_contour_area_pct(cv2.contourArea(result["path"])),
+                                },
+                            )
+                    else:
+                            result["path"] = None
                     # ------- Contour Drawing (with selections) -------#
                     if show:
                         __draw_contours(ax, selected_contours, PF._selectclinekws, PF._selectctextkws)
@@ -520,22 +537,12 @@ def pathfinder(
                             f"Contours: {len(selected_contours)}({len(other_contours)} invalid)",
                             **PF._infotextkws,
                         )
-                        if len(selected_contours) > 0:
-                            result["path"] = selected_contours[0][1]
-                            result["attrs"].update(
-                                {
-                                    "NUMPTS": len(result["path"]),
-                                    "XYA_CT": cv2.contourArea(result["path"]),
-                                    "XYA_CTP": __approx_contour_area_pct(cv2.contourArea(result["path"])),
-                                },
-                            )
+                        if len (selected_contours) > 0:
                             linfax.text(
                                 0.5,
                                 0.25,
                                 f'Area: {result["attrs"]["XYA_CTP"]}, N:{result["attrs"]['NUMPTS']}',
                                 **PF._infotextkws | {"fontsize":10} )
-                        else:
-                            result["path"] = None
                         selectedhandles = [
                             Line2D(
                                 [0],
@@ -589,6 +596,7 @@ def pathfinder(
                     fig.savefig(fpath("figures/img_3.png"))
                 fig.canvas.draw()
                 fig.canvas.flush_events()
+            return result["path"]
         def __on_click_event(event):
                 global active_selections, cv_config, REGISTER_KEYS
                 REGISTER_KEYS = event.inaxes != headernameax
@@ -1156,7 +1164,8 @@ def pathfinder(
 
         else:
             log.write("PATHFINDER: setup complete in GUI INACTIVE mode.")
-            __redraw_main(None)
+            out = __redraw_main(None)
+            result["path"] = out
             if result["path"] is None:
                 plt.close()
             else:
@@ -1229,8 +1238,10 @@ class QuickPlot:
     ) -> plt.Axes:
         ax.set(title="Auroral region extracted.", **self.labelpairs["deg"])
         self.__imcbar(ax, image, cmap=cmap, vlim=vlim)
-        ax.set_yticks(ticks=[0 * 4, 10 * 4, 20 * 4, 30 * 4, 40 * 4], labels=["0", "10", "20", "30", "40"])
-        ax.set_xticks(ticks=[0 * 4, 90 * 4, 180 * 4, 270 * 4, 360 * 4], labels=["360", "270", "180", "90", "0"])
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            ax.set_yticks(ticks=[0 * 4, 10 * 4, 20 * 4, 30 * 4, 40 * 4], labels=["0", "10", "20", "30", "40"])
+            ax.set_xticks(ticks=[0 * 4, 90 * 4, 180 * 4, 270 * 4, 360 * 4], labels=["360", "270", "180", "90", "0"])
         return ax
 
     def _plot_polar_wregions(
@@ -1243,6 +1254,7 @@ class QuickPlot:
         fs: int = 12,
         cmap: str = "cubehelix",
         vlim: list = (1.0, 1000.0),
+        saveto: Optional[str] = None,
     ) -> plt.Axes:
         # ==============================================================================
         # make polar projection plot
@@ -1251,22 +1263,26 @@ class QuickPlot:
         # rho    # colat vector with image pixel resolution steps
         # theta  # longitude vector in radian space and image pixel resolution steps
         dr = [[i[0] for i in cpath], [i[1] for i in cpath]]
-        ax.set(title="Polar projection.", theta_zero_location="N", ylim=[0, 40], **self.labelpairs["deg"])
-        ax.set_yticks(ticks=[0, 10, 20, 30, 40], labels=["", "", "", "", ""])
-        ax.set_xticklabels(
-            ["0", "315", "270", "225", "180", "135", "90", "45"],  # reverse these! ###################
-            fontweight="bold",
-            fontsize=fs,
-        )
-        ax.tick_params(axis="x", pad=-1.0)
-        ax.fill_between(theta, 0, 40, alpha=0.2, hatch="/", color="gray")
-        cm = ax.pcolormesh(theta, rho, image, cmap=cmap, vmin=vlim[0], vmax=vlim[1])
-        ax.plot([np.radians(360 - r) for r in dr[1]], dr[0], color="red", linewidth=3.0)
-        # -> OVERPLOT THE ROI IN POLAR PROJECTION HERE. <-
-        # Add colourbar: ---------------------------------------------------------------
-        cbar = plt.colorbar(ticks=[0.0, 100.0, 500.0, 900.0], pad=0.05, mappable=cm, ax=ax)
-        cbar.ax.set_yticklabels(["0", "100", "500", "900"])
-        cbar.ax.set_ylabel("Intensity [kR]", fontsize=12)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            ax.set(title="Polar projection.", theta_zero_location="N", ylim=[0, 40], **self.labelpairs["deg"])
+            ax.set_yticks(ticks=[0, 10, 20, 30, 40], labels=["", "", "", "", ""])
+            ax.set_xticklabels(
+                ["0", "315", "270", "225", "180", "135", "90", "45"],  # reverse these! ###################
+                fontweight="bold",
+                fontsize=fs,
+            )
+            ax.tick_params(axis="x", pad=-1.0)
+            ax.fill_between(theta, 0, 40, alpha=0.2, hatch="/", color="gray")
+            cm = ax.pcolormesh(theta, rho, image, cmap=cmap, vmin=vlim[0], vmax=vlim[1])
+            ax.plot([np.radians(360 - r) for r in dr[1]], dr[0], color="red", linewidth=3.0)
+            # -> OVERPLOT THE ROI IN POLAR PROJECTION HERE. <-
+            # Add colourbar: ---------------------------------------------------------------
+            cbar = plt.colorbar(ticks=[0.0, 100.0, 500.0, 900.0], pad=0.05, mappable=cm, ax=ax)
+            cbar.ax.set_yticklabels(["0", "100", "500", "900"])
+            cbar.ax.set_ylabel("Intensity [kR]", fontsize=12)
+        if saveto is not None:
+            plt.savefig(saveto, dpi=100)
         return ax
 
     def _plot_sqr_wregions(
@@ -1281,11 +1297,13 @@ class QuickPlot:
     ):  # ?sq
         # # === Plot full image array using pcolormesh so we can understand the masking
         # # process i.e. isolating pixels that fall inside the ROI =======================
-        ax.set(title="ROI", xlabel="SIII longitude [deg]", ylabel="co-latitude [deg]")
-        ax.set_xticks(ticks=[0, 90, 180, 270, 360], labels=["360", "270", "180", "90", "0"])
-        dr = [[i[0] for i in cpath], [i[1] for i in cpath]]
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            ax.set(title="ROI", xlabel="SIII longitude [deg]", ylabel="co-latitude [deg]")
+            ax.set_xticks(ticks=[0, 90, 180, 270, 360], labels=["360", "270", "180", "90", "0"])
+            dr = [[i[0] for i in cpath], [i[1] for i in cpath]]
         ax.pcolormesh(testlons, testcolats, image, cmap=cmap, vmin=vlim[0], vmax=vlim[1])
-        ax.plot([360 - r for r in dr[1]], dr[0], color="red", linewidth=3.0)
+        ax.plot([360 - r for r in dr[1]], dr[0], color="red", linewidth=1.0)
         return ax
 
     def _plot_mask(self, ax, image, loc="ROI"):  # ?
@@ -1299,7 +1317,7 @@ class QuickPlot:
         ax.set(title=f"Brojected {loc} image.", **self.labelpairs["pixels"])
         self.__imcbar(ax, image, cmap=cmap, origin=origin, vlim=vlim)
         if saveto is not None:
-            plt.savefig(saveto, dpi=350)
+            plt.savefig(saveto, dpi=100)
         return ax
 
 
@@ -1368,5 +1386,77 @@ def __output_keys_toterminal():
         tqdm.write(bottom + sep + bottom)
 
 
+def power_gif(powerdicts, outdir=fpath("figures/gifs/powercalcs"),fps=5,**kwargs):
+    """Generate gifs from a collection of powercalc outputs, without needing to order them manually.
 
+    Args:
+        powerdicts (list): List of dictionaries containing the powercalc output.
+        outdir (str, optional): Output directory for the gifs. Defaults to fpath("figures/gifs/powercalcs").
+        fps (int, optional): Frames per second for the gif. Defaults to 5.
+        **kwargs:
+                - fullim_cmap (str, optional): Colormap for the full image gif. Defaults to "cubehelix".
+                - roi_cmap (str, optional): Colormap for the roi gif. Defaults to "cubehelix".
+                - imex_cmap (str, optional): Colormap for the polar path gif. Defaults to "cubehelix".
+                - cmap (str, optional): Default colormap for all gifs. Defaults to "cubehelix".
 
+    Returns:
+        None
+
+    """
+    # input the returned items generated by powercalc as list.
+    # sortby datetime, groupby visit.
+    # gen gifsfor "fullim", "roi" by array.
+    # gen gifs for "imex"/"coords" by plotpolar.
+    pb = tqdm(total=len(powerdicts)*3,desc="Generating gifs")
+    paths= {"fullim":lambda x : f"{outdir}/{x}_brojected_full.gif",
+           "roi":lambda x : f"{outdir}/{x}_brojected_roi.gif",
+            "imex": lambda x : f"{outdir}/{x}_polar_path.gif"}
+    temp = fpath("temp/power_gif")
+    grouped = {}
+    # group by visit
+    for pd in powerdicts:
+        if pd["visit"] not in grouped:
+            grouped[pd["visit"]] = []
+        grouped[pd["visit"]].append(pd)
+    # sort by datetime, and convert to dict of lists from list of dicts
+    for visit, pdlist in grouped.items():
+        sortedpd = sorted(pdlist, key=lambda x: x["datetime"])
+        grouped[visit] = {key: [pd[key] for pd in sortedpd] for key in sortedpd[0]}
+    plotter = QuickPlot()
+    # generate gif frames
+    cleanup =[]
+    for visit,pd in grouped.items():
+        for key in pd:
+            if key in paths:
+                ensure_dir(outdir)
+                ensure_dir(f"{temp}/{key}")
+                os.chmod(f"{temp}/{key}",0o777)
+                os.chmod(f"{temp}",0o777)
+                for i in range(len(pd[key])):
+                    if key in ["fullim","roi"]:
+                        fig,ax = plt.subplots()
+                        plotter._plot_brojected(ax,pd[key][i], loc=key, cmap=kwargs.get(f"{key}_cmap",kwargs.get("cmap","cubehelix")), saveto=f"{temp}/{key}/{i}.png")
+                        plt.close(fig)
+                        pb.update(1)
+                        pb.set_postfix_str(f"{visit}: {key} {i}/{len(pd[key])}")
+                    elif key == "imex":
+                        fig,ax = plt.subplots(subplot_kw={"projection":"polar"})
+                        plotter._plot_polar_wregions(ax,pd[key][i],pd["coords"][i],saveto=f"{temp}/{key}/{i}.png",cmap=kwargs.get(f"{key}_cmap",kwargs.get("cmap","cubehelix")))
+                        plt.close(fig)
+                        pb.update(1)
+                        pb.set_postfix_str(f"{visit}: {key} {i}/{len(pd[key])}")
+                files = [f"{temp}/{key}/{i}.png" for i in range(len(pd[key]))]
+                cleanup.extend(files)
+                pb.set_postfix_str(f"{visit}: {key} gifgen")
+                with imageio.get_writer(paths[key](pd["visit"][0]), mode="I",fps=fps) as writer:
+                    for file in files:
+                        writer.append_data(imageio.imread(file))
+    pb.set_description("Cleaning up")
+    # cleanup
+    for file in cleanup:
+        with suppress(Exception):
+            os.remove(file)
+    for key in paths:
+        with suppress(Exception):
+            os.rmdir(f"{temp}/{key}")
+    pb.close()

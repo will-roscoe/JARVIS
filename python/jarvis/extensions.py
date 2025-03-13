@@ -40,7 +40,7 @@ from .polar import prep_polarfits
 from .transforms import azimuthal_equidistant, contrast_adjust, fullxy_to_polar_arr
 from .utils import assign_params, ensure_dir, filename_from_path, fitsheader, fpath, get_datetime, hdulinfo, rpath, split_path
 
-try:
+try:  # this is to ensure that this file can be imported without needing PyQt6 or PyQt5, eg for QuickPlot
     from PyQt6 import QtGui  # type: ignore #
 except ImportError:
     log.write("Handling PyQt6 import error, trying PyQt5")
@@ -310,6 +310,7 @@ def pathfinder(
             # gs: 1 row, 2 columns, splitting the figure into plot and options
             gs = fig.add_gridspec(1, 2, wspace=0.02, hspace=0, width_ratios=[4, 1.5], left=0, right=1, top=1, bottom=0)
             # mgs: 17 rows, 12 columns, to layout the options
+            mgs = gs[1].subgridspec(12, 12, wspace=0, hspace=0, height_ratios=[0.2, 0.2, 0.15, 0.2, 0.2, 0.5, 0.5, 0.15, 0.05, 1, 1.5, 1.5])
             mgs = gs[1].subgridspec(12, 12, wspace=0, hspace=0, height_ratios=[0.2, 0.2, 0.15, 0.2, 0.2, 0.5, 0.5, 0.15, 0.05, 1, 1.5, 1.5])
             # layout the axes in the gridspecs
             linfax = fig.add_subplot(mgs[0:2, :8], label="infotext")  # text box for information, top right

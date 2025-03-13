@@ -335,6 +335,106 @@ def plot_visits_v2(
             df,
             df_,
             how="outer",
+            on=["visit", "Date", "Time", "Power", "PFlux", "Area", "EPOCH", "color","marker"],
+            suffixes=("", f"_{i+1}"),
+        )
+    fitsdirs = hst_fpath_list()[:-1]
+    uniquevisits = []
+    alt_xs = []
+    for f in fitsdirs:
+        mind, maxd = get_obs_interval(f)
+        mind = pd.to_datetime(mind)
+        maxd = pd.to_datetime(maxd)
+        # span over the interval
+        fvisit = group_to_visit(int(f.split("_")[-1][:2]))
+        if fvisit in visits:
+            col = "#aaa"
+            alt_xs.append([mind+(maxd-mind)/2,fvisit])
+            uniquevisits.append(fvisit)
+        else:
+            col = "#aaa5"
+        for ax in axs:
+            ax.axvspan(mind, maxd, alpha=0.5, color=col)
+    
+    #top plot
+    axs[-1].set_xticks([a[0] for a in alt_xs], labels=[f"v{a[1]}" for a in alt_xs])
+    hch = ["\\\\","//","--","||"]
+    # main scatter&plot loop
+    for x,cdf in enumerate(corr_):
+        for i in range(len(quantities)):
+            if quantities[i] is not None:
+                axs[i].scatter(cdf["EPOCH"], cdf[quantities[i]], marker=cdf["marker"][0], s=5, c=cdf["color"], zorder=5)
+                #axs[i].plot(cdf["EPOCH"], cdf[quantities[i]], color="#aaf", linewidth=0.5, linestyle="--")
+                # define minimums and maximums per visit, get minquant, maxquant, tmin, tmax.
+                ranges = []
+                for j,u in enumerate(uniquevisits):
+                    if u in cdf["visit"].unique():
+                        idfint = df.where(df["visit"] == u)
+                        dmax, dmin = [idfint["EPOCH"].max(), idfint["EPOCH"].min()]
+                        qmin, qmax = [idfint[quantities[i]].min(), idfint[quantities[i]].max()]
+                        ranges.append([dmin, qmin, qmax])
+                        ranges.append([dmax, qmin, qmax])
+                        print(dmin, dmax, qmin, qmax)
+
+                ranges=pd.DataFrame(ranges, columns=["time","min","max"])
+                ranges = ranges.dropna()
+                ranges = ranges.sort_values(by=["time"])
+                
+                
+                fl = axs[i].fill_between(ranges['time'],  ranges["max"], ranges["min"],facecolor=(cdf["color"][0],0.05), edgecolor=(cdf["color"][0],0.2),hatch=hch[x],linewidth=0.5,  interpolate=True)
+                #axs[i].fill_between(ranges['time'],  ranges["max"], ranges["min"],facecolor=(0,0,0,0), edgecolor=(1,1,1), interpolate=True)
+                
+               
+                
+                
+    # define lims per visit, per quantity
+    ranges = {q:{} for q in quantities if q is not None}
+    for quantity in quantities:
+        if quantity is not None:
+            for i,_ in enumerate(uniquevisits):
+                idfint = df.where(df["visit"] == uniquevisits[i])
+                dmax, dmin = [idfint["EPOCH"].max(), idfint["EPOCH"].min()]
+                qmin, qmax = [idfint[quantity].min(), idfint[quantity].max()]
+                ranges[quantity][i] = dmin, dmax, qmin, qmax
+    visits = []
+    lim = {q : [] for q in quantities if q is not None}
+    for q in quantities:
+        for i, [dmn, dmx, mn, mx] in ranges[q].items():
+            lim[q].extend([[dmn, mn, mx], [dmx, mn, mx]])
+
+        mmdf = pd.DataFrame(lim[q], columns=["EPOCH", "min", "max"])
+        mmdf = mmdf.dropna()
+        mmdf = mmdf.sort_values(by=["EPOCH"])
+        lim[q] = mmdf
+    # finally plot the fill_between
+    for i,q in enumerate(quantities):
+        if quantities[i] is not None:
+            pass#axs[i].fill_between(lim[q]["EPOCH"], lim[q]["min"], lim[q]["max"], color="#aaa5", alpha=0.5, interpolate=True)
+
+    return axes, (df["EPOCH"].min(), df["EPOCH"].max()), lim
+
+
+
+def plot_visits_v2(
+    dfs, axs, quantities):  # corrected = False, True, None (remove negative values)
+    corr_, visits_ = [], []
+    for df in dfs:
+        df["EPOCH"] = pd.to_datetime(df["Date"] + " " + df["Time"])
+        df = df.sort_values(by="EPOCH")
+        visits = df["visit"].unique()
+        corr_.append(df)
+        visits_.append(visits)
+    visits = set()
+    for visit in visits_:
+        for v in visit:
+            if not any(v == u for u in visits):
+                visits.update({v})
+    df = dfs[0].copy()
+    for i, df_ in enumerate(dfs[1:]):
+        df = pd.merge(
+            df,
+            df_,
+            how="outer",
             on=["visit", "Date", "Time", "Power", "PFlux", "Area", "EPOCH", "color","marker", "zorder"],
             suffixes=("", f"_{i+1}"),
         )

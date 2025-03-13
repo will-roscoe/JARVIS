@@ -1,17 +1,18 @@
 #!/usr/bin/env python3
+from contextlib import suppress
 import datetime
 import os
 
 from astropy.io import fits
-from numpy import True_
+import numpy as np
 from jarvis import fpath, fits_from_glob
 from jarvis.cvis import generate_coadded_fits, generate_rollings
-from jarvis.extensions import extract_conf, pathfinder
+from jarvis.extensions import extract_conf, pathfinder, power_gif
 from jarvis.power import powercalc
 #from jarvis.stats import correlate, stats  # noqa: F401
-from jarvis.utils import await_confirmation, ensure_dir, ensure_file, fitsheader, hst_fpath_dict, hst_fpath_segdict, rpath, split_path, statusprint, translate
+from jarvis.utils import await_confirmation, ensure_dir, ensure_file, fitsheader, hst_fpath_dict, hst_fpath_segdict, rpath, split_path, statusprint, translate, jprofile
 from tqdm import tqdm
-from jarvis.const import log
+from jarvis.const import Dirs, log
 # makes an image
 # n = fpath(r'datasets\HST\v04\jup_16-140-20-48-59_0103_v04_stis_f25srf2_proj.fits')
 # fitsfile = fits.open(n)
@@ -33,6 +34,7 @@ if (
     #     fpaths = hst_fpath_dict(kwargs.get("byvisit",False))
 
     # ~ First generate coadds in each segment
+    @jprofile("generate_coadd_segmented")
     def gen_segmented_coadds(
         segpaths,
         coadd_dir=fpath("temp/coadds"),
@@ -42,11 +44,25 @@ if (
         indiv=False,
         coadded=True,
         progressbar=True,
-        confirm=False,
         **kwargs,
     ):
-        if not (await_confirmation("Generate coadded fits in each segment.") if confirm else True):
-            return None
+        """Generate coadded fits files for each visit, per segment.
+
+        Args:
+            segpaths (dict): dict containing the visit:path to the fits files
+            coadd_dir (str, optional): directory to save the coadded fits. Defaults to fpath("temp/coadds").
+            generate (bool, optional): whether to generate the coadded fits. Defaults to True.
+            kernel_params (tuple, optional): kernel parameters for the coaddition. Defaults to (3, 1).
+            overwrite (bool, optional): whether to overwrite existing files. Defaults to True.
+            indiv (bool, optional): whether to save the individual fits. Defaults to False.
+            coadded (bool, optional): whether to save the coadded fits. Defaults to True.
+            progressbar (bool, optional): whether to show a progressbar. Defaults to True.
+            confirm (bool, optional): whether to confirm before running. Defaults to False.
+
+        Returns:
+            list: list of lists containing the visit and path to the coadded fits. in the form [[visit, path],...]
+        
+        """
         copaths = []
         ensure_dir(coadd_dir)
         if progressbar is True:
@@ -54,6 +70,8 @@ if (
         elif progressbar is not None:
             pbar1 = progressbar
             pbar1.reset(total=len(segpaths))
+        else:
+            pbar1 = None
         for visit, fitpaths in segpaths.items():
             path = coadd_dir + "/" + visit + ".fits"
             if generate:
@@ -76,15 +94,32 @@ if (
         return copaths
 
     # #! then run pathfinder on each segment.
-    def segmented_pathfinder(copaths, extname="BOUNDARY", progressbar=True, confirm=False, **kwargs):
-        """copaths: dict containing the visit:path to the coadded fits"""
-        if not (await_confirmation("Run pathfinder on each segment.") if confirm else True):
-            return None
+    @jprofile("segmented_pathfinder")
+    def segmented_pathfinder(copaths, extname="BOUNDARY", progressbar=True, **kwargs):
+        """Run pathfinder on each segment (Generates paths for each coadded fit).
+
+        Args:
+            copaths (list): list of lists containing the visit and path to the coadded fits. in the form [[visit, path],...]
+            extname (str, optional): extname of the boundary data. Defaults to "BOUNDARY".
+            progressbar (bool, optional): whether to show a progressbar. Defaults to True.
+            confirm (bool, optional): whether to confirm before running. Defaults to False.
+            **kwargs: additional keyword arguments to pass to pathfinder.
+                - ignores (list, optional): list of keys to ignore in the conf. Defaults to [].
+                - conf_fpath (str, optional): path to the conf fits file. Defaults to None.
+                - conf_as_kwargs (bool, optional): whether to pass the conf as
+                    kwargs instead of conf. Defaults to False.
+
+        Returns:
+            list: list of lists containing the visit and path to the coadded fits. in the form [[visit, path],...]
+
+        """
         if progressbar is True:
             pbar2 = tqdm(total=len(copaths), desc="Running pathfinder on each segment")
         elif progressbar is not None:
             pbar2 = progressbar
             pbar2.reset(total=len(copaths))
+        else:
+            pbar2 = None
         for i, [visit, copath] in enumerate(copaths):
             ret = pathfinder(copath, steps=False, extname=extname, **kwargs)
             if ret[0]:
@@ -101,7 +136,74 @@ if (
             pbar2.close()
         return copaths
 
+
+    @jprofile("visit_powercalc")
+    def visit_powercalc(copaths, extname="BOUNDARY", progressbar=True, outfile="auto", overwrite=True):
+        """Generate power fluxes from coadded fits.
+        
+        Args:
+            copaths (list): list of lists containing the visit and path to the coadded fits. in the form [[visit, path],...]
+            extname (str, optional): extname of the boundary data. Defaults to "BOUNDARY".
+            progressbar (bool, optional): whether to show a progressbar. Defaults to True.
+            outfile (str, optional): path to the output file. Defaults to "auto".
+            overwrite (bool, optional): whether to overwrite the output file. Defaults to True.
+            force (bool, optional): whether to force the powercalc. Defaults to False.
+
+        Returns:
+            list: list of dicts containing the visit, power, flux, and area. in the form [{"visit": visit, "power": power, "flux": flux, "area": area
+
+        """
+        fstream = ""
+        fdicts = []
+        failed = []
+        if progressbar is True:
+            pbar4 = tqdm(total=len(copaths), desc="Generating Power Fluxes")
+        elif progressbar is not None:
+            pbar4 = progressbar
+            pbar4.reset(total=len(copaths))
+        else:
+            pbar4 = None
+        outfile = (
+            Dirs.GEN/f"{extname.upper()}_coadds_" + datetime.datetime.now().strftime("%Y-%m-%dT%H-%M-%S") + ".txt"
+            if outfile == "auto"
+            else outfile
+        )
+        ensure_file(outfile)
+        if overwrite:
+            open(outfile, "w").close()
+        else:
+            open(outfile, "a").close()
+        for j, (visit,f) in enumerate(copaths):
+            copath = fits.open(f)
+            if extname in copath:
+                path = np.array(copath[extname].data.tolist())
+                copath.close()
+                pc = powercalc(fits.open(f), path, writeto=outfile)
+                fstream+= f'{pc["visit"]} {pc["power"]} {pc["flux"]} {pc["area"]}\n'
+                fdicts.append(pc)
+                if progressbar is not None:
+                    pbar4.update()
+                    pbar4.set_postfix_str(f"SR:{statusprint(len(fdicts)/(len(fdicts)+len(failed)), True)}, P={pc["power"]:.3f}GW,I={pc["flux"]*1e8:.3f}x10⁻⁸GW/km²")
+            else:
+                failed.append([f, copath, path])  # this is a list of paths that failed pathfinder.
+                if progressbar is not None:
+                    pbar4.update()
+                    pbar4.set_postfix_str(f"FR:{statusprint(len(failed)/(len(failed)+len(fdicts)))}, Failed on {"".join(split_path(f)[-2:])[:40]+"..."},")
+                log.write(f"F{len(failed):0>3} failed on: {rpath(f)} using config: {path}")
+        if progressbar is True:
+            pbar4.close()
+        log.write(f"Succcesful Calcs:\n {fstream}")
+        tqdm.write(f"{len(failed)=}/{len(failed)+ len(fdicts)}")
+        tqdm.write(f"Power fluxes written to {outfile}")
+        tqdm.write(fstream)
+        with open(outfile) as f:
+            if not f.readlines():
+                os.remove(outfile)
+        return fdicts
+
+
     # #! generate rolling averages of the fits, in their respective groups, and then save and split them into their respective segments
+    @jprofile("generate_averages")
     def gen_averages(
         fpaths,
         segpaths,
@@ -113,16 +215,35 @@ if (
         coadded=True,
         overwrite=True,
         progressbar=True,
-        confirm=False,
         **kwargs,
     ):
-        if not (await_confirmation("Generate denoised individual fits") if confirm else True):
-            return None
+        """Generate rolling averages of the fits, in their respective groups, and then save and split them into their respective segments.
+
+        Args:
+            fpaths (dict): dict containing the visit:path to the fits files
+            segpaths (dict): dict containing the visit:path to the fits files
+            avg_dir (str, optional): directory to save the rolling averages. Defaults to fpath("temp/rollavgs").
+            generate (bool, optional): whether to generate the rolling averages. Defaults to True.
+            window (int, optional): window size for the rolling average. Defaults to 3.
+            kernel_params (tuple, optional): kernel parameters for the rolling average. Defaults to (3, 1).
+            indiv (bool, optional): whether to save the individual fits. Defaults to True.
+            coadded (bool, optional): whether to save the coadded fits. Defaults to True.
+            overwrite (bool, optional): whether to overwrite existing files. Defaults to True.
+            progressbar (bool, optional): whether to show a progressbar. Defaults to True.
+            confirm (bool, optional): whether to confirm before running. Defaults to False.
+            **kwargs: additional keyword arguments to pass to generate_rollings.
+
+        Returns:
+            dict: dict containing the visit:path to the rolling averages. in the form {visit: [path, ...]
+        
+        """
         if progressbar is True:
             pbar3 = tqdm(total=sum([len(fpaths[i]) for i in fpaths]), desc="Generating denoised fits")
         elif progressbar is not None:
             pbar3 = progressbar
             pbar3.reset(total=sum([len(fpaths[i]) for i in fpaths]))
+        else:
+            pbar3 = None
         avgpaths = {}
         for k, f in fpaths.items():
             # from fsegs identify the "visit" key that contains the fits obj
@@ -162,33 +283,53 @@ if (
         return avgpaths
 
     # #! using each pathed coadded fit, run pathfinder with conf, in silent mode, and then run powercalc.
+    @jprofile("gen_path_powercalc")
     def gen_path_powercalc(
         avgpaths,
         coaddir=fpath("temp/coadds"),
         outfile="auto",
         extname="BOUNDARY",
         progressbar=True,
-        confirm=False,
         overwrite=True,
         force=False,
         **kwargs,
     ):
-        F = []
+        """Generate power fluxes from coadded fits.
+
+        Args:
+            avgpaths (dict): dict containing the visit:path to the fits files
+            coaddir (str, optional): directory containing the coadded fits. Defaults to fpath("temp/coadds").
+            outfile (str, optional): path to the output file. Defaults to "auto".
+            extname (str, optional): extname of the boundary data. Defaults to "BOUNDARY".
+            progressbar (bool, optional): whether to show a progressbar. Defaults to True.
+            confirm (bool, optional): whether to confirm before running. Defaults to False.
+            overwrite (bool, optional): whether to overwrite the output file. Defaults to True.
+            force (bool, optional): whether to force the powercalc. Defaults to False.
+            **kwargs: additional keyword arguments to pass to pathfinder.
+                - ignores (list, optional): list of keys to ignore in the conf. Defaults to [].
+                - conf_fpath (str, optional): path to the conf fits file. Defaults to None.
+                - conf_as_kwargs (bool, optional): whether to pass the conf as
+        Returns:
+            list: list of dicts containing the visit, power, flux, and area. in the form [{"visit": visit, "power": power, "flux": flux, "area": area
+
+        """
+        fstream = ""
+        fdicts = []
         failed = []
         ignores, conf_fpath, conf_as_kwargs = (
             kwargs.pop("ignores", []),
             kwargs.pop("conf_fpath", None),
             kwargs.pop("conf_as_kwargs", False),
         )
-        if not (await_confirmation("Generate power fluxes.") if confirm else True):
-            return
         if progressbar is True:
             pbar4 = tqdm(total=sum(len(avgpaths[i]) for i in avgpaths), desc="Generating Power Fluxes")
         elif progressbar is not None:
             pbar4 = progressbar
             pbar4.reset(total=sum(len(avgpaths[i]) for i in avgpaths))
+        else:
+            pbar4 = None
         outfile = (
-            fpath(f"{extname.upper()}_" + datetime.datetime.now().strftime("%Y-%m-%dT%H-%M-%S") + ".txt")
+            Dirs.GEN/f"{extname.upper()}_" + datetime.datetime.now().strftime("%Y-%m-%dT%H-%M-%S") + ".txt"
             if outfile == "auto"
             else outfile
         )
@@ -224,16 +365,17 @@ if (
                     pf = pathfinder(f,  **persists)
                     path = pf[1]
                     if pf[0]:
-                        pc = powercalc(fits.open(f), path)
-                        F.append(f"{fitsheader(fits.open(f),"VISIT")} {pc[0]} {pc[1]} {pc[2]}\n")
+                        pc = powercalc(fits.open(f), path, writeto=outfile)
+                        fstream+= f'{pc["visit"]} {pc["power"]} {pc["flux"]} {pc["area"]}\n'
+                        fdicts.append(pc)
                         if progressbar is not None:
                             pbar4.update()
-                            pbar4.set_postfix_str(f"SR:{statusprint(len(F)/(len(F)+len(failed)), True)}, P={pc[0]:.3f}GW,I={pc[1]*1e8:.3f}x10⁻⁸GW/km²")
+                            pbar4.set_postfix_str(f"SR:{statusprint(len(fdicts)/(len(fdicts)+len(failed)), True)}, P={pc["power"]:.3f}GW,I={pc["flux"]*1e8:.3f}x10⁻⁸GW/km²")
                     else:
                         failed.append([f, copath, path])  # this is a list of paths that failed pathfinder.
                         if progressbar is not None:
                             pbar4.update()
-                            pbar4.set_postfix_str(f"FR:{statusprint(len(failed)/(len(failed)+len(F)))}, Failed on {"".join(split_path(f)[-2:])[:40]+"..."},")
+                            pbar4.set_postfix_str(f"FR:{statusprint(len(failed)/(len(failed)+len(fdicts)))}, Failed on {"".join(split_path(f)[-2:])[:40]+"..."},")
                         log.write(f"F{len(failed):0>3} failed on: {rpath(f)} using config: {path}")
             else:
                 if progressbar is not None:
@@ -241,28 +383,127 @@ if (
                 tqdm.write(f"No boundary found for {visit=!s}")
         if progressbar is True:
             pbar4.close()
-        #for file in failed:
-            #p1,p2,p3 = file[2]
-            #log.write(f"failed on: {rpath(file[0])} using {rpath(file[1])} config:{file[2]}")
-        log.write("Succcesful Calcs:\n", *F)
-        tqdm.write(f"{len(failed)=}/{len(failed)+ len(F)}")
+        log.write(f"Succcesful Calcs:\n {fstream}")
+        tqdm.write(f"{len(failed)=}/{len(failed)+ len(fdicts)}")
         tqdm.write(f"Power fluxes written to {outfile}")
+        tqdm.write(fstream)
+        with open(outfile) as f:
+            if not f.readlines():
+                os.remove(outfile)
+        return fdicts
+    
+    @jprofile("copath_avg_powercalc")
+    def copath_avg_powercalc(
+        avgpaths,
+        coaddir=fpath("temp/coadds"),
+        outfile="auto",
+        extname="BOUNDARY",
+        progressbar=True,
+        overwrite=True,
+        force=False,
+        **kwargs,
+    ):
+        """Generate power fluxes from coadded fits.
 
+        Args:
+            avgpaths (dict): dict containing the visit:path to the fits files
+            coaddir (str, optional): directory containing the coadded fits. Defaults to fpath("temp/coadds").
+            outfile (str, optional): path to the output file. Defaults to "auto".
+            extname (str, optional): extname of the boundary data. Defaults to "BOUNDARY".
+            progressbar (bool, optional): whether to show a progressbar. Defaults to True.
+            confirm (bool, optional): whether to confirm before running. Defaults to False.
+            overwrite (bool, optional): whether to overwrite the output file. Defaults to True.
+            force (bool, optional): whether to force the powercalc. Defaults to False.
+            **kwargs: additional keyword arguments to pass to pathfinder.
+                - ignores (list, optional): list of keys to ignore in the conf. Defaults to [].
+                - conf_fpath (str, optional): path to the conf fits file. Defaults to None.
+                - conf_as_kwargs (bool, optional): whether to pass the conf as
+        Returns:
+            list: list of dicts containing the visit, power, flux, and area. in the form [{"visit": visit, "power": power, "flux": flux, "area": area
+        """
+        fstream = ""
+        fdicts = []
+        failed = []
+        ignores =kwargs.pop("ignores", [])
+        if progressbar is True:
+            pbar4 = tqdm(total=sum(len(avgpaths[i]) for i in avgpaths), desc="Generating Power Fluxes")
+        elif progressbar is not None:
+            pbar4 = progressbar
+            pbar4.reset(total=sum(len(avgpaths[i]) for i in avgpaths))
+        else: 
+            pbar4 = None
+        outfile = (
+            Dirs.GEN/f"{extname.upper()}_copath_" + datetime.datetime.now().strftime("%Y-%m-%dT%H-%M-%S") + ".txt"
+            if outfile == "auto"
+            else outfile
+        )
+        ensure_file(outfile)
+        if overwrite:
+            open(outfile, "w").close()
+        else:
+            open(outfile, "a").close()
+        for visit, fitspaths in avgpaths.items():
+            copath =  coaddir + "/" + visit + ".fits"
+            try:  # try to get the header from the coadded fits at copath and extract the conf
+                conf_path = fits.getdata(copath, extname, kwargs.get("extver"))
+                fp = fits.open(copath)
+                exinfo = {k:fitsheader(fp, k, ind=extname) for k in ["LMIN","LMAX","NUMPTS"]}
+                fp.close()
+            except Exception as e:
+                tqdm.write(
+                    f"Error: {e}, Failed to get header from {copath=} with {extname=}, {kwargs.get("extver")=}",
+                )
+                conf_path = None
+            if force or conf_path is not None:
+                for j, f in enumerate(fitspaths):
+                    ft = fits.open(f)
+                    pc = powercalc(ft, conf_path, writeto=outfile, exinfo=exinfo)
+                    with suppress(Exception):
+                        ft.close()
+                    fstream+= f'{pc["visit"]} {pc["power"]} {pc["flux"]} {pc["area"]}\n'
+                    fdicts.append(pc)
+                    if progressbar is not None:
+                        pbar4.update()
+                        pbar4.set_postfix_str(f"SR:{statusprint(len(fdicts)/(len(fdicts)+len(failed)), True)}, P={pc["power"]:.3f}GW,I={pc["flux"]*1e8:.3f}x10⁻⁸GW/km²")     
+            else:
+                if progressbar is not None:
+                    pbar4.update(len(fitspaths))
+                tqdm.write(f"No boundary found for {visit=!s}")
+        if progressbar is True:
+            pbar4.close()
+        log.write(f"Succcesful Calcs:\n {fstream}")
+        tqdm.write(f"{len(failed)=}/{len(failed)+ len(fdicts)}")
+        tqdm.write(f"Power fluxes written to {outfile}")
+        tqdm.write(fstream)
+        # check if file actually has any lines in it and remove if not.
+        with open(outfile) as f:
+            if not f.readlines():
+                os.remove(outfile)
+
+        return fdicts
+
+
+
+    #@jprofile("main")
     def run_path_powercalc(
-        ignores={"groups": [], "visits": []},
-        byvisit=True, 
+        ignores={"groups": [], "visits": ["v01","v02","v03","v04","v05","v06","v07","v08"]},
+        byvisit=True,
         segments=2,
         coadd_dir=fpath("temp/coadds"),
         avg_dir=fpath("temp/rollavgs"),
+        gifdir=fpath("temp/gifs"),
         outfile="auto",
         extname="BOUNDARY",
         remove="none",
+        window=3,
+        config = {}
     ):
         filepaths_byv = hst_fpath_dict(byvisit=byvisit)
         filepaths_seg = hst_fpath_segdict(segments, byvisit=byvisit)
-
+        # config is used to predefine the anwsers to the confirmation prompts.
+        # config = {"generate_coadd":bool, "coadd_pathfinder":bool, "coadd_power":bool, "generate_avgs":bool, "avg_power":bool, "avg_pathfinder":bool, "gif":bool}
         # to ignore any visit or group (or segment in either), we translate all to the correct form and format.
-        ignores_ = ["v01","v02","v03","v04","v05","v06","v07","v08"]
+        ignores_ = []
         ident = "v" if byvisit else "g"
         ign = [item for sublist in [[[k, v] for v in ignores[k]] for k in ignores] for item in sublist]
         for iden, num in ign:
@@ -283,18 +524,24 @@ if (
         for i in destseg:
             filepaths_seg.pop(i)
         ## main part of function
-
         # generate coadded fits in each segment
-        gen = await_confirmation("regenerate coadded fits?")
-        copaths = gen_segmented_coadds(filepaths_seg, coadd_dir, generate=gen, confirm=False)
+        gen = await_confirmation("regenerate coadded fits?") if "generate_coadd" not in config else config["generate_coadd"]
+        copaths = gen_segmented_coadds(filepaths_seg, coadd_dir, generate=gen, progressbar=True if gen else None)
         # run pathfinder on each segment
-        if await_confirmation("find paths on each coadd (per segment)?"):
-            copaths = segmented_pathfinder(copaths, extname, confirm=False)
+        if await_confirmation("find paths on each coadd (per segment)?") if "coadd_pathfinder" not in config else config["coadd_pathfinder"]:
+            copaths = segmented_pathfinder(copaths, extname)
+        if await_confirmation("generate approximate power fluxes from coadds?") if "coadd_power" not in config else config["coadd_power"]:
+            coadd_gen = visit_powercalc(copaths, extname, outfile=outfile, overwrite=True, force=False)
         # generate rolling averages of the fits, in their respective groups, and then save and split them into their respective segments
-        gen = await_confirmation("regenerate rolling averages?")
-        avgpaths = gen_averages(filepaths_byv, filepaths_seg, avg_dir, generate=gen, confirm=False)
+        gen= await_confirmation("regenerate rolling averages?") if "generate_avgs" not in config else config["generate_avgs"]
+        # we have to always run this to get the paths out.
+        avgpaths = gen_averages(filepaths_byv, filepaths_seg, avg_dir, generate=gen, window=window, progressbar=True if gen else None)
         # using each pathed coadded fit, run pathfinder with conf, in silent mode, and then run powercalc.
-        gen_path_powercalc(avgpaths, coadd_dir, outfile, extname, confirm=False, overwrite=True, force=False)
+        if await_confirmation("generate power fluxes on each rolling average using paths?") if "avg_power" not in config else config["avg_power"]:
+            if await_confirmation("Generate paths on each rolling average? (Y) or use the paths from the coadds? (N)") if "avg_pathfinder" not in config else config["avg_pathfinder"]:
+                fdicts = gen_path_powercalc(avgpaths, coadd_dir, outfile, extname,  overwrite=True, force=False)
+            else:
+                fdicts = copath_avg_powercalc(avgpaths, coadd_dir, outfile, extname,  overwrite=True, force=False)
         if remove in ["both", "coadds"]:
             for visit in filepaths_seg:
                 os.remove(coadd_dir + f"/{visit}.fits")
@@ -303,13 +550,23 @@ if (
                 for p in os.listdir(avg_dir + f"/{visit}"):
                     if os.path.isfile(p):
                         os.remove(p)
-        
+        if await_confirmation("generate gifs?") if "gif" not in config else config["gif"]:
+            power_gif(fdicts, gifdir, fps=5)
 
-    run_path_powercalc()
+    run_path_powercalc(
+        ignores={"groups": [], "visits": ["v01","v02","v03","v04","v05","v06","v07","v08"]},
+        byvisit=True,
+        segments=2,
+        coadd_dir=fpath("temp/coadds"),
+        avg_dir=fpath("temp/rollavgs"),
+        gifdir=fpath("temp/gifs"),
+        outfile="auto",
+        extname="BOUNDARY",
+        remove="none",
+        window=5,
+    )
 
-    # except KeyError:
-    #    fit.close()
-    #    print(f'No boundary found for {visit=}')
+
 # loop to only generate the gaussians ----------------------------------------
 #     for i in tqdm(gps):
 #         basefitpath = fpath(f'datasets/HST/group_{i:0>2}')

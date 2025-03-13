@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 from datetime import datetime
+from glob import glob
 from random import choice
-from sqlite3 import Time
+import re
 
 import matplotlib as mpl
 import numpy as np
@@ -12,16 +13,36 @@ from jarvis.utils import group_to_visit, rpath
 from matplotlib import pyplot as plt
 from tqdm import tqdm
 
+from jarvis.const import Dirs
+
+
 mpl.rcParams["hatch.linewidth"] = 2
-infiles =[fpath(x) for x in [
+#infiles =[#fpath(x) for x in [
     #"2025-03-06_17-30-59.txt",
-    "2025-03-06_21-14-46.txt",
+    #"2025-03-06_21-14-46.txt",
     #"2025-03-11T14-04-20_powers_coadds.txt",
-    "2025-03-11T18-34-00_DPR.txt",
-    "2025-03-11T18-34-05_DPR.txt",
-    "2025-03-11T18-35-00_DPR.txt",
-    "2025-03-11T18-36-00_DPR.txt",
-    ]]
+    #"2025-03-11T18-34-00_DPR.txt",
+    #"2025-03-11T18-34-05_DPR.txt",
+    #"2025-03-11T18-35-00_DPR.txt",
+    #"2025-03-11T18-36-00_DPR.txt",
+    #"powers.txt",
+    #]]
+# print(str(Dirs.GEN)+"/*.txt")
+infiles = glob(str(Dirs.GEN)+"/*.txt")
+# print(infiles)
+# sort by date on filename, but not specific to where in filename. could be anywhere in it, but in the form YYYY-MM-DDTHH-MM-SS
+ # examples include "2025-03-11T18-36-00_DPR.txt", "BOUNDARY_2025-03-12T17-24-01.txt", "BOUNDARY_2025-03-12T23-49-39_window[5].txt"
+ # and should deal with not identifying one by placing it at the end of the list. 
+ # the globs will also still have the full path.
+orde = []
+for i in infiles:
+    spos = i.find("202")
+    if spos == -1:
+        orde.append("9")
+    else:
+        orde.append(i[spos:spos+19])
+infiles = [x for _,x in sorted(zip(orde,infiles), reverse=True)]
+# print(infiles)
 
 def plot_visits(
     df, quantity="PFlux", corrected=None, ret="showsavefig", unit=None,
@@ -151,7 +172,7 @@ def plot_visits_multi(
             df,
             df_,
             how="outer",
-            on=["visit", "Date", "Time", "Power", "PFlux", "Area", "EPOCH", "color"],
+            on=["visit", "Date", "Time", "Power", "PFlux", "Area", "EPOCH", "color", "marker", "zorder"],
             suffixes=("", f"_{i+1}"),
         )
 
@@ -314,7 +335,7 @@ def plot_visits_v2(
             df,
             df_,
             how="outer",
-            on=["visit", "Date", "Time", "Power", "PFlux", "Area", "EPOCH", "color","marker"],
+            on=["visit", "Date", "Time", "Power", "PFlux", "Area", "EPOCH", "color","marker", "zorder"],
             suffixes=("", f"_{i+1}"),
         )
     fitsdirs = hst_fpath_list()[:-1]
@@ -334,16 +355,16 @@ def plot_visits_v2(
             col = "#aaa5"
         for ax in axs:
             ax.axvspan(mind, maxd, alpha=0.5, color=col)
-    
+
     #top plot
     axs[-1].set_xticks([a[0] for a in alt_xs], labels=[f"v{a[1]}" for a in alt_xs])
-    hch = ["\\\\","//","--","||","oo","xx","**"]
+    hch = ["\\\\","//","--","||","oo","xx","**"]+["\\\\","//","--","||","oo","xx","**"]+["\\\\","//","--","||","oo","xx","**"]
     # main scatter&plot loop
     for x,cdf in enumerate(corr_):
         for i in range(len(quantities)):
             if quantities[i] is not None:
-                axs[i].scatter(cdf["EPOCH"], cdf[quantities[i]], marker=cdf["marker"][0], s=5, c=cdf["color"], zorder=5)
-                #axs[i].plot(cdf["EPOCH"], cdf[quantities[i]], color="#aaf", linewidth=0.5, linestyle="--")
+                axs[i].scatter(cdf["EPOCH"], cdf[quantities[i]], marker=cdf["marker"][0], s=5, c=cdf["color"], zorder=cdf["zorder"][0])
+                #axs[i].plot(cdf["EPOCH"], cdf[quantities[i]], color="#aaf", linewidth=0.5, linestyle="--", zorder=cdf["zorder"][0])
                 # define minimums and maximums per visit, get minquant, maxquant, tmin, tmax.
                 ranges = []
                 for j,u in enumerate(uniquevisits):
@@ -353,15 +374,15 @@ def plot_visits_v2(
                         qmin, qmax = [idfint[quantities[i]].min(), idfint[quantities[i]].max()]
                         ranges.append([dmin, qmin, qmax])
                         ranges.append([dmax, qmin, qmax])
-                        print(dmin, dmax, qmin, qmax)
+                        # print(dmin, dmax, qmin, qmax)
 
                 ranges=pd.DataFrame(ranges, columns=["time","min","max"])
                 ranges = ranges.dropna()
                 ranges = ranges.sort_values(by=["time"])
                 
                 
-                #fl = axs[i].fill_between(ranges['time'],  ranges["max"], ranges["min"],facecolor=(cdf["color"][0],0.05), edgecolor=(cdf["color"][0],0.2),hatch=hch[x],linewidth=0.5,  interpolate=True)
-                #axs[i].fill_between(ranges['time'],  ranges["max"], ranges["min"],facecolor=(0,0,0,0), edgecolor=(1,1,1), interpolate=True)
+                fl = axs[i].fill_between(ranges['time'],  ranges["max"], ranges["min"],facecolor=(cdf["color"][0],0.05), edgecolor=(cdf["color"][0],0.2),hatch=hch[x],linewidth=0.5,  interpolate=True, zorder=cdf["zorder"][0])
+                #axs[i].fill_between(ranges['time'],  ranges["max"], ranges["min"],facecolor=(0,0,0,0), edgecolor=(1,1,1), interpolate=True, zorder=cdf["zorder"][0]+1)
                 
                
                 
@@ -388,7 +409,7 @@ def plot_visits_v2(
     # finally plot the fill_between
     for i,q in enumerate(quantities):
         if quantities[i] is not None:
-            axs[i].fill_between(lim[q]["EPOCH"], lim[q]["min"], lim[q]["max"], color="#aaa5", alpha=0.5, interpolate=True)
+            #axs[i].fill_between(lim[q]["EPOCH"], lim[q]["min"], lim[q]["max"], color="#aaa5", alpha=0.5, interpolate=True)
             axs[i].set_ylim([0, df[quantities[i]].max()])
 
        
@@ -415,13 +436,20 @@ def plot_discontinuous_angle(ax,ts, colname, threshold=180,  **kwargs):
 dfs = [
     pd.read_csv(f, sep=" ", index_col=False, names=["visit", "Date", "Time", "Power", "PFlux", "Area","EXTNAME","lmin","lmax","NUMPTS"]) for f in infiles
 ]
+dfs = [df for df in dfs if len(df) > 0]
 
-clrs = ["#0aa","#00f", "#a0f","#f0f","#d00","#ff5500","#fa0","#0f0","#070"]  # cmr.take_cmap_colors('rainbow', len(dfs), return_fmt='hex')
+clrs = ["#0ff","#0aa","#0af","#00f","#a0f","#f0f","#800","#d00","#ff5500","#fa0","#ff0","#0f0","#070","#040"]  # cmr.take_cmap_colors('rainbow', len(dfs), return_fmt='hex')
+if len(clrs)<len(dfs):
+    diff = len(dfs)-len(clrs)
+    for i in range(diff):
+        clrs.insert(0,"#555")
+    
 mkrs = ["1","2","3","4","x","+","1","2","3","4","x","+",]                    # cmr.take_cmap_colors('rainbow', len(dfs), return_fmt='hex')
 for i, d in enumerate(dfs):
     dfs[i]["color"] = [clrs.pop(-1),] * len(dfs[i])
     #clrs.remove(dfs[i]["color"][0])
     dfs[i]["marker"] = [choice(mkrs),] * len(dfs[i])
+    dfs[i]["zorder"] = [len(dfs)-i+2,] * len(dfs[i])
     #mkrs.remove(dfs[i]["marker"][0])
     # for each df, make any values < 0  equal 0
     # dfs[i]["PFlux"] = dfs[i]["PFlux"].where(dfs[i]["PFlux"] > 0, 0)
@@ -440,10 +468,10 @@ table_sw = TimeSeries().from_pandas(table_sw)
 table_torus = table.loc[np.isfinite(table["TPOW0710ADAWN"])]
 table_torus = TimeSeries().from_pandas(table_torus)
 table = TimeSeries().from_pandas(table)
-plot_visits_multi(dfs, 'PFlux', unit='GW/km²', ret='saveshow')
-plot_visits_multi(dfs, 'Power', unit='GW' , ret='saveshow')
-plot_visits_multi(dfs, 'Area', unit='km²', ret='saveshow')
 
+plot_visits_multi(dfs[0:4], 'PFlux', unit='GW/km²', ret='saveshow')
+plot_visits_multi(dfs[0:4], 'Power', unit='GW' , ret='saveshow')
+plot_visits_multi(dfs[0:4], 'Area', unit='km²', ret='saveshow')
 
 fig,axes = plt.subplots(6, 1, figsize=(8, 5), dpi=100, gridspec_kw={"hspace": 0, "wspace": 0})
 axes, dlims,lims = plot_visits_v2(dfs,  axs=axes,quantities=["PFlux","Power","Area"])
@@ -467,7 +495,7 @@ axes[4].plot(table.time.datetime64, table["TPOW0710ADAWN"], color="green", linew
 axes[4].scatter(table.time.datetime64, table["TPOW0710ADAWN"], color="green", marker=".", s=5)
 # make legend from filename and line2d object based on assigned props for each df 
 handles = [mpl.lines.Line2D([0], [0], color=dfs[i]["color"][0], marker=dfs[i]["marker"][0], linestyle="--", label=f"{rpath(infiles[i])}") for i in range(len(dfs))]
-fig.legend(handles=handles, title="Files", fontsize="small")
+fig.legend(handles=handles, title="Files", fontsize="small",bbox_to_anchor=(0.5, -0.2), loc='lower center', ncol=3,) 
 
 for ax in axes:
     ax.set_xlim(dlims[0] - pd.Timedelta(hours=24), dlims[1] + pd.Timedelta(hours=24))
@@ -495,7 +523,9 @@ axes[2].set_ylabel("Area [{}]".format(conv["AreaU"][USYS]))
 
 axes[3].set_ylabel(r"SW $[nPa]$")
 axes[4].set_ylabel(r"Torus Power $[W/m^{2}]$")
-
+a4= axes[2].twinx()
+a4.plot(dfs[0]["EPOCH"], dfs[0]["lmax"], marker="x", lw=3, )
+a4.plot(dfs[0]["EPOCH"], dfs[0]["lmin"], marker="x", lw=3, )
 plt.show()
 
 # testfits = fits.open(fpath('datasets/HST/group_13/jup_16-148-17-19-53_0100_v16_stis_f25srf2_proj.fits'))
@@ -508,5 +538,4 @@ plt.show()
 # 
 #  axs[0].set_ylabel(f"{quantity}" + (f" [{unit}]" if unit else ""))
 #     axs[0].set_ylim([0, df[quantity].max()])
-#     
-#     axs[0].set_title(f'{quantity} over visits {df['visit'].min()} to {df['visit'].max()}', fontsize=20)
+#   

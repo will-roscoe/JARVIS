@@ -16,6 +16,7 @@ JAR:VIS team - 21 / 02 / 2025;
 import datetime
 from typing import Tuple
 
+import imageio
 import matplotlib.pyplot as plt
 import numpy as np
 import spiceypy as spice
@@ -23,7 +24,7 @@ from astropy.io import fits
 from matplotlib import path
 
 from .const import Power, FITSINDEX, Dirs, CONST
-from .utils import fitsheader, get_datetime
+from .utils import fitsheader, fpath, get_datetime
 
 # --------------------------------- CONSTANTS ----------------------------------#
 # Nichols constants:
@@ -56,9 +57,9 @@ def __null(*args, **kwargs):
 
 __write_to_file, __print, __plot = __null, __null, __null
 if Power.WRITETO:
-    def __write_to_file(*args, writeto=Power.WRITETO):
+    def __write_to_file(args,writeto=Power.WRITETO, **kwargs):
         with open(writeto, "a") as f:
-            f.write(" ".join([str(x) for x in [*list(args), "\n"]]))
+            f.write(" ".join([str(x) for x in [*args, "\n"]]))
 
 
 if Power.DISPLAY_PLOTS:
@@ -234,12 +235,15 @@ def powercalc(
             ind_ = b_inds[0]
             newestb = fits_obj[b_inds[0]]
             for bo in b_inds:
-                
                 if fits_obj[bo].ver > newestb.ver:
                     newestb = fits_obj[bo]
                     ind_ = bo
             data = newestb.data
-            dpr_coords = np.array([data["colat"], data["lon"]], dtype=np.float64)
+            dpr_coords = np.array([data["colat"], data["lon"]], dtype=np.float32)
+    else:
+        ind_ = -1
+    if isinstance(dpr_coords, np.recarray):
+        dpr_coords = np.array([dpr_coords["colat"], dpr_coords["lon"]], dtype=np.float32)
     if dpr_coords.shape[0] == 2:
         dpr_coords = dpr_coords.T
     dpr_path = path.Path(dpr_coords)
@@ -325,17 +329,27 @@ def powercalc(
     __print(f"Total power emitted from ROI in GW:\n{total_power_emitted_from_roi}")
     __print(f"Power per unit area in GW/km²:\n{power_per_area}")
     # VISIT DATETIME POWER FLUX AREA EXTNAME LMIN LMAX NUMPTS CALCTIME
+
+
+
+    args1= kwargs.get("exinfo")
+    args1 = list(args1.values()) if args1 is not None else fitsheader(fits_obj, "LMIN", "LMAX", "NUMPTS", ind=ind_)
     __write_to_file(
-        fitsheader(fits_obj, "VISIT"),
+        writeto=kwargs.get("writeto", Power.WRITETO),
+        args=(fitsheader(fits_obj, "VISIT"),
         get_datetime(fits_obj),
         total_power_emitted_from_roi,
         power_per_area,
         area,
-        *fitsheader(fits_obj, "LMIN", "LMAX", "NUMPTS"),
+        *args1,
         datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S"),
-    )
-    return total_power_emitted_from_roi, power_per_area, area, full_image, bimage_roi
+        ))
+    return {"visit":fitsheader(fits_obj, "VISIT"),"datetime":
+        get_datetime(fits_obj),"power":total_power_emitted_from_roi, "flux":power_per_area, "area":area, "fullim":full_image, "roi":bimage_roi,"imex":image_extract,"coords":dpr_coords}
 
+
+    
+    
 
 def avg_intensity(img: np.ndarray) -> float:
     """Return the average intensity of the image."""

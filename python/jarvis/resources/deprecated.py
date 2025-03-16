@@ -15,7 +15,7 @@ from matplotlib import pyplot as plt
 from tqdm import tqdm
 
 from jarvis.const import Dirs
-from jarvis.polar import make_gif, moind
+from python.jarvis.plotting import make_gif, moind
 from jarvis.utils import ensure_dir, filename_from_hdul, fits_from_glob, fpath
 
 

@@ -40,7 +40,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.command == "gifs":
-        from jarvis.polar import make_gif
+        from python.jarvis.plotting import make_gif
         from jarvis.utils import ensure_dir, filename_from_hdul
 
         ddir = fpath("datasets/HST")
@@ -56,7 +56,7 @@ if __name__ == "__main__":
             pb_.update(1)
 
     elif args.command == "imgs":
-        from jarvis.polar import moind
+        from python.jarvis.plotting import moind
         from jarvis.utils import ensure_dir, filename_from_hdul
         from matplotlib import pyplot as plt
 

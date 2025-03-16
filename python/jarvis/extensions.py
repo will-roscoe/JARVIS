@@ -36,8 +36,8 @@ from tqdm import tqdm
 
 from .const import PF,log
 from .cvis import contourhdu, imagexy
-from .polar import prep_polarfits
-from .transforms import azimuthal_equidistant, contrast_adjust, fullxy_to_polar_arr
+from .plotting import prep_polarfits
+from .transforms import azimuthal_equidistant, contrast_adjust, azimeq_to_polar
 from .utils import assign_params, ensure_dir, filename_from_path, fitsheader, fpath, get_datetime, hdulinfo, rpath, split_path
 
 try:  # this is to ensure that this file can be imported without needing PyQt6 or PyQt5, eg for QuickPlot
@@ -363,7 +363,7 @@ def pathfinder(
                 ACTIVE_FITS = fopen(fits_dir, "update") #> WARNING: we need to be careful here now, because changes to data or header will autosave.
                 log.write(f"{ACTIVE_FITS._file.mode=!s}, {repr(ACTIVE_FITS._file)=!s}")
                 pth = result["path"].reshape(-1, 2)
-                pth = fullxy_to_polar_arr(pth, normed, 40)
+                pth = azimeq_to_polar(pth, img=normed, rlim=40)
                 if do_steps:
                     for k, v in result["snapshots"].items():
                         cv2.imwrite(fpath(f"figures/{k}"), v)
@@ -1175,7 +1175,7 @@ def pathfinder(
 
         if result["path"] is not None:
             pth = result["path"].reshape(-1, 2)
-            ret = [True, fullxy_to_polar_arr(pth, normed, 40)]
+            ret = [True, azimeq_to_polar(pth, img=normed, rlim=40)]
             log.write(f"PATHFINDER: returning path {ret}")
         else:
             ret = [False, [__generate_conf_output(), __generate_coord_output(), result]]

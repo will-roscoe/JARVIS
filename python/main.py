@@ -4,15 +4,17 @@ import datetime
 import os
 
 from astropy.io import fits
+from matplotlib import pyplot as plt
 import numpy as np
 from jarvis import fpath, fits_from_glob
 from jarvis.cvis import generate_coadded_fits, generate_rollings
 from jarvis.extensions import extract_conf, pathfinder, power_gif
 from jarvis.power import powercalc
 #from jarvis.stats import correlate, stats  # noqa: F401
-from jarvis.utils import await_confirmation, ensure_dir, ensure_file, fitsheader, hst_fpath_dict, hst_fpath_segdict, rpath, split_path, statusprint, translate, jprofile
+from jarvis.utils import await_confirmation, ensure_dir, ensure_file, fitsheader, get_datapaths, get_time_interval_from_multi, hisaki_sw_get_safe, hst_fpath_dict, hst_fpath_segdict, prepdfs, rpath, split_path, statusprint, translate, jprofile
 from tqdm import tqdm
-from jarvis.const import Dirs, log
+from jarvis.const import HISAKI, HST, Dirs, log
+from .jarvis.plotting import apply_plot_defaults, figsize
 # makes an image
 # n = fpath(r'datasets\HST\v04\jup_16-140-20-48-59_0103_v04_stis_f25srf2_proj.fits')
 # fitsfile = fits.open(n)
@@ -164,7 +166,7 @@ if (
         else:
             pbar4 = None
         outfile = (
-            Dirs.GEN/f"{extname.upper()}_coadds_" + datetime.datetime.now().strftime("%Y-%m-%dT%H-%M-%S") + ".txt"
+            str(Dirs.GEN)+f"/{extname.upper()}_coadds_" + datetime.datetime.now().strftime("%Y-%m-%dT%H-%M-%S") + ".txt"
             if outfile == "auto"
             else outfile
         )
@@ -329,7 +331,7 @@ if (
         else:
             pbar4 = None
         outfile = (
-            Dirs.GEN/f"{extname.upper()}_" + datetime.datetime.now().strftime("%Y-%m-%dT%H-%M-%S") + ".txt"
+            str(Dirs.GEN)+f"/{extname.upper()}_" + datetime.datetime.now().strftime("%Y-%m-%dT%H-%M-%S") + ".txt"
             if outfile == "auto"
             else outfile
         )
@@ -433,7 +435,7 @@ if (
         else: 
             pbar4 = None
         outfile = (
-            Dirs.GEN/f"{extname.upper()}_copath_" + datetime.datetime.now().strftime("%Y-%m-%dT%H-%M-%S") + ".txt"
+            str(Dirs.GEN)+f"/{extname.upper()}_copath_" + datetime.datetime.now().strftime("%Y-%m-%dT%H-%M-%S") + ".txt"
             if outfile == "auto"
             else outfile
         )
@@ -481,6 +483,31 @@ if (
                 os.remove(outfile)
 
         return fdicts
+    @jprofile("figure_gen")
+    def figure_gen(include="last5",pervisit=False,overall=True,overlaid=False,megafigure=True,plot_hst=["Total_Power","Avg_Flux","Area"],plot_hisaki_sw=["Torus_Power_Dawn","Torus_Power_Dusk","SW","Aurora_Power","Aurora_Flux"]):
+        hisaki_colnames = list(HISAKI.colnames.values())
+        hst_colnames = list(HST.colnames.values())
+        hst_cols = [h for h in plot_hst if h in hst_colnames]
+        hisaki_cols = [h for h in plot_hisaki_sw if h in hisaki_colnames]
+        if "last" in include:
+            num = int([char if char.isnumeric() else "" for char in include])
+            hst_datasets = get_datapaths()[0:num+1]
+        else:
+            hst_datasets = get_datapaths()
+        hst_datasets = prepdfs(hst_datasets)
+        hisaki_dataset = hisaki_sw_get_safe(method="all")
+
+        if overall:
+            # plot a stacked x-axis plot of all columns in the datasets, over the timeperiod of hst_datasets
+            xlim = get_time_interval_from_multi(hst_datasets)
+            figure,axs = plt.subplots(len(hst_cols)+len(hisaki_cols),1,figsize=figsize(max=True),sharex=True)
+            apply_plot_defaults(figure)
+            for i, col in enumerate(hst_cols):
+                for hst in hst_datasets:
+                    axs[i].plot(hst["time"],hst[col],label=col)
+            for i, col in enumerate(hisaki_cols):
+                axs[i+len(hst_cols)].plot(hisaki_dataset.time.datetime64,hisaki_dataset[col],label=col)
+            
 
 
 
@@ -552,6 +579,13 @@ if (
                         os.remove(p)
         if await_confirmation("generate gifs?") if "gif" not in config else config["gif"]:
             power_gif(fdicts, gifdir, fps=5)
+        if await_confirmation("generate histograms?"):
+            raise NotImplementedError("Histograms not implemented yet.")
+        if await_confirmation("Generate Figures?"):
+            # options 
+            #       per visit | overall
+            #       most recent | last 5 | last 10 | all
+            #       Power | Flux | Area | Torus Power Dawn | Torus Power Dusk | SW | Aurora Intensity |
 
     run_path_powercalc(
         ignores={"groups": [], "visits": ["v01","v02","v03","v04","v05","v06","v07","v08"]},
@@ -564,6 +598,7 @@ if (
         extname="BOUNDARY",
         remove="none",
         window=5,
+        config = {"generate_coadd":False, "coadd_pathfinder":False, "coadd_power":False, "generate_avgs":False, "avg_power":True, "avg_pathfinder":False, "gif":False}
     )
 
 

@@ -14,33 +14,34 @@ from .utils import adapted_hdul, fitsheader
 ##########################################################################################################
 #                            COORDINATE SYSTEM TRANSFORMS
 ##########################################################################################################
-def fullxy_to_polar(x: int, y: int, img: np.ndarray, rlim: int = 40) -> tuple:
-    """Transform a point on an image (x,y=0,0 at top_left) to polar colatitude and longitude.
+######## Replaced by azimeq_to_polar below which is more general and can handle multiple points ########
+# def azimeq_to_polar(x: int, y: int, img: np.ndarray, rlim: int = 40) -> tuple:
+#     """Transform a point on an image (x,y=0,0 at top_left) to polar colatitude and longitude.
 
-    Args:
-        x (int): x "pixel" coordinate.
-        y (int): y "pixel" coordinate.
-        img: the image the coordinates are from.
-        rlim: the maximum colatitude value.
+#     Args:
+#         x (int): x "pixel" coordinate.
+#         y (int): y "pixel" coordinate.
+#         img: the image the coordinates are from.
+#         rlim: the maximum colatitude value.
 
-    Returns: tuple(float,float): colatitude and longitude.
+#     Returns: tuple(float,float): colatitude and longitude.
 
-    """
-    r0 = img.shape[1] / 2
-    x_ = x - r0
-    y_ = y - r0
-    r = np.sqrt(x_**2 + y_**2)
-    colat = r / r0 * rlim
-    lon = np.degrees(np.arctan2(y_, x_)) + 90
-    while lon < 0:
-        lon += 360
-    while lon > 360:
-        lon -= 360
-    return (colat, lon)
+#     """
+#     r0 = img.shape[1] / 2
+#     x_ = x - r0
+#     y_ = y - r0
+#     r = np.sqrt(x_**2 + y_**2)
+#     colat = r / r0 * rlim
+#     lon = np.degrees(np.arctan2(y_, x_)) + 90
+#     while lon < 0:
+#         lon += 360
+#     while lon > 360:
+#         lon -= 360
+#     return (colat, lon)
 
 
-def fullxy_to_polar_arr(xys: list[tuple[int]], img: np.ndarray, rlim: int = 40) -> np.ndarray:
-    """Transform a list of coordinates of points on an image (x,y=0,0 at top_left) to polar colatitude and longitude.
+def azimeq_to_polar(*points, img: np.ndarray, rlim: int = 40) -> np.ndarray:
+    """Transform a x,y point or points to polar colatitude and longitude.
 
     Args:
     xys (list,np.ndarray): list of x,y coordinates of the points [[x1,y1],[x2,y2],...]
@@ -48,6 +49,16 @@ def fullxy_to_polar_arr(xys: list[tuple[int]], img: np.ndarray, rlim: int = 40) 
     rlim (float): the maximum colatitude value
 
     """
+    if len(points) == 2:
+        xys = np.array([points]) if isinstance(points[0], (int, float)) else np.array(points).T
+    elif len(points)>2:
+        # points is a list of points; [[x1,y1],[x2,y2],...]
+        xys = np.array(points)
+    elif len(points)==1:
+        # points is already an array
+        xys = points[0] if isinstance(points[0],np.ndarray) else np.array(points[0])
+    else:
+        raise ValueError("points must be a list of points or a list of x and y values.")
     cl = []
     r0 = img.shape[1] / 2
     for i, (x, y) in enumerate(xys):
@@ -64,7 +75,7 @@ def fullxy_to_polar_arr(xys: list[tuple[int]], img: np.ndarray, rlim: int = 40) 
     return np.array(cl)
 
 
-def polar_to_fullxy(colat: float, lon: float, img: np.ndarray, rlim: float) -> np.ndarray:
+def polar_to_azimeq(colat: float, lon: float, img: np.ndarray, rlim: float) -> np.ndarray:
     """Transform polar colatitude and longitude to full image coordinates.
 
     Args:
@@ -115,10 +126,7 @@ def azimuthal_equidistant(data, rlim=40, meridian_pos="N", origin="upper",clip_l
     else:
         img = np.asarray(data[FITSINDEX].data)
         fits_obj=data
-
     cml, is_south = fitsheader(fits_obj, "CML", "south")
-
-
     is_south = kwargs.get("south",is_south)
     cm = kwargs.get("clip_angles", *[(-1*c, c) for c in [kwargs.get("clip_angle",90)]])
     n_theta, n_phi = img.shape  # Grid size of input (θ, φ)
@@ -137,11 +145,13 @@ def azimuthal_equidistant(data, rlim=40, meridian_pos="N", origin="upper",clip_l
     lon_mask[:, lon_clip_pixel[0] : lon_clip_pixel[1]] = True
     #img[lon_mask==False] = kwargs.get("arr_bg",0) # set unused longitudes to the square bg. # noqa: ERA001
     img = np.nan_to_num(img, nan=kwargs.get("proj_bg",np.max(np.nan_to_num(img)))) # turn nan values to circle bg
-    # if zero, also set to proj_bg. 
+    # if zero, also set to proj_bg.
     img = np.where(img<=1, kwargs.get("proj_bg",np.max(np.nan_to_num(img))), img)
     img = np.clip(img, clip_low, clip_high) # clipping out useless data.
+    # Flip and shift so that the origin is at the top, but we still view the correct part when rotated.
     if origin == "lower":
         img = np.roll(np.flip(img, axis=1), shift=n_phi // 2, axis=1)
+    ## Dealing with the cases when meridian pos needs to be changed (rotate the image by translating longitudes)
     sh = n_phi//4 * sgn
     p = meridian_pos.lower()
     if p.startswith("t") or p.startswith("n"):
@@ -182,7 +192,6 @@ def contrast_adjust(im:np.ndarray, **kwargs):
     """
     v_min,v_max = kwargs.get("lims",(np.min(im),np.max(im)))
     return v_min + (v_max - v_min) * ((im - v_min) / (v_max - v_min))**(1/kwargs.get("k",IMG.contrast.power))
-
 
 
 
@@ -228,8 +237,6 @@ def gradmap(
 def dropthreshold(input_arr: np.ndarray, threshold: float) -> np.ndarray:
     """Return a the input array, but with valuesbelow the threshold set to 0."""
     return np.where(input_arr < threshold, 0, input_arr)
-
-
 
 
 

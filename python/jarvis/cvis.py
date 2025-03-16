@@ -14,8 +14,8 @@ from astropy.io import fits
 from astropy.table import Table
 
 from .const import DPR, FITSINDEX
-from .polar import plot_polar, prep_polarfits
-from .transforms import coadd, fullxy_to_polar_arr, gaussian_blur
+from .plotting import plot_polar, prep_polarfits
+from .transforms import coadd, azimeq_to_polar, gaussian_blur
 from .utils import adapted_hdul, assign_params, filename_from_path, fitsheader, fpath, hst_fpath_list, mcolor_to_lum
 
 
@@ -283,7 +283,7 @@ def identify_contour(
     # if a contour is found, convert the contour points to polar coordinates and return them
     if selected_contour is not None:
         paths = selected_contour.reshape(-1, 2)
-        return fullxy_to_polar_arr(paths, img, 40)
+        return azimeq_to_polar(paths, img=img, rlim=40)
     raise ValueError("No contour found for the selected pixel at the given luminance range.")
 
 

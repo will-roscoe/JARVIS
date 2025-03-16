@@ -16,17 +16,23 @@ import numpy as np
 
 # third party libraries
 from astropy.io.fits import HDUList
+from astropy.timeseries import TimeSeries
 from dateutil.parser import parse
 from fastgif import make_gif as makefastgif
 from imageio import imread, mimsave
-from matplotlib import pyplot as plt
+from matplotlib import pyplot as plt, rcParams
+from matplotlib import rc_file
 from matplotlib.colors import LogNorm
+from matplotlib.dates import AutoDateLocator, DayLocator, num2date
 from matplotlib.patheffects import withStroke
 from matplotlib.projections.polar import PolarAxes
+from matplotlib.ticker import FuncFormatter, NullFormatter, NullLocator
+from pandas import DataFrame, Series
+from sympy import N
 from tqdm import tqdm
 
 # local modules
-from .const import FITSINDEX
+from .const import CONST, FITSINDEX, plot
 from .reading_mfp import moonfploc
 from .utils import (
     adapted_hdul,
@@ -76,7 +82,6 @@ def prep_polarfits(fitsobj: HDUList) -> HDUList:
     end_time_jup = start_time_jup + exposure  # noqa: F841
     mid_ex_jup = start_time_jup + (exposure / 2.0)  # noqa: F841
     image_data = fitsobj[FITSINDEX].data
-    #print(f"{np.mean(image_data)=}, {np.min(image_data)=}, {np.max(image_data)=}")
     latbins = np.radians(np.linspace(-90, 90, num=image_data.shape[0]))
     lonbins = np.radians(np.linspace(0, 360, num=image_data.shape[1]))
     mask = np.zeros((int(image_data.shape[0]), image_data.shape[1]))
@@ -88,7 +93,6 @@ def prep_polarfits(fitsobj: HDUList) -> HDUList:
     cliplim = np.cos(np.radians(89))
     clipind = np.squeeze([mask >= cliplim])
     image_data[clipind == False] = np.nan  # noqa: E712
-    #print(f"{np.mean(image_data)=}, {np.min(image_data)=}, {np.max(image_data)=}")
     return adapted_hdul(fitsobj, new_data=image_data, FIXED="LT" if not is_lon else "LON")
 
 
@@ -115,7 +119,6 @@ def plot_polar(fitsobj: HDUList, ax: PolarAxes, **kwargs) -> PolarAxes:
 
     """
     image_data = fitsobj[FITSINDEX].data
-    #print(f"{np.mean(image_data)=}, {np.min(image_data)=}, {np.max(image_data)=}")
     cml, is_south, fixed_lon, crop, full, rlim = fitsheader(
         fitsobj, "CML", "south", "fixed_lon", "CROP", "FULL", "RLIM",
     )
@@ -225,7 +228,7 @@ def plot_polar(fitsobj: HDUList, ax: PolarAxes, **kwargs) -> PolarAxes:
         if int(fitsobj[1].header["EXPT"]) < 30
         else [10.0, 40.0, 100.0, 200.0, 400.0, 1000.0, 3000.0],
     )
-    kwd = dict(cmap="viridis", norm=LogNorm(vmin=ticks[0], vmax=ticks[-1]), shrink=1 if full else 0.75, pad=0.06)
+    kwd = {"cmap": "viridis", "norm": LogNorm(vmin=ticks[0], vmax=ticks[-1]), "shrink": 1 if full else 0.75, "pad": 0.06}
     cmap, norm, shrink, pad = (kwargs.pop(k, v) for k, v in kwd.items())
     rho = np.linspace(0, 180, num=int(image_data.shape[0]))
     theta = np.linspace(0, 2 * np.pi, num=image_data.shape[1])
@@ -240,8 +243,6 @@ def plot_polar(fitsobj: HDUList, ax: PolarAxes, **kwargs) -> PolarAxes:
     if is_south:
         rho = rho[::-1]
         corte = np.roll(corte, 180 * 4, axis=1)
-    #print(f"midplot, {corte.shape=}")
-    #print(f"{np.mean(corte)=}, {np.min(corte)=}, {np.max(corte)=}")
     cmesh = ax.pcolormesh(
         theta, rho[: (int((image_data.shape[0]) / crop))], corte, norm=norm, cmap=cmap,
     )  # ~ <- Color of the plot
@@ -250,7 +251,7 @@ def plot_polar(fitsobj: HDUList, ax: PolarAxes, **kwargs) -> PolarAxes:
         cbar = plt.colorbar(ticks=ticks, shrink=shrink, pad=pad, ax=ax, mappable=cmesh)
         cbar.ax.set_yticklabels([str(int(i)) for i in ticks])
         cbar.ax.set_ylabel("Intensity [kR]", rotation=270.0)
-    # Grids (major and minor)
+    #-Grids: [major & minor]
     if not kwargs.pop("draw_grid", True):
         ax.grid(False, which="both")
     else:
@@ -261,7 +262,6 @@ def plot_polar(fitsobj: HDUList, ax: PolarAxes, **kwargs) -> PolarAxes:
         for i in range(0, 4):
             ax.plot([np.radians(i * 90), np.radians(i * 90)], [0, 180], "w", lw=0.9)
     # deprecated variable (maybe useful for the South/LT fixed definition?)
-    # shift = 0# cml-180. #! UNUSED
     # print which hemisphere are we in:
     if kwargs.pop("hemis", True):
         ax.text(
@@ -416,7 +416,6 @@ def plot_regions(fitsobj: HDUList, ax: PolarAxes) -> PolarAxes:
     noon_b = {
         k: np.linspace(v[0], v[1], 100) for k, v in (("lon", (np.radians(190), np.radians(170))), ("downlat", (32, 27)))
     }
-    # lon_noon_a = noon_a['lon']
     regions = [
         [
             [[np.radians(205), np.radians(170)], [20, 10]],
@@ -457,7 +456,6 @@ def plot_boundaries(fits_obj: HDUList, ax: plt.Axes, fill=True):
         # if fits_obj[i].header["XTENSION"] == "BINTABLE" and fits_obj[i].header["TTYPE1"] == "colat" and fits_obj[i].header["TTYPE2"] == "lon":
         colat, lon = fits_obj["BOUNDARY"].data["colat"], fits_obj["BOUNDARY"].data["lon"]
         bound = ax.plot(lon, colat, linewidth=100, zorder=100, color="red", clip=False)
-        #print("vortgefe")
         if fill:
             ax.fill(colat, np.radians(360 - r for r in lon), alpha=0.1, color=bound[0].get_color(), zorder=98)
     return ax
@@ -590,3 +588,257 @@ def makefast_gif(fitsobjs, initfunc=None, fps=5, showprogress=True, **kwargs):
         show_progress=showprogress,
         writer_kwargs={"duration": 1 / fps},
     )
+
+def plot_discontinuous_angle(ax,ts, colname, threshold=180,  **kwargs):
+    time = ts.time
+    angles = ts[colname]    # Compute differences to identify discontinuities
+    diffs = np.abs(np.diff(angles))
+    discontinuities = np.where(diffs > threshold)[0]    # Split indices at discontinuities
+    segments = np.split(np.arange(len(angles)), discontinuities + 1)
+    for segment in segments:
+        t_seg = time[segment]
+        ang_seg = angles[segment]# Extend segment at both ends if possible
+        if len(segment) > 1:
+            t_extended = time[[segment[0], *segment, segment[-1]]]  # Keep as Time object
+            ang_extended = np.array([ang_seg[0], *ang_seg, ang_seg[-1]])
+        else:
+            t_extended, ang_extended = t_seg, ang_seg
+        ax.plot(t_extended.datetime64, ang_extended, **kwargs)
+    ax.set_ylim([0, 360])
+    ax.yaxis.set_major_locator(plt.MultipleLocator(90))
+
+
+def datetime_to_doy(x, *_):
+    return num2date(x).strftime("%j")
+
+def apply_plot_defaults(ax:plt.Axes=None, fig: plt.Figure =  None, day_of_year=True, **kwargs):
+    """Apply default settings to a plot.
+
+    Args:
+         ax (plt.Axes, optional): The axes to apply the settings to. Defaults to None.
+         fig (plt.Figure, optional): The figure to apply the settings to. Defaults to None.
+         day_of_year (bool, optional): Whether to format the x-axis as day of year. Defaults to True.
+         time_interval (tuple, optional): The time interval to set the x-axis to. Defaults to None.
+         kwargs:
+            - time_interval (tuple, optional): The time interval to set the x-axis to. Defaults to None.
+            - df_time_interval (DataFrame or TimeSeries, optional): data object to set the time interval to. Defaults to None.
+            - day_interval (int, optional): The interval between day labels, if not specified, defaults to use AutoDateLocator
+            - interval_length (float, optional): the length of the interval as a fraction of the time_interval. Defaults to 0.1.
+            - y_fixedexp (int, optional): fixed exponent for y-axis. Defaults to None. if specified, will remove that exponent from the y-axis labels, and add to axis label unit if already set.
+
+    """
+    # Apply the style settings from the specified .mplstyle file
+    rc_file(fpath("python/jarvis/resources/jarvis.mplstyle"))
+
+    if fig is not None and ax is None:
+        # define ax= list of child axes
+        ax = []
+        for a in fig.get_children():
+            if isinstance(a, plt.Axes):
+                ax.append(a)
+    if not isinstance(ax, (list, tuple)):
+        ax = [ax]
+    
+    #----text scaling ----#
+    # scale the text size of each y axis label based on the bbox of the label and height of the axis. each label should fit within the axis height (at least or less)
+    if fig is None:
+        fig = ax[0].get_figure()
+    fig.align_ylabels(ax)
+    for a in ax:
+        axpos = a.get_window_extent()
+        axlabel = a.yaxis.label
+        # ensure the bbox height is less than the axis height
+        labelpos = axlabel.get_window_extent()
+        height_ratio = labelpos.height/axpos.height
+        print(f"{axpos.bounds=}, {labelpos.bounds=}, {height_ratio:.2f}")
+        if height_ratio > 1:
+            a.set_ylabel(axlabel.get_text(), fontsize=a.yaxis.label.get_fontsize()/height_ratio)
+    
+
+    #---- X-axis ticks ----#
+    # day_of_year --> format x-axis as day of year [subargs: day_interval]
+    if day_of_year:
+        for a in ax:
+            # figure out if x axis are shared, if so, only set the label on the last axis
+            if a.get_shared_x_axes() is not None:
+                a.set_xlabel("")
+                a.xaxis.set_major_formatter(NullFormatter())
+                a.xaxis.set_major_locator(NullLocator())
+                a.xaxis.set_tick_params(bottom=True, top=True, direction="in")
+            else:
+                a.set_xlabel("Day of Year")
+                a.xaxis.set_major_formatter(FuncFormatter(datetime_to_doy))
+                a.xaxis.set_major_locator(DayLocator(interval=kwargs.get("day_interval")) if kwargs.get("day_interval") is not None else AutoDateLocator())
+        # Ensure the lowest axis always has the label
+        lowest_ax = min(ax, key=lambda a: a.get_position().y0)
+        lowest_ax.set_xlabel("Day of Year")
+        lowest_ax.xaxis.set_major_formatter(FuncFormatter(datetime_to_doy))
+        lowest_ax.xaxis.set_major_locator(DayLocator(interval=kwargs.get("day_interval")) if kwargs.get("day_interval") is not None else AutoDateLocator())
+
+            
+    #---- X-axis bounds ----#
+    # 1. time_interval --> set x-axis limits to specified interval
+    if kwargs.get("time_interval") is not None:
+        for a in ax:
+            a.set_xlim(kwargs["time_interval"])
+    # 2. df_time_interval --> set x-axis limits to the bounds of the input data. [subargs: interval_length]
+    elif kwargs.get("df_time_interval") is not None:
+        tdf = kwargs["df_time_interval"]
+        if isinstance(tdf, (DataFrame, Series)):
+            lims = [tdf.time.min(), tdf.time.max()]
+        elif isinstance(tdf,TimeSeries):
+            tdf = tdf.to_pandas()
+            lims = [tdf.index.min(), tdf.index.max()]
+    
+        # set the axis limits based on the interval length: min = start - interval_length*(end-start), max = end + interval_length*(end-start)
+        intlen,delta = kwargs.get("interval_length", 0.05), lims[1]-lims[0]
+        print(lims, intlen, delta)
+        lims = [lims[0] - intlen*delta, lims[1] + intlen*delta]
+        print(lims)
+        for a in ax:
+            a.set_xlim(lims)
+
+def get_axis_exp(lims,*args, e3_only=True):
+    """Return a suggested exponent for the axis labels based on the range of the data.
+
+    Args:
+        lims (tuple): The axis limits.
+        *args: if two args are passed, lower == lims, upper == args[0]
+        e3_only (bool, optional): Whether to only allow exponents that are multiples of 3. Defaults to True.
+
+    Returns:
+        int: The suggested exponent.
+
+    """
+    if len(args) == 1:
+        lims = (lims,args[0])
+    lims = np.array(lims, dtype=float)
+    # Compute order of magnitude of range
+    range_mag = int(np.floor(np.log10(abs(lims[1]-lims[0]))))
+    # Compute order of magnitude of limits (avoid log(0) issues)
+    min_mag = int(np.floor(np.log10(abs(lims[0]))) if lims[0] != 0 else range_mag)
+    max_mag = int(np.floor(np.log10(abs(lims[1]))) if lims[1] != 0 else range_mag)
+    # Decide exponent based on range unless min/max are similar in magnitude
+    mag = (max_mag-1) if lims[1]/10**max_mag < 3 else min_mag if lims[0]/10**min_mag < 3 else range_mag
+    if e3_only: # only allow exponents that are multiples of 3, prefer lower if not multiple of 3
+        mag = 3*round(mag/3)
+    return mag
+
+
+def set_yaxis_exfmt(axe,label,unit=None,change_prefix=False, **kwargs):
+    """Set the axis label (with unit if specified), and format the ticks if an exponent can be removed.
+
+    Args:
+        axe (plt.Axis): The axis to set the format for.
+        label (str): The axis label.
+        unit (str, optional): The axis unit. Defaults to None.
+        change_prefix (bool, optional): Whether to attempt to change the prefix of the unit. Defaults to False.
+        **kwargs:
+            - exponent (int, optional): fixed exponent for y-axis. Defaults to None. if specified, will remove that exponent from the y-axis labels, and add to axis label unit if already set.
+            - clip_neg (bool, optional): Whether to clip negative values. Defaults to True.
+    """
+    ylim = list(axe.get_ylim())
+    if kwargs.get("clip_neg", True):
+        ylim = [max(ylim[0],0), max(ylim[1],0)]
+    ylim[1]+=kwargs.get("y_extend",0.1)*np.diff(ylim)
+    axe.set_ylim(ylim)
+    axis = axe.yaxis
+    unit = unit if unit is not None else " "
+    tex = unit[0] == "$"
+    use_exp = True
+    if tex:
+        unit = unit[1:-1]
+    exponent = kwargs.get("exponent", get_axis_exp(axe.get_ylim()))
+    if change_prefix: # attempt to change the prefix of the unit.
+        #will likely fail if unit is not si or something like km^2 (where k needs to be sqared as well)
+        # or if the unit is more complex (GW/km)
+        if len(unit) > 1:
+            prefix_exp = CONST.SI_exponents.get(unit[0], None)
+            if (prefix_exp is not None) and (unit != "kg"):
+                unit = unit[1:]
+                exponent += prefix_exp
+        if exponent in CONST.SI_exponents.values():
+            # find  key for the exponent
+            for k,v in CONST.SI_exponents.items():
+                if v == exponent:
+                    unit = k+"~" + unit
+                    use_exp = False
+                    break
+    exp_lbl = "\\times 10^{" + str(exponent) + "}~" if exponent != 0 and use_exp else ""
+    unitpart = "$(" +  exp_lbl +unit +")$"
+    label = label + " " + unitpart if len(unitpart) > 2 else label
+    axe.set_ylabel(label)
+    
+    axis.set_major_formatter(plt.FuncFormatter(lambda x, _: f"{x/10**exponent:g}"))
+
+
+
+def figsize(**kwargs):
+    """Create a figure with a specified size parameters, to allow for consistent figure sizes--> text sizes, etc.
+
+    Args:
+        **kwargs:
+            - width (float, optional): The fraction of the page width to use. Defaults to 1.
+            - height (float, optional): The fraction of the page height to use. Defaults to 1.
+            - aspect (float, optional): The aspect ratio of the figure (width/height). Defaults to 3/2. Width takes precedence. Ignored if both width and height are specified.
+            - margin (float, optional): The margin around the figure. Defaults to plot.margin.
+
+    Returns:
+        tuple: figure width and height in inches
+
+    """
+    size = plot.size_a4
+    margin = kwargs.get("margin", plot.margin)
+    size = {k:size[k] - 2*margin for k in size} # maximum allowed size
+    if kwargs.get("max") is not None:
+        return size["width"], size["height"]
+    width = kwargs.get("width", 1)*size["width"]
+    if kwargs.get("height") is not None:
+        height = kwargs["height"]*size["height"]
+    else:
+        height = width/kwargs.get("aspect", 3/2)
+    return width, height
+
+"""
+one or or more of:
+Lrange,Flux,Power,Area -> Powercalc
+TpowerDusk,TpowerDawn,Apower,CML -> HISAKI
+SW -> Hisaki alt.
+
+timescales:
+single visit
+over full range
+multiple visits
+
+plotting options:
+scatter
+broken line plot (discontinuous data)
+   - interpolate with dashed line.
+range --> 2d distribution
+histogram of intensities (from array)
+"""
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

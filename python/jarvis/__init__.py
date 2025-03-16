@@ -21,7 +21,6 @@ Primary Contributors
 - Ronan Szeto
 
 """
-
 from warnings import warn
 
 from .const import Dirs
@@ -44,7 +43,7 @@ import logging
 import os
 
 from .cvis import generate_contours, identify_contour, pathtest, plot_contourpoints, save_contour
-from .polar import make_gif, moind, plot_moonfp, plot_polar, plot_regions, prep_polarfits
+from .plotting import make_gif, moind, plot_moonfp, plot_polar, plot_regions, prep_polarfits
 from .utils import (
     datetime_to_yrdoysod,
     ensure_dir,
@@ -66,7 +65,7 @@ from .utils import (
 
 __version__ = "0.1.0-alpha"
 __all__ = (
-    ["cvis", "extensions", "stats", "transforms", "utils", "fpath", "fitsheader", "ensure_dir", "fits_from_glob", "hst_fitsfile_paths", "group_to_visit", "visit_to_group", "hst_segmented_paths", "hdulinfo", "get_obs_interval", "get_datetime", "get_datetime_interval", "get_timedelta", "datetime_to_yrdoysod", "yrdoysod_to_datetime", "get_data_over_interval", "polar", "moind", "make_gif", "plot_moonfp", "plot_regions", "plot_polar", "prep_polarfits", "cvis", "pathtest", "generate_contours", "identify_contour", "plot_contourpoints", "save_contour", "power", "powercalc", "const", "KERNELDIR", "FITSINDEX", "GHROOT", "Dirs.DATA", "PYDIR", "PKGDIR"]
+    ["cvis", "extensions", "stats", "transforms", "utils", "fpath", "fitsheader", "ensure_dir", "fits_from_glob", "hst_fitsfile_paths", "group_to_visit", "visit_to_group", "hst_segmented_paths", "hdulinfo", "get_obs_interval", "get_datetime", "get_datetime_interval", "get_timedelta", "datetime_to_yrdoysod", "yrdoysod_to_datetime", "get_data_over_interval", "plotting", "moind", "make_gif", "plot_moonfp", "plot_regions", "plot_polar", "prep_polarfits", "cvis", "pathtest", "generate_contours", "identify_contour", "plot_contourpoints", "save_contour", "power", "powercalc", "const", "KERNELDIR", "FITSINDEX", "GHROOT", "Dirs.DATA", "PYDIR", "PKGDIR"]
 )
 AUTHORS = {
     "Will Roscoe": "@will-roscoe",
@@ -90,6 +89,3 @@ url = {https://github.com/will-roscoe/JARVIS}
 if not os.path.exists(Dirs.DATA):
     raise FileNotFoundError(f"Neccesary directory not found at {Dirs.DATA}, containing data files.")
 
-# JLOGGER = logging.getLogger(__name__)
-# JLOGGER.setLevel(logging.INFO)
-# JLOGGER.info("JAR:VIS package loaded.")

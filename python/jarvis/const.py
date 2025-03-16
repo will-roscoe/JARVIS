@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """Constants and default values used throughout the project."""
-
+#ruff: noqa
 import logging
 from pathlib import Path
 import cmasher as cmr
 import cv2
 from os.path import exists
+from collections import UserList
 FITSINDEX = 1 # DEFAULT FITSINDEX: the default target HDU within a fits file.
 # ~ defines the project root directory (as the root of the gh repo)
 GHROOT = Path(__file__).parents[2]# ~ if you move this file/folder, you need to change this line to match the new location.
@@ -34,6 +35,21 @@ class ConfigLike:
         return 'Config:'+{k:v for k,v, in self.__dict__.items if not k.startswith("__") }
     def __str__(self):
         return "Config:\n"+self.__doc__
+
+class ExpandingList:
+    def __init__(self, items, overflow):
+        self._data = tuple(items)
+        self._overflow = overflow
+    def __getitem__(self, index):
+        if index >= len(self._data):
+            return self._overflow
+        return self._data[index]
+    def __len__(self):
+        return len(self._data)
+    
+    
+
+    
 
 ######## Dirs ##################################################################
 # DEFAULT PATHS
@@ -84,6 +100,32 @@ CONST.gustin_factor = 9.04e-10 # 1.02e-9 #> "Conversion factor to be multiplied 
 # > And this in turn means that the counts-per-second to total emitted power (Watts). conversion factor is 9.04e-10 (Gustin+2012 Table 2), for STIS SrF2:
 CONST.delrp_jup = 240#km
 CONST.kr_per_count = 1/CONST.gustin_factor
+CONST.SI_exponents = { # SI prefixes from https://www.nist.gov/pml/owm/metric-si-prefixes. commented out any undesired prefixes.
+                    #"q":-30,          # quecto
+                    #"r":-27,          # ronto
+                    #"y":-24,          # yocto
+                    #"z":-21,          # zepto
+                    #"a":-18,          # atto
+                    #"f":-15,          # femto
+                    "p":-12,          # pico
+                    "n":-9,           # nano
+                    "μ":-6,"u":-6,    # micro
+                    "m":-3,           # milli
+                    #"d":-1,           # deci
+                    #"_":0,            # -
+                    #"da":1,           # deca
+                    #"h":2,            # hecto
+                    "k":3,            # kilo
+                    "M":6,            # mega
+                    "G":9,            # giga
+                    "T":12,           # tera
+                    #"P":15,           # peta
+                    #"E":18,           # exa
+                    #"Z":21,           # zetta
+                    #"Y":24,           # yotta
+                    #"R":27,           # ronna
+                    #"Q":30,           # quetta
+                      }
 ######## Power #################################################################
 Power = ConfigLike("power subpackage configurations")
 Power.WRITETO = "powers.txt"  # > file to write power results to
@@ -347,3 +389,117 @@ log.logger.addHandler(logging.FileHandler(GHROOT / "jarvis.log", mode="w"))
 #log.logger.addHandler(logging.StreamHandler())
 log.write = log.logger.debug
 log.write("Logging initialized")
+
+
+plot = ConfigLike("Plotting configurations")
+plot.maps = ConfigLike("Default property maps for mpl properties.")
+plot.maps.color=ExpandingList(["#060","#0a0","#0f0","#dd0","#fa0","#f50","#f00","#b00","#f08","#b0b","#80f","#00f","#0af"], "#aaa")
+plot.maps.marker = ExpandingList(["1","2","3","4","x","+","1","2","3","4","x","+"], ".")
+plot.maps.hatch = ExpandingList(["\\\\","//","--","||","oo","xx","**"], "++")
+plot.size_a4 = {"width": 8.3, "height": 11.7}
+plot.margin = 1
+
+    
+HISAKI = ConfigLike("Mappings for Hisaki/SW dataset")
+HISAKI._desc = dict(                 # (Units from HISAKI fits files, rest were guessed)
+    jup_sw_pdyn =       ["Pdyn", "$P_{SW,dyn}$", "nPa"],  # Dynamic pressure of the solar wind in nanoPascals.
+    # Shared Columns
+    RADMON =            ["Rad_Mon", "$R_{rad}$", "counts/min"],  # Radiation monitor for measuring radiation in counts per minute.
+    JUPLOC =            ["Jup_Y", "$y_{J}$", "pixel"],  # Y-coordinate position of Jupiter in the image in pixels.
+    JPFWHM =            ["Jup_FWHM", "$FWHM_{J}$", "pixel"],  # Full width at half maximum (FWHM) of Jupiter's image in pixels.
+    INT_TIME =          ["Intg_Time", "$T_{int}$", "min"],  # Total time for image integration in minutes.
+    SLIT1Y =            ["Slit_B140", "$y_{slit1}$", "pixel"],  # Y-position of the bottom of slit 1 in the image in pixels.
+    SLIT2Y =            ["Slit_B20", "$y_{slit2}$", "pixel"],  # Y-position of the bottom of slit 2 in the image in pixels.
+    SLIT3Y =            ["Slit_T20", "$y_{slit3}$", "pixel"],  # Y-position of the top of slit 3 in the image in pixels.
+    SLIT4Y =            ["Slit_T140", "$y_{slit4}$", "pixel"],  # Y-position of the top of slit 4 in the image in pixels.
+    JPFLAG =            ["Jup_Flag", "$JP_{flag}$", "pixel"],  # Flag indicating the position of Jupiter in the image in pixels.
+    AURPFLG =           ["Aur_Flag", "$Aurora_{flag}$", "pixel"],  # Flag indicating the position of an aurora in the image in pixels.
+    YEAR =              ["YEAR", "$Year$", "years"],  # Year of the observation.
+    DAYOFYEAR =         ["DAYOFYEAR", "$DayOfYear$", "days"],  # Day of the year (1 to 365/366).
+    SECOFDAY =          ["SECOFDAY", "$t_{sec}$", "sec"],  # Time of day in seconds (from 00:00:00).
+    XPOS1 =             ["X_Dawn", "$x_{dawn}$", "pixel"],  # X-position of the dawn (eastern horizon) in the image in pixels.
+    XPOS2 =             ["X_Dusk", "$x_{dusk}$", "pixel"],  # X-position of the dusk (western horizon) in the image in pixels.
+    XPOS3 =             ["X_Aur", "$x_{aurora}$", "pixel"],  # X-position of the aurora in the image in pixels.
+    CML =               ["CML", "$CML$", "degree"],  # Central Meridian Longitude (CML) of Jupiter in degrees.
+    DISK =              ["Disk_Size", "$D_{disk}$", "asec"],  # Apparent size of Jupiter's disk in arcseconds.
+    Y_POL =             ["Y_Polarization", "$P_{y}$", "0:N 1:S"],  # Polarization state of the observation (0 = North, 1 = South).
+    # Torus Columns
+    TPOW0710ADAWN =     ["Torus_Power_Dawn", "$F_{torus, dawn}$", "GW"],  # Average flux in the torus region at dawn in gigawatts.
+    TERR0710ADAWN =     ["Torus_Power_Dawn_Err", "$F_{err, torus, dawn}$", "GW"],  # Error in the torus flux at dawn in gigawatts.
+    CONT0710ADAWN =     ["Torus_Cont_Dawn", "$C_{torus, dawn}$", "counts"],  # Continuum intensity in the torus region at dawn in counts.
+    LINT0710ADAWN =     ["Torus_LINT_Dawn", "$L_{torus, dawn}$", "counts/min"],  # LINT (line integral) in the torus region at dawn in counts per minute.
+    EFLX0710ADAWN =     ["Torus_Flux_Dawn", "$F_{torus, flux, dawn}$", "eV/cm^2/s"],  # Flux in the torus region at dawn in eV/cm^2/s.
+    EERR0710ADAWN =     ["Err_Torus_Flux_Dawn", "$F_{err, torus, flux, dawn}$", "eV/cm^2/s"],  # Error in the torus flux at dawn in eV/cm^2/s.
+    PPOS0710ADAWN =     ["Torus_Dawn_Pos", "$P_{torus, dawn}$", "pixel"],  # Position of the torus region at dawn in pixels.
+    TPOW0710ADUSK =     ["Torus_Power_Dusk", "$F_{torus, dusk}$", "GW"],  # Average flux in the torus region at dusk in gigawatts.
+    TERR0710ADUSK =     ["Torus_Power_Dusk_Err", "$F_{err, torus, dusk}$", "GW"],  # Error in the torus flux at dusk in gigawatts.
+    CONT0710ADUSK =     ["Torus_Cont_Dusk", "$C_{torus, dusk}$", "counts"],  # Continuum intensity in the torus region at dusk in counts.
+    LINT0710ADUSK =     ["Torus_LINT_Dusk", "$L_{torus, dusk}$", "counts/min"],  # LINT (line integral) in the torus region at dusk in counts per minute.
+    EFLX0710ADUSK =     ["Torus_Flux_Dusk", "$F_{torus, flux, dusk}$", "eV/cm^2/s"],  # Flux in the torus region at dusk in eV/cm^2/s.
+    EERR0710ADUSK =     ["Torus_Flux_Dusk_Error", "$F_{err, torus, flux, dusk}$", "eV/cm^2/s"],  # Error in the torus flux at dusk in eV/cm^2/s.
+    PPOS0710ADUSK =     ["Torus_Dusk_Pos", "$P_{torus, dusk}$", "pixel"],  # Position of the torus region at dusk in pixels.
+    # Aurora Columns
+    TPOW1190A =         ["Aurora_Power", "$F_{aurora}$", "GW"],  # Average auroral flux in gigawatts.
+    TERR1190A =         ["Aurora_Power_Err", "$F_{err, aurora}$", "GW"],  # Error in the auroral flux in gigawatts.
+    CONT1190A =         ["Aurora_Cont", "$C_{aurora}$", "counts"],  # Continuum intensity in the aurora region in counts.
+    LINT1190A =         ["Aurora_LINT", "$L_{aurora}$", "counts/min"],  # LINT (line integral) in the aurora region in counts per minute.
+    EFLX1190A =         ["Aurora_Flux", "$F_{aurora, flux}$", "eV/cm^2/s"],  # Flux in the aurora region in eV/cm^2/s.
+    EERR1190A =         ["Aurora_Flux_Err", "$F_{err, aurora, flux}$", "eV/cm^2/s"],  # Error in the auroral flux in eV/cm^2/s.
+    PPOS1190A =         ["Aurora_Pos", "$P_{aurora}$", "pixel"],  # Position of the aurora region in the image in pixels.
+    TPOW1190ARAD1 =     ["Aurora_R1_Power", "$F_{aurora,r1}$", "GW"],  # Average auroral flux in gigawatts.
+    TERR1190ARAD1 =     ["Aurora_R1_Power_Err", "$F_{err, aurora,r1}$", "GW"],  # Error in the auroral flux in gigawatts.
+    CONT1190ARAD1 =     ["Aurora_R1_Cont", "$C_{aurora,r1}$", "counts"],  # Continuum intensity in the aurora region in counts.
+    LINT1190ARAD1 =     ["Aurora_R1_LINT", "$L_{aurora,r1}$", "counts/min"],  # LINT (line integral) in the aurora region in counts per minute.
+    EFLX1190ARAD1 =     ["Aurora_R1_Flux", "$F_{aurora, flux,r1}$", "eV/cm^2/s"],  # Flux in the aurora region in eV/cm^2/s.
+    EERR1190ARAD1 =     ["Aurora_R1_Flux_Err", "$F_{err, aurora, flux,r1}$", "eV/cm^2/s"],  # Error in the auroral flux in eV/cm^2/s.
+    PPOS1190ARAD1 =     ["Aurora_R1_Pos", "$P_{aurora,r1}$", "pixel"],  # Position of the aurora region in the image in pixels.
+    TPOW1190ARAD2 =     ["Aurora_R2_Power", "$F_{aurora,r2}$", "GW"],  # Average auroral flux in gigawatts.
+    TERR1190ARAD2 =     ["Aurora_R2_Power_Err", "$F_{err, aurora,r2}$", "GW"],  # Error in the auroral flux in gigawatts.
+    CONT1190ARAD2 =     ["Aurora_R2_Cont", "$C_{aurora,r2}$", "counts"],  # Continuum intensity in the aurora region in counts.
+    LINT1190ARAD2 =     ["Aurora_R2_LINT", "$L_{aurora,r2}$", "counts/min"],  # LINT (line integral) in the aurora region in counts per minute.
+    EFLX1190ARAD2 =     ["Aurora_R2_Flux", "$F_{aurora, flux,r2}$", "eV/cm^2/s"],  # Flux in the aurora region in eV/cm^2/s.
+    EERR1190ARAD2 =     ["Aurora_R2_Flux_Err", "$F_{err, aurora, flux,r2}$", "eV/cm^2/s"],  # Error in the auroral flux in eV/cm^2/s.
+    PPOS1190ARAD2 =     ["Aurora_R2_Pos", "$P_{aurora,r2}$", "pixel"]  # Position of the aurora region in the image in pixels.
+)
+HISAKI.colnames = {k: v[0] for k, v in HISAKI._desc.items()}
+HISAKI.colunits = {k: v[2] for k, v in HISAKI._desc.items()}
+HISAKI.tex = {k: v[1] for k, v in HISAKI._desc.items()}
+def mapval(inp,output, _desc):
+    # input is a string, matchin an item in one of the lists in _desc. output is a string or int or list of combinations of these
+    strmap  = {"init":"key", "colname":0,"label":1,"unit":2, "tex":1}
+    # turn into indices/"key"
+    output = [strmap.get(o, o) for o in (output if isinstance(output, (list, tuple)) else [output])]
+    # find the list containing the input, and assign the items and key to found
+
+    for k,v in _desc.items():
+        if inp in v:
+            found = v +[k]
+            print(found)
+            break
+    # return the requested parts (if numeric, return at index, else return last)
+    ret = [found[o] if isinstance(o,int) else found[-1] for o in output ] if isinstance(output, (list,tuple)) else found[output]
+    print(ret)
+    return ret 
+        
+HISAKI.mapval = lambda x,y: mapval(x,y,HISAKI._desc)
+
+HST = ConfigLike("Mappings for HST dataset")
+HST._desc = dict(
+    Visit = ["Visit", "v", ""], # Visit number.
+    Obs_Date = ["Obs_Date", "", ""], # Observation date. YYYY-MM-DD.
+    Obs_Time = ["Obs_Time", "", ""], # Observation time. HH:MM:SS.
+    Total_Power = ["Total_Power", "$P_{Tot}$", "GW"], # Total power in Gigawatts.
+    Avg_Flux = ["Avg_Flux", "$F_{avg}$", "GW/km^2"], # Average flux in Gigawatts per square kilometer.
+    Area = ["Area", "$A$", "km^2"], # Area in square kilometers.
+    L_min = ["L_min", "$L_{min}$", ""], # Minimum Luminosity chosen for the calculation.
+    L_max = ["L_max", "$L_{max}$", ""], # Maximum Luminosity chosen for the calculation.
+    N_pts = ["N_pts", "$N_{path}$", ""], # Number of points in the boundary.
+    Date_Created = ["Date_Created", "", ""], # Date the boundary was created. YYYY-MM-DDTHH:MM:SS.
+    EXT = ["EXT", "", ""], # Identifier for the boundary. (Default: BOUNDARY)
+)
+HST.colnames = {k: v[0] for k, v in HST._desc.items()}
+HST.colunits = {k: v[2] for k, v in HST._desc.items()}
+HST.tex = {k: v[1] for k, v in HST._desc.items()}
+HST.mapval = lambda x,y: mapval(x,y,HST._desc)
+
+

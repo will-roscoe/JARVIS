@@ -1,29 +1,32 @@
 #!/usr/bin/env python3
 """Provides various utility functions for managing paths and directories, interfacing with FITS files, handling FITS headers and data, and performing time series operations."""
 
-from calendar import c
-from contextlib import contextmanager
+
+import cProfile
+import functools
 import os
+import pstats
+
 from datetime import datetime, timedelta
 from glob import glob
 from os import listdir, makedirs, path
 from os import sep as os_sep
 from os.path import isfile
 from pathlib import Path
-from contextlib import contextmanager
-import functools
-import cProfile
-import profile
+from random import choice
 import cutie
 import numpy as np
+import pandas as pd
 from astropy.io.fits import BinTableHDU, HDUList, ImageHDU, PrimaryHDU, TableHDU
 from astropy.io.fits import open as fopen
 from astropy.table import Table, vstack
+from astropy.timeseries import TimeSeries
 from colorist import ColorHSL
 from matplotlib.colors import to_rgba
+from pandas import DataFrame
 from tqdm import tqdm
-import pstats
-from .const import FITSINDEX, GHROOT, Dirs, log
+
+from .const import FITSINDEX, GHROOT, HISAKI, Dirs, log, plot
 
 
 #################################################################################
@@ -97,7 +100,6 @@ def fits_from_glob(
             fits_file_list.append(g)
     if sort:
         fits_file_list.sort()
-    #tqdm.write(f"Found {len(fits_file_list)} files in the directory.")
     if names:
         return [fopen(f) for f in fits_file_list], [filename_from_path(f) for f in fits_file_list]
     return [fopen(f) for f in fits_file_list]
@@ -337,7 +339,7 @@ def mcolor_to_lum(*colors):
     return col
 
 def statusprint(num, fail_low=False):
-    # if fail_low: 0 corresopnds to H=0, 1 --> H=109 
+    # if fail_low: 0 corresopnds to H=0, 1 --> H=109
     # if not fail_low: 0 corresponds to H=109, 1 --> H=0
     h = num*109 if fail_low else 109-num*109
     col = ColorHSL(int(h), 100,50)
@@ -347,6 +349,170 @@ def statusprint(num, fail_low=False):
 #################################################################################
 #                   MISC/UNUSED FUNCTIONS
 #################################################################################
+def merge_dfs(dfs: list[DataFrame]) -> DataFrame:
+    """Merge a list of dataframes into a single dataframe, using the outer join method.
+
+    Args:
+        dfs (list[DataFrame]): List of dataframes to merge.
+
+    Returns:
+        DataFrame: A single dataframe with all the columns from the input data. shape will be (Num Unique Rows, Num Unique Columns)
+
+        """
+    # get all possible cols from all dfs
+    cols = []
+    for df in dfs:
+        cols.extend(df.columns)
+    cols = list(set(cols))
+    df = dfs[0].copy()
+    for i, df_ in enumerate(dfs[1:]):
+        df = pd.merge(
+            df,
+            df_,
+            how="outer",
+            on=cols,
+            suffixes=("", f"_{i+1}"),
+        )
+    return df
+
+def hisaki_sw_get_safe(*cols,**kwargs):
+    """Return a Timeseries object with rows that have only finite values in the specified columns.
+
+    If a column is not present in the dataset, it is added with NaN values.
+    "time" is always ignored, since this behaviour would cause issues in TimeSeries.
+
+    Args:
+        *cols (tuple[str]): Columns to check for finite values.
+        **kwargs: Additional keyword arguments.
+            - method (str): Method to use for filtering the rows. Options are 'union', 'intersection', and 'all'.
+
+    Returns:
+        TimeSeries: A TimeSeries object with rows that have only finite values in the specified columns (except in the case of non existent columns).
+
+    """
+    method = kwargs.get("method","union") # union, interection,all (all is all columns)
+    tab = TimeSeries.read(fpath("datasets/Hisaki_SW-combined.csv")).to_pandas()
+    tab = tab.rename(columns=HISAKI.colnames)
+    if method == "intersection": # returns the intersection of columns corresponding to isfinite in col N for N in cols. all cols must be finite
+        for col in cols:
+            if col not in tab.columns and col != "time":
+                tab[col] = np.nan
+            else:
+                tab = tab.loc[np.isfinite(tab[col])]
+    elif method == "union":# returns the union of columns corresponding to isfinite in col N for N in cols eg if any col is finite, it is included
+        inds = np.zeros(len(tab), dtype=bool)
+        for col in cols:
+            if col not in tab.columns and col != "time":
+                tab[col] = np.nan
+            else:
+                inds = inds | np.isfinite(tab[col])
+        tab = tab.loc[inds]
+        # filter out so that we have a unique set of indices
+    elif method == "all": # returns all
+        for col in cols:
+            if col not in tab.columns and col != "time":
+                tab[col] = np.nan
+    return TimeSeries().from_pandas(tab)
+
+
+def prepdfs(fp,clip_neg=False, sortby="time", splitbyext=False):
+    """Prepare dataframes for plotting, ordering them by date created.
+
+    Args:
+        fp (str or list[str]): Filepath or list of filepaths to the dataframes.
+        clip_neg (bool): If True, clip negative values to 0.
+        sortby (str): Column to sort the dataframes by.
+        splitbyext (bool): If True, split the dataframes by file extension, returning a dictionary of dataframes.
+
+    Returns:
+        (list[DataFrame] or dict[str, list[DataFrame]]): A list of dataframes or a dictionary of dataframes, depending on the value of splitbyext.
+
+    The method make the following changes to the dataframes it processes:
+    - Add a 'time' column to the dataframe, which is a datetime object created by combining the 'Obs_Date' and 'Obs_Time' columns.
+    - Add a 'created_time' column to the dataframe, which is a datetime object created from the 'Date_Created' column.
+    - Clip negative values to 0 if clip_neg is True.
+    - Add the following columns to the dataframe:
+        - 'hatch': Hatch pattern for plotting.
+        - 'color': Color for plotting.
+        - 'marker': Marker for plotting.
+        - 'zorder': Z-order for plotting.
+    - split the dataframe by EXTNAME (generally identifying the region of the data) if splitbyext is True.
+
+    """
+    if isinstance(fp,str):
+        fp = get_datapaths(fdir=fp)
+     # most df files dont have created_time, so for now infer from the file name
+    if sortby=="created_time":
+        orde = []
+        for i in fp:
+            spos = i.find("202")
+            if spos == -1:
+                orde.append("9")
+            else:
+                orde.append(i[spos:spos+19])
+        # newest_first = True will put the newest files first, False will put the oldest files first.
+        fp = [x for _,x in sorted(zip(orde,fp), key=lambda pair: pair[0], reverse=True)]
+    dfs = [pd.read_csv(f, sep=" ", index_col=False, names=["Visit", "Obs_Date", "Obs_Time", "Total_Power", "Avg_Flux", "Area","L_min","L_max","N_pts","Date_Created","EXT"]) for f in fp]
+    for df in dfs:
+        df["time"]= pd.to_datetime(df["Obs_Date"] + " " + df["Obs_Time"])
+        df["created_time"] = pd.to_datetime(df["Date_Created"])
+    # if sortby is a colname != "created_time", sort by that col
+    if sortby != "created_time":
+        if np.any(sortby in dfs[i].columns for i in range(len(dfs))):
+            dfs = [df.sort_values(by=sortby) for df in dfs]
+            dfs = [df.reset_index(drop=True) for df in dfs]
+            dfs = sorted(dfs,key=lambda x: x[sortby].iloc[0])
+    dfs = [df for df in dfs if len(df) > 0]
+    # now add default props for plotting
+    for i, d in enumerate(dfs):
+        if clip_neg:
+            for col in ["Avg_Flux","Total_Power","Area"]:
+                dfs[i][col] = dfs[i][col].where(dfs[i][col] > 0, 0)
+        dfs[i]["hatch"] = plot.maps.hatch[i]
+        dfs[i]["color"] = plot.maps.color[i]
+        dfs[i]["marker"] = plot.maps.marker[i]
+        dfs[i]["zorder"] = len(dfs)-i+2
+        # for each df, make any values < 0  equal 0
+    if splitbyext:
+        exts = get_uniques(dfs,"EXT") + {""}
+        dfdict = {ext:[] for ext in exts}
+        for df in dfs:
+            for ext in exts:
+                dfdict[ext].append(df[df["EXT"]==ext])
+        return dfdict
+    return dfs
+
+
+def get_time_interval_from_multi(datasets, method="minmax"):
+    """Return the time interval from a list of dataframes or TimeSeries objects (or a combination of both).
+
+    Args:
+        datasets (list[DataFrame, TimeSeries]): List of dataframes or TimeSeries objects.
+        method (str): Method to use for determining the time interval. Options are 'minmax' and 'intersection'.
+
+    Returns:
+        tuple[np.datetime64]: A tuple containing the start and end datetimes of the time interval.
+
+    """
+    if method == "minmax": # simple earliest start and latest end
+        start = min([min(df["time"]) if isinstance(df, DataFrame) else min(df.time) for df in datasets])
+        end = max([max(df["time"]) if isinstance(df, DataFrame) else max(df.time) for df in datasets])
+    elif method == "intersection": # earliest start and latest end that all datasets have.
+        start = max([min(df["time"]) if isinstance(df, DataFrame) else min(df.time) for df in datasets])
+        end = min([max(df["time"]) if isinstance(df, DataFrame) else max(df.time) for df in datasets])
+    return start, end
+
+
+def get_uniques(data, quantity):
+    if not isinstance(data,(list,tuple)):
+        data = [data]
+    uniques = set()
+    for i in data:
+        if isinstance(i, (TimeSeries,Table)):
+            i = i.to_pandas()
+        uniques.update(set(i[quantity]))
+    return uniques
+
 
 
 def clock_format(x_rads, _):
@@ -535,5 +701,41 @@ def get_data_over_interval(
     data["EPOCH"] = data["YEAR"] + (data["DAYOFYEAR"] + data["SECOFDAY"] / 86400) / 365.25
     return data
 
+def get_datapaths(sortbydate=True, newest_first=True,fdir=str(Dirs.GEN)):
+    """Return the power datasets from the fits files."""
+    infiles = glob(fdir+"/*.txt")
+    # sort by date on filename, but not specific to where in filename. could be anywhere in it, but in the form YYYY-MM-DDTHH-MM-SS
+    # examples include "2025-03-11T18-36-00_DPR.txt", "BOUNDARY_2025-03-12T17-24-01.txt", "BOUNDARY_2025-03-12T23-49-39_window[5].txt"
+    # and should deal with not identifying one by placing it at the end of the list. 
+    # the globs will also still have the full path.
+    if sortbydate:
+        orde = []
+        for i in infiles:
+            spos = i.find("202")
+            if spos == -1:
+                orde.append("9")
+            else:
+                orde.append(i[spos:spos+19])
+        # newest_first = True will put the newest files first, False will put the oldest files first.
+        infiles = [x for _,x in sorted(zip(orde,infiles), key=lambda pair: pair[0], reverse=not newest_first)]
+    return infiles
+
+
+def approx_grid_dims(items):
+    """Generate the grid dimensions based on the number of visits and a maximum of 8 columns."""
+    num_visits = len(items)
+    # J = 1
+    for colguess in [5, 6, 7, 4, 8]:
+        if num_visits % colguess == 0:
+            icols, jrows = colguess, num_visits // colguess
+            break
+    else:
+        for colguess in [5, 6, 7, 4, 8]:
+            if num_visits % colguess < colguess // 2:
+                icols, jrows = colguess + 1, num_visits // colguess
+                break
+        else:
+            icols, jrows = num_visits // 2 + 1, 2
+    return icols, jrows
 
 

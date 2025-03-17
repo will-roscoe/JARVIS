@@ -126,6 +126,8 @@ CONST.SI_exponents = { # SI prefixes from https://www.nist.gov/pml/owm/metric-si
                     #"R":27,           # ronna
                     #"Q":30,           # quetta
                       }
+CONST.calib_cts2kr = 7.890258788035481e-05 # Calibrated conversion factor for counts to kilorayleighs for the HST STIS SrF2 filter.
+# == cts2kr(dist_earth[AU] x CONST.au_to_km)^2 x CONST.gustin_factor / 1e9
 ######## Power #################################################################
 Power = ConfigLike("power subpackage configurations")
 Power.WRITETO = "powers.txt"  # > file to write power results to

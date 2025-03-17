@@ -471,7 +471,7 @@ def prepdfs(fp,clip_neg=False, sortby="time", splitbyext=False):
         dfs[i]["hatch"] = plot.maps.hatch[i]
         dfs[i]["color"] = plot.maps.color[i]
         dfs[i]["marker"] = plot.maps.marker[i]
-        dfs[i]["zorder"] = len(dfs)-i+2
+        dfs[i]["zorder"] = len(dfs)-i+5
         # for each df, make any values < 0  equal 0
     if splitbyext:
         exts = get_uniques(dfs,"EXT") + {""}
@@ -724,7 +724,6 @@ def get_datapaths(sortbydate=True, newest_first=True,fdir=str(Dirs.GEN)):
 def approx_grid_dims(items):
     """Generate the grid dimensions based on the number of visits and a maximum of 8 columns."""
     num_visits = len(items)
-    # J = 1
     for colguess in [5, 6, 7, 4, 8]:
         if num_visits % colguess == 0:
             icols, jrows = colguess, num_visits // colguess
@@ -739,3 +738,189 @@ def approx_grid_dims(items):
     return icols, jrows
 
 
+def merge_fdicts(powerdicts:list):
+    """Merge a list of output dictionaries from powercalc into a dictionary of lists, grouped by visit, and sorted by datetime.
+
+    - **input:**
+            ```
+            powerdicts = [dict(
+                                visit="v01",
+                                power=2342135.1241,
+                                flux=1.743241e-7
+                                area=34214
+                                datetime="2016-01-01T12:34:56",
+                                fullim=np.array(...),
+                                roi=np.array(...),
+                                imex=np.array(...),
+                                coords=np.array(...)
+                            ), dict(...),...]
+            ```
+    - **output:**
+            ```
+            merge_fdicts(powerdicts) = {
+                                        "v01": {
+                                                "visit": ["v01", "v01",...],
+                                                "datetime": ["2016-01-01T12:34:56",
+                                                            "2016-01-01T12:34:57",...],
+                                                "fullim": [np.array(...), np.array(...),...],
+                                                "roi": [np.array(...), np.array(...),...],
+                                                "imex": [np.array(...), np.array(...),...],
+                                                "coords": [np.array(...), np.array(...),...]
+                                                },
+                                        "v02": {...},...,
+                                        }
+            ```
+
+    """
+    grouped = {}
+    for pdc in powerdicts:
+        if pdc["visit"] not in grouped:
+            grouped[pdc["visit"]] = []
+        grouped[pdc["visit"]].append(pdc)
+    # sort by datetime, and convert to dict of lists from list of dicts
+    for visit, pdlist in grouped.items():
+        sortedpd = sorted(pdlist, key=lambda x: x["datetime"])
+        grouped[visit] = {key: [pdc[key] for pdc in sortedpd] for key in sortedpd[0]}
+    return grouped
+
+@jprofile("dump_np_LOW")
+def __dump_np(fdicts):
+    pb_ = tqdm(total=sum(sum([len(fdicts[visit][key]) for key in [c for c in ["fullim","roi","imex","coords"] if c in fdicts[visit]]]) for visit in fdicts), desc="Dumping power arrays")
+    size_tot = 0
+    for visit in fdicts:
+        for key in [c for c in ["fullim","roi","imex","coords"] if c in fdicts[visit]]:
+            for i, array in enumerate(fdicts[visit][key]):
+                fp = f"{str(Dirs.TEMP)}/bindata/{visit}_{key}_{fdicts[visit]['datetime'][i].strftime('%Y-%m-%dT%H-%M-%S')}.nparray.npy"
+                with open(fp, "wb") as f:
+                    np.save(f, array)
+                    # identify the size of the saved file:
+                size_tot += os.path.getsize(fp)
+                pref = np.floor(np.log10(size_tot)/3).astype(int)
+                pst = f"{size_tot/10**(3*pref):.2f} {'BKMGTPE'[pref]}B"
+                pb_.set_postfix_str("dumped "+pst)
+                pb_.update()
+    pb_.close()
+@jprofile("dump_np_STD")
+def __dump_np2(fdicts):
+    pb_ = tqdm(total=sum([len(fdicts[visit]["datetime"]) for visit in fdicts]), desc="Dumping power arrays")
+    size_tot = 0
+    for visit in fdicts:
+        for key in [c for c in ["fullim","roi","imex","coords"] if c in fdicts[visit]]:
+            array=np.array(fdicts[visit][key])
+            fp = f"{str(Dirs.TEMP)}/bindata/{visit}_{key}.batcharray.npy"
+            with open(fp, "wb") as f:
+                np.save(f, array)
+                # identify the size of the saved file:
+            size_tot += os.path.getsize(fp)
+            pref = np.floor(np.log10(size_tot)/3).astype(int)
+            pst = f"{size_tot/10**(3*pref):.2f} {'BKMGTPE'[pref]}B"
+            pb_.set_postfix_str("dumped "+pst)
+            pb_.update(n=len(fdicts[visit]["datetime"]))
+    pb_.close()
+@jprofile("dump_np_HIGH")
+def __dump_np3(fdicts):
+    pb_ = tqdm(total=sum([len(fdicts[visit]["datetime"]) for visit in fdicts]), desc="Dumping power arrays")
+    size_tot = 0
+    for visit in fdicts:
+        array=np.array([fdicts[visit][key] for key in [c for c in ["fullim","roi","imex","coords"] if c in fdicts[visit]]])
+        fp = f"{str(Dirs.TEMP)}/bindata/{visit}.batcharray.npy"
+        with open(fp, "wb") as f:
+            np.save(f, array)
+            # identify the size of the saved file:
+        size_tot += os.path.getsize(fp)
+        pref = np.floor(np.log10(size_tot)/3).astype(int)
+        pst = f"{size_tot/10**(3*pref):.2f} {'BKMGTPE'[pref]}B"
+        pb_.set_postfix_str("dumped "+pst)
+        pb_.update(n=len(fdicts[visit]["datetime"]))
+    pb_.close()
+
+@jprofile("dump_np_FULL")
+def __dump_np4(fdicts):
+    size_tot = 0
+    keys = [c for c in ["fullim","roi","imex","coords"] if c in fdicts.values()[0]]
+    arr = np.empty(shape=(max(int(v[1:] for v in fdicts))+1, len(keys), max(len(fdicts[visit]["datetime"]) for visit in fdicts), *fdicts[fdicts.values()[0]][keys[0]][0].shape))
+    for visit in fdicts:
+        for i, key in enumerate(c for c in ["fullim","roi","imex","coords"] if c in fdicts[visit]):
+            arr[int(visit[1:])][i] = np.array(fdicts[visit][key])
+    fp = f"{str(Dirs.TEMP)}/bindata/all.batcharray.npy"
+    with open(fp, "wb") as f:
+        np.save(f, arr)
+        # identify the size of the saved file:
+    size_tot += os.path.getsize(fp)
+    pref = np.floor(np.log10(size_tot)/3).astype(int)
+    pst = f"{size_tot/10**(3*pref):.2f} {'BKMGTPE'[pref]}B"
+    tqdm.write("dumped "+pst)
+
+def dump_powerdicts(fdicts,method="h5"):
+    fdicts = merge_fdicts(fdicts)
+    ensure_dir(str(Dirs.TEMP/"bindata"))
+    if method == "h5":
+        pass
+        # with h5py.File(str(Dirs.TEMP)+"/bindata/power_arrays.h5", "w") as f:
+        #     for visit, visit_data in fdicts.items():
+        #         grp = f.create_group(visit)
+        #         grp.create_dataset("datetime", data=np.array([np.datetime64(d) for d in visit_data["datetime"]]))  # Store as np.datetime64
+        #         for key in ["fullim", "roi", "imex", "coords"]:
+        #             for i, array in enumerate(visit_data[key]):
+        #                 grp.create_dataset(f"{key}_{i}", data=array, compression="gzip")  # Compression for efficiency
+    elif method == "npy":
+        __dump_np(fdicts)
+    elif method == "npy2":
+        __dump_np2(fdicts)
+    elif method == "npy3":
+        __dump_np3(fdicts)
+    elif method == "npy4":
+        __dump_np4(fdicts)
+
+
+def longest_common_prefix(strings):
+    prefix = []
+    for chars in zip(*strings):
+        if all(c == chars[0] for c in chars):
+            prefix.append(chars[0])
+        else:
+            break
+    return ''.join(prefix)
+
+def longest_common_suffix(strings):
+    reversed_strings = [s[::-1] for s in strings]
+    return longest_common_prefix(reversed_strings)[::-1]
+
+def find_common_string(strings):
+    if not strings:
+        return ""
+
+    prefix = longest_common_prefix(strings)
+    suffix = longest_common_suffix(strings)
+
+    # Remove prefix and suffix to get the core
+    cores = [s[len(prefix):-len(suffix) or None] for s in strings]
+
+    # If cores contain a common substring, find it
+    core_set = set(cores)
+    if len(core_set) == 1:
+        return prefix + core_set.pop() + suffix
+    return prefix + suffix
+
+
+def hist2xy(hist):
+    freqs, bins = hist
+    x = [(bins[i]+bins[i+1])/2 for i in range(len(bins)-1)]
+    return x, freqs
+
+def import_fdictarrays(key=None,visits=None):
+    pass
+        # key = key if key else ["fullim", "roi", "imex", "coords"]
+        # with h5py.File(str(Dirs.TEMP)+"/power_arrays.h5", "r") as f:
+        #     visits = visits if visits else list(f.keys())
+        #     if all(isinstance(arg,str) for arg in [key,visits]):
+        #         return [f[f"{visits}/{key}_{i}"][:] for  i in range(len(f[visits])) if f"{visits}/{key}_{i}" in f[visits]]
+        #     elif all(isinstance(arg,(list,tuple)) for arg in [key,visits]):
+        #         dic = {}
+        #         for visit in visits:
+        #             dic[visit] = {k:[f[f"{visit}/{k}_{i}"][:] for i in range(len(f[f"{visit}/{k}_0"]))] for k in key}
+        #         return dic
+        #     elif isinstance(visits,str):
+        #         return {k:[f[f"{visits}/{k}_{i}"][:] for i in range(len(f[visits]))] for k in key}
+        #     else:
+        #         return {v:[f[f"{v}/{k}"][:] for k in f[v] if k.startswith(key)] for v in visits}

@@ -38,7 +38,7 @@ from .const import PF,log
 from .cvis import contourhdu, imagexy
 from .plotting import prep_polarfits
 from .transforms import azimuthal_equidistant, contrast_adjust, azimeq_to_polar
-from .utils import assign_params, ensure_dir, filename_from_path, fitsheader, fpath, get_datetime, hdulinfo, rpath, split_path
+from .utils import assign_params, ensure_dir, filename_from_path, fitsheader, fpath, get_datetime, hdulinfo, merge_fdicts, rpath, split_path
 
 try:  # this is to ensure that this file can be imported without needing PyQt6 or PyQt5, eg for QuickPlot
     from PyQt6 import QtGui  # type: ignore #
@@ -1387,6 +1387,8 @@ def __output_keys_toterminal():
         tqdm.write(bottom + sep + bottom)
 
 
+
+
 def power_gif(powerdicts, outdir=fpath("figures/gifs/powercalcs"),fps=5,**kwargs):
     """Generate gifs from a collection of powercalc outputs, without needing to order them manually.
 
@@ -1413,16 +1415,9 @@ def power_gif(powerdicts, outdir=fpath("figures/gifs/powercalcs"),fps=5,**kwargs
            "roi":lambda x : f"{outdir}/{x}_brojected_roi.gif",
             "imex": lambda x : f"{outdir}/{x}_polar_path.gif"}
     temp = fpath("temp/power_gif")
-    grouped = {}
+    
     # group by visit
-    for pd in powerdicts:
-        if pd["visit"] not in grouped:
-            grouped[pd["visit"]] = []
-        grouped[pd["visit"]].append(pd)
-    # sort by datetime, and convert to dict of lists from list of dicts
-    for visit, pdlist in grouped.items():
-        sortedpd = sorted(pdlist, key=lambda x: x["datetime"])
-        grouped[visit] = {key: [pd[key] for pd in sortedpd] for key in sortedpd[0]}
+    grouped = merge_fdicts(powerdicts)
     plotter = QuickPlot()
     # generate gif frames
     cleanup =[]
@@ -1431,8 +1426,6 @@ def power_gif(powerdicts, outdir=fpath("figures/gifs/powercalcs"),fps=5,**kwargs
             if key in paths:
                 ensure_dir(outdir)
                 ensure_dir(f"{temp}/{key}")
-                os.chmod(f"{temp}/{key}",0o777)
-                os.chmod(f"{temp}",0o777)
                 for i in range(len(pd[key])):
                     if key in ["fullim","roi"]:
                         fig,ax = plt.subplots()
@@ -1449,7 +1442,7 @@ def power_gif(powerdicts, outdir=fpath("figures/gifs/powercalcs"),fps=5,**kwargs
                 files = [f"{temp}/{key}/{i}.png" for i in range(len(pd[key]))]
                 cleanup.extend(files)
                 pb.set_postfix_str(f"{visit}: {key} gifgen")
-                with imageio.get_writer(paths[key](pd["visit"][0]), mode="I",fps=fps) as writer:
+                with imageio.get_writer(paths[key](visit), mode="I",fps=fps) as writer:
                     for file in files:
                         writer.append_data(imageio.imread(file))
     pb.set_description("Cleaning up")

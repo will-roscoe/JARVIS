@@ -2,6 +2,8 @@
 from contextlib import suppress
 import datetime
 import os
+import re
+import shutil
 
 from astropy.io import fits
 from matplotlib import pyplot as plt
@@ -11,10 +13,11 @@ from jarvis.cvis import generate_coadded_fits, generate_rollings
 from jarvis.extensions import extract_conf, pathfinder, power_gif
 from jarvis.power import powercalc
 #from jarvis.stats import correlate, stats  # noqa: F401
-from jarvis.utils import await_confirmation, ensure_dir, ensure_file, fitsheader, get_datapaths, get_time_interval_from_multi, hisaki_sw_get_safe, hst_fpath_dict, hst_fpath_segdict, prepdfs, rpath, split_path, statusprint, translate, jprofile
+from jarvis.utils import await_confirmation, dump_powerdicts, ensure_dir, ensure_file, fitsheader, get_datapaths, get_time_interval_from_multi, hisaki_sw_get_safe, hst_fpath_dict, hst_fpath_segdict, merge_fdicts, prepdfs, rpath, split_path, statusprint, translate, jprofile
 from tqdm import tqdm
 from jarvis.const import HISAKI, HST, Dirs, log
-from .jarvis.plotting import apply_plot_defaults, figsize
+from jarvis.plotting import apply_plot_defaults, figsize, megafigure_plot, overlaid_plot, stacked_plot
+
 # makes an image
 # n = fpath(r'datasets\HST\v04\jup_16-140-20-48-59_0103_v04_stis_f25srf2_proj.fits')
 # fitsfile = fits.open(n)
@@ -474,9 +477,9 @@ if (
         if progressbar is True:
             pbar4.close()
         log.write(f"Succcesful Calcs:\n {fstream}")
-        tqdm.write(f"{len(failed)=}/{len(failed)+ len(fdicts)}")
-        tqdm.write(f"Power fluxes written to {outfile}")
-        tqdm.write(fstream)
+        # tqdm.write(f"{len(failed)=}/{len(failed)+ len(fdicts)}")
+        # tqdm.write(f"Power fluxes written to {outfile}")
+        # tqdm.write(fstream)
         # check if file actually has any lines in it and remove if not.
         with open(outfile) as f:
             if not f.readlines():
@@ -484,33 +487,30 @@ if (
 
         return fdicts
     @jprofile("figure_gen")
-    def figure_gen(include="last5",pervisit=False,overall=True,overlaid=False,megafigure=True,plot_hst=["Total_Power","Avg_Flux","Area"],plot_hisaki_sw=["Torus_Power_Dawn","Torus_Power_Dusk","SW","Aurora_Power","Aurora_Flux"]):
+    def figure_gen(include="last5",pervisit=False,overall=False,overlaid=True,megafigure=True,plot_hst=["Total_Power","Avg_Flux","Area"],plot_hisaki_sw=["Torus_Power_Dawn","Torus_Power_Dusk","SW","Aurora_Power","Aurora_Flux"]):
         hisaki_colnames = list(HISAKI.colnames.values())
         hst_colnames = list(HST.colnames.values())
         hst_cols = [h for h in plot_hst if h in hst_colnames]
         hisaki_cols = [h for h in plot_hisaki_sw if h in hisaki_colnames]
         if "last" in include:
-            num = int([char if char.isnumeric() else "" for char in include])
+            num = int("".join([char if char.isnumeric() else "" for char in include]))
             hst_datasets = get_datapaths()[0:num+1]
         else:
             hst_datasets = get_datapaths()
         hst_datasets = prepdfs(hst_datasets)
         hisaki_dataset = hisaki_sw_get_safe(method="all")
-
+        time = datetime.datetime.now().strftime("%Y-%m-%dT%H-%M-%S")
         if overall:
-            # plot a stacked x-axis plot of all columns in the datasets, over the timeperiod of hst_datasets
-            xlim = get_time_interval_from_multi(hst_datasets)
-            figure,axs = plt.subplots(len(hst_cols)+len(hisaki_cols),1,figsize=figsize(max=True),sharex=True)
-            apply_plot_defaults(figure)
-            for i, col in enumerate(hst_cols):
-                for hst in hst_datasets:
-                    axs[i].plot(hst["time"],hst[col],label=col)
-            for i, col in enumerate(hisaki_cols):
-                axs[i+len(hst_cols)].plot(hisaki_dataset.time.datetime64,hisaki_dataset[col],label=col)
-            
+            stacked_plot(fpath(f"figures/imgs/overall_{time}.png"), hisaki_cols, hst_cols, hst_datasets, hisaki_dataset)
+        if overlaid: # plot all datasets on the same plot
+            overlaid_plot(hisaki_cols, hst_cols, hst_datasets, hisaki_dataset, fpath(f"figures/imgs/overlaid_{time}.png"))
+        if megafigure:
+            megafigure_plot(hisaki_cols, hst_cols, hst_datasets, hisaki_dataset, fpath(f"figures/imgs/megafigure_{time}.png"))
+            # plot all datasets over full interval like overlaid, but then plot each visit separately below it in a grid.
+            # example if we find 8 unique visits in the hst dataset, we will have a grid of 8 plots below the overlaid plot.
 
 
-
+   
     #@jprofile("main")
     def run_path_powercalc(
         ignores={"groups": [], "visits": ["v01","v02","v03","v04","v05","v06","v07","v08"]},
@@ -550,21 +550,25 @@ if (
             filepaths_byv.pop(i)
         for i in destseg:
             filepaths_seg.pop(i)
-        ## main part of function
-        # generate coadded fits in each segment
+        ### MAIN PART #########################################################
+        #---- OPT1: Generate coadded fits for each segment
         gen = await_confirmation("regenerate coadded fits?") if "generate_coadd" not in config else config["generate_coadd"]
         copaths = gen_segmented_coadds(filepaths_seg, coadd_dir, generate=gen, progressbar=True if gen else None)
-        # run pathfinder on each segment
+        #---- OPT2: run pathfinder on each segment
         if await_confirmation("find paths on each coadd (per segment)?") if "coadd_pathfinder" not in config else config["coadd_pathfinder"]:
             copaths = segmented_pathfinder(copaths, extname)
+        #---- OPT3: generate power fluxes from coadded fits (from OPT1->2)
         if await_confirmation("generate approximate power fluxes from coadds?") if "coadd_power" not in config else config["coadd_power"]:
             coadd_gen = visit_powercalc(copaths, extname, outfile=outfile, overwrite=True, force=False)
+        #---- OPT4: generate rolling averages of the orig. fits files
         # generate rolling averages of the fits, in their respective groups, and then save and split them into their respective segments
         gen= await_confirmation("regenerate rolling averages?") if "generate_avgs" not in config else config["generate_avgs"]
         # we have to always run this to get the paths out.
         avgpaths = gen_averages(filepaths_byv, filepaths_seg, avg_dir, generate=gen, window=window, progressbar=True if gen else None)
         # using each pathed coadded fit, run pathfinder with conf, in silent mode, and then run powercalc.
+        #---- OPT5: generate power fluxes on each rolling average (from OPT4)
         if await_confirmation("generate power fluxes on each rolling average using paths?") if "avg_power" not in config else config["avg_power"]:
+            #---- 0PT5A: generate paths on each rolling average, or use the paths from the coadds?
             if await_confirmation("Generate paths on each rolling average? (Y) or use the paths from the coadds? (N)") if "avg_pathfinder" not in config else config["avg_pathfinder"]:
                 fdicts = gen_path_powercalc(avgpaths, coadd_dir, outfile, extname,  overwrite=True, force=False)
             else:
@@ -577,15 +581,28 @@ if (
                 for p in os.listdir(avg_dir + f"/{visit}"):
                     if os.path.isfile(p):
                         os.remove(p)
+        # ---- OPT6: generate gifs
         if await_confirmation("generate gifs?") if "gif" not in config else config["gif"]:
             power_gif(fdicts, gifdir, fps=5)
-        if await_confirmation("generate histograms?"):
+        # for method in ["npy","npy2","npy3","npy4"]:
+        #     shutil.rmtree(str(Dirs.TEMP)+"/bindata", ignore_errors=True)
+        #     dump_powerdicts(fdicts, method=method)
+        #---- OPT7: Dump arrays to storage
+        if await_confirmation("dump arrays to storage? (Required for histograms, but may take up large amount of storage)") if "dump_arrays" not in config else config["dump_arrays"]:
+            fd = [{k:v for k,v in fdict.items() if k in ["visit","roi","fullim","datetime"]} for fdict in fdicts]
+            dump_powerdicts(fd, method="npy")
+        #----! OPT8: Generate histograms (not implemented yet, but the plotting.dpr_histogram_plot() has been made)
+        if await_confirmation("generate histograms?") if "histogram" not in config else config["histogram"]:
             raise NotImplementedError("Histograms not implemented yet.")
-        if await_confirmation("Generate Figures?"):
+        # ----! OPT9: Generate figures (not implemented yet, but the plotting functions have been made)
+        if await_confirmation("Generate Figures?") if "figure" not in config else config["figure"]:
+            # use cutie/func args to select what to plot.
             # options 
             #       per visit | overall
             #       most recent | last 5 | last 10 | all
             #       Power | Flux | Area | Torus Power Dawn | Torus Power Dusk | SW | Aurora Intensity |
+            raise NotImplementedError("Figures not implemented yet.")
+            figure_gen(include="(last5, last10, all, ...)", overall="True", pervisit="True", megafigure="True", plot_hst='["Total_Power","Avg_Flux","Area",...]', plot_hisaki_sw='["Torus_Power_Dawn","Torus_Power_Dusk","SW","Aurora_Power","Aurora_Flux",...]')
 
     run_path_powercalc(
         ignores={"groups": [], "visits": ["v01","v02","v03","v04","v05","v06","v07","v08"]},
@@ -598,7 +615,7 @@ if (
         extname="BOUNDARY",
         remove="none",
         window=5,
-        config = {"generate_coadd":False, "coadd_pathfinder":False, "coadd_power":False, "generate_avgs":False, "avg_power":True, "avg_pathfinder":False, "gif":False}
+        config = {"generate_coadd":False, "coadd_pathfinder":False, "coadd_power":False, "generate_avgs":False, "avg_power":True, "avg_pathfinder":False, "gif":False, "histogram":False, "figure":False, "dump_arrays":False}
     )
 
 

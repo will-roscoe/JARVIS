@@ -137,8 +137,9 @@ def _cylbroject(pimage, cml, dece, dmeq, xcen, ycen, psize, nppa, req, obt, ndiv
         x = r[start:end] * cos_lat[start:end] * sin_lon[i]
         y = r[start:end] * sin_lat[start:end]
         z = r[start:end] * cos_lat[start:end] * cos_lon[i]
-        px = (x * cos_nppa - (y * cos_dec - z * sin_dec) * sin_nppa + xcen).astype(int)
-        py = (x * sin_nppa + (y * cos_dec - z * sin_dec) * cos_nppa + ycen).astype(int)
+        w = (y * cos_dec - z * sin_dec)
+        px = (x * cos_nppa -  w* sin_nppa + xcen).astype(int)
+        py = (x * sin_nppa + w * cos_nppa + ycen).astype(int)
         return px, py
 
     if dece < 0.0:

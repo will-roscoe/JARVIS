@@ -48,7 +48,8 @@ except ImportError:
         from PyQt5 import QtGui  # type: ignore #
     except ImportError:
         log.write("Warning: PyQt6 or PyQt5 not found, pathfinder app may not function correctly")
-
+delchars = "".join(c for c in map(chr, range(1114111)) if not c.isalnum() and c not in [" ", "_", "-"])
+delmap = str.maketrans("", "", delchars)
 def __getflaglabels(flag: str):
     """Return the ordered list of labels for a given flag."""
     ident = list(PF._cvtrans[flag].keys())
@@ -954,8 +955,7 @@ def pathfinder(
             hover_event = fig.canvas.mpl_connect("motion_notify_event", __on_mouse_move_event)  # noqa: F841
             # ----TEXTENTRY----#
             textbox = TextBox(headernameax, "Header Name:", initial=result["EXTNAME"])
-            delchars = "".join(c for c in map(chr, range(1114111)) if not c.isalnum() and c not in [" ", "_", "-"])
-            delmap = str.maketrans("", "", delchars)
+            
 
             def __on_headername_text_change(text: str):
                 global result

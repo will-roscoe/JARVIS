@@ -133,17 +133,19 @@ def azimuthal_equidistant(data, rlim=40, meridian_pos="N", origin="upper",clip_l
     output_size = n_theta  # Output image size (square)
     # Convert longitude limits to radians
     corrected_cml = (-cml) % 360
-    lon_clip = [(cml+cm[0]) % 360, (cml+cm[1]) % 360]
+    lon_clip = [(corrected_cml+cm[0]) % 360, (corrected_cml+cm[1]) % 360]
+    lon_clip_pixel = [int(i / 360 * n_phi) for i in lon_clip]
+    lon_mask = np.zeros_like(img, dtype=bool) # masking out the longitudes we dont want
+    lon_mask[:, lon_clip_pixel[0] : lon_clip_pixel[1]] = True
+    img[lon_mask==False] = np.nan # set unused longitudes to the square bg. # noqa: ERA001
     if not is_south:
         img = np.flip(img, axis=0)  # flip to have north pole at 0 index (image data is south at 0)
     # Compute the pixel corresponding to the longitude
     cml_pixel = int(corrected_cml / 360 * n_phi)
-    lon_clip_pixel = [int(i / 360 * n_phi) for i in lon_clip]
+    
     if kwargs.get("drawcml",False): # Annotate the line vertically at the correct longitude
         img[:, cml_pixel] = kwargs["drawcml"]
-    lon_mask = np.zeros_like(img, dtype=bool) # masking out the longitudes we dont want
-    lon_mask[:, lon_clip_pixel[0] : lon_clip_pixel[1]] = True
-    #img[lon_mask==False] = kwargs.get("arr_bg",0) # set unused longitudes to the square bg. # noqa: ERA001
+    
     img = np.nan_to_num(img, nan=kwargs.get("proj_bg",np.max(np.nan_to_num(img)))) # turn nan values to circle bg
     # if zero, also set to proj_bg.
     img = np.where(img<=1, kwargs.get("proj_bg",np.max(np.nan_to_num(img))), img)

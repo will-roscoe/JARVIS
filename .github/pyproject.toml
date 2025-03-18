@@ -1,7 +1,47 @@
+### Project metadata
 [project]
+name = "jarvis"
+version = "2025.0.0"
+authors = [
+        { name= "Will Roscoe", email="w.roscoe@lancaster.ac.uk"},
+        { name="Ronan Szeto"},
+        { name="Samuel Courthold"},
+        { name="Yifan Chen"},
+]
+description = "JAR:VIS - Jovian Auroral Research: Visualising Ionospheric Science"
+readme = "README.md"
+license = {file= "LICENSE.*"}
+keywords = ["jupiter", "aurora", "hst", "hisaki", "ultraviolet", "dark polar region"]
 requires-python = ">=3.8"
+dependencies = [ 
+        "astropy~=7.0.0",
+        "cmasher~=1.9.2",
+        "fastgif~=2.1",
+        "imageio~=2.34.1",
+        "keyboard~=0.13.5",
+        "matplotlib~=3.8.4",
+        "numpy~=2.2.3",
+        "opencv_python~=4.11.0.86",
+        "opencv_python_headless~=4.9.0.80",
+        "pandas~=2.2.3",
+        "python_dateutil~=2.9.0.post0",
+        "regex~=2024.5.15",
+        "scipy~=1.15.2",
+        "spiceypy~=6.0.0",
+        "sympy~=1.12",
+        "tqdm~=4.66.2",
+        "cutie",
+        "gprof2dot",
+]
+[project.optional-dependencies]
+ci = ["pytest~=8.3.4", pytest-cov~=3.0.0, "interrogate", "ruff"]
+extensions = ["PyQt6"]
+[project.urls]
+Repository = "https://github.com/will-roscoe/JARVIS"
 
 
+### Tool Configurations
+### Ruff
 [tool.ruff]
 #include = ["python/jarvis/**/*.py"]
 line-length = 120
@@ -65,6 +105,7 @@ mccabe.max-complexity= 16
 ignore-fully-untyped = true
 allow-star-arg-any = true
 
+## Interrogate
 [tool.interrogate] 
 # command : interrogate -vvv -c .\.github\pyproject.toml .\\python\\jarvis\
 ignore-init-method = false

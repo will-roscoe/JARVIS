@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 from contextlib import suppress
 import datetime
+from glob import glob
 import os
 import re
 import shutil
 
 from astropy.io import fits
-from matplotlib import pyplot as plt
+from matplotlib import figure, pyplot as plt
 import numpy as np
 from jarvis import fpath, fits_from_glob
 from jarvis.cvis import generate_coadded_fits, generate_rollings
@@ -16,7 +17,8 @@ from jarvis.power import powercalc
 from jarvis.utils import await_confirmation, dump_powerdicts, ensure_dir, ensure_file, fitsheader, get_datapaths, get_time_interval_from_multi, hisaki_sw_get_safe, hst_fpath_dict, hst_fpath_segdict, merge_fdicts, prepdfs, rpath, split_path, statusprint, translate, jprofile
 from tqdm import tqdm
 from jarvis.const import HISAKI, HST, Dirs, log
-from jarvis.plotting import apply_plot_defaults, figsize, megafigure_plot, overlaid_plot, stacked_plot
+from jarvis.plotting import apply_plot_defaults, dpr_histogram_plot, figsize, megafigure_plot, overlaid_plot, stacked_plot
+import cutie
 
 # makes an image
 # n = fpath(r'datasets\HST\v04\jup_16-140-20-48-59_0103_v04_stis_f25srf2_proj.fits')
@@ -487,29 +489,33 @@ if (
 
         return fdicts
     @jprofile("figure_gen")
-    def figure_gen(include="last5",pervisit=False,overall=False,overlaid=True,megafigure=True,plot_hst=["Total_Power","Avg_Flux","Area"],plot_hisaki_sw=["Torus_Power_Dawn","Torus_Power_Dusk","SW","Aurora_Power","Aurora_Flux"]):
-        hisaki_colnames = list(HISAKI.colnames.values())
-        hst_colnames = list(HST.colnames.values())
-        hst_cols = [h for h in plot_hst if h in hst_colnames]
-        hisaki_cols = [h for h in plot_hisaki_sw if h in hisaki_colnames]
+    def figure_gen(hst_cols,hisaki_cols,include="last5",stacked=False,overlaid=True,megafigure=True):
+        # hisaki_colnames = list(HISAKI.colnames.values())
+        # hst_colnames = list(HST.colnames.values())    
+        # hst_cols = [h for h in hst_cols if h in hst_colnames]
+        # hisaki_cols = [h for h in hisaki_cols if h in hisaki_colnames]
+        overlaid_map = [
+            *hst_cols,
+            [["Torus_Power_Dawn","Torus_Power_Dusk"],"Aurora_Power"], # shared axis
+            "Pdyn",
+            "Aurora_Flux", # twin axis
+        ]
         if "last" in include:
-            num = int("".join([char if char.isnumeric() else "" for char in include]))
-            hst_datasets = get_datapaths()[0:num+1]
+            num = int("".join([char if char.isnumeric() else "" for char in include])) if len(include)>4 else 1
+            hst_datasets = get_datapaths()[0:num]
         else:
             hst_datasets = get_datapaths()
         hst_datasets = prepdfs(hst_datasets)
         hisaki_dataset = hisaki_sw_get_safe(method="all")
         time = datetime.datetime.now().strftime("%Y-%m-%dT%H-%M-%S")
-        if overall:
-            stacked_plot(fpath(f"figures/imgs/overall_{time}.png"), hisaki_cols, hst_cols, hst_datasets, hisaki_dataset)
+        if stacked:
+            stacked_plot(hst_datasets=hst_datasets, hisaki_dataset=hisaki_dataset, hst_cols=hst_cols, hisaki_cols=hisaki_cols, savepath=fpath(f"figures/imgs/stacked_{time}.png"))
         if overlaid: # plot all datasets on the same plot
-            overlaid_plot(hisaki_cols, hst_cols, hst_datasets, hisaki_dataset, fpath(f"figures/imgs/overlaid_{time}.png"))
+            overlaid_plot(overlaid_map, hst_datasets, hisaki_dataset, fpath(f"figures/imgs/overlaid_{time}.png"))
         if megafigure:
-            megafigure_plot(hisaki_cols, hst_cols, hst_datasets, hisaki_dataset, fpath(f"figures/imgs/megafigure_{time}.png"))
+            megafigure_plot(hst_datasets=hst_datasets, hisaki_dataset=hisaki_dataset, hst_cols=hst_cols, hisaki_cols=hisaki_cols, savepath=fpath(f"figures/imgs/megafigure_{time}.png"))
             # plot all datasets over full interval like overlaid, but then plot each visit separately below it in a grid.
             # example if we find 8 unique visits in the hst dataset, we will have a grid of 8 plots below the overlaid plot.
-
-
    
     #@jprofile("main")
     def run_path_powercalc(
@@ -518,24 +524,41 @@ if (
         segments=2,
         coadd_dir=fpath("temp/coadds"),
         avg_dir=fpath("temp/rollavgs"),
-        gifdir=fpath("temp/gifs"),
+        gifdir=fpath("figures/gifs"),
         outfile="auto",
         extname="BOUNDARY",
         remove="none",
         window=3,
-        config = {}
+        config = {},
+        fig_config = {}
     ):
+        global init_time
+        init_time = datetime.datetime.now()
+        def writelog(msg, ):
+            timedelta = datetime.datetime.now() - init_time
+            sec = timedelta.total_seconds()
+            mins = int(sec//60)
+            sec = sec%60
+            msec = int(sec%1 * 1000)
+            sec = int(sec)
+            tqdm.write(f"[{mins:0>3}:{sec:0>2}:{msec:0>4}] {msg}")
+
+        writelog("Starting...")
         filepaths_byv = hst_fpath_dict(byvisit=byvisit)
         filepaths_seg = hst_fpath_segdict(segments, byvisit=byvisit)
         # config is used to predefine the anwsers to the confirmation prompts.
         # config = {"generate_coadd":bool, "coadd_pathfinder":bool, "coadd_power":bool, "generate_avgs":bool, "avg_power":bool, "avg_pathfinder":bool, "gif":bool}
         # to ignore any visit or group (or segment in either), we translate all to the correct form and format.
-        ignores_ = []
+        
+        ignores_ = ["v05","v29"]
         ident = "v" if byvisit else "g"
         ign = [item for sublist in [[[k, v] for v in ignores[k]] for k in ignores] for item in sublist]
         for iden, num in ign:
             if isinstance(num, int):
-                ignores_.append(f"{ident}{translate(num, init=iden,to=ident):0>2}")
+                l = translate(num, init=iden,to=ident)
+                ignores_.append(f"{ident}{l:0>2}")
+                for i in range(num):
+                    tqdm.write(f"{iden}{num[i]}-->{l[i]}")
             else:
                 ignores_.append(f"{ident}{num[0] if num[0]!=iden[0] else ''}{num[1:]}")
         destbyv = []
@@ -550,64 +573,168 @@ if (
             filepaths_byv.pop(i)
         for i in destseg:
             filepaths_seg.pop(i)
+        writelog("Visits Selected = "+",".join(filepaths_byv.keys()))
+        writelog("Organized Paths")
         ### MAIN PART #########################################################
         #---- OPT1: Generate coadded fits for each segment
         gen = await_confirmation("regenerate coadded fits?") if "generate_coadd" not in config else config["generate_coadd"]
+        if gen:
+            writelog("Generating Coadds...")
+            writelog(",".join(list(filepaths_seg.keys())))
         copaths = gen_segmented_coadds(filepaths_seg, coadd_dir, generate=gen, progressbar=True if gen else None)
+        
+        if gen:
+            writelog("Coadds Generated")
         #---- OPT2: run pathfinder on each segment
         if await_confirmation("find paths on each coadd (per segment)?") if "coadd_pathfinder" not in config else config["coadd_pathfinder"]:
+            writelog("Running pathfinder on each segment...")
             copaths = segmented_pathfinder(copaths, extname)
+            
+            writelog("Pathfinder Complete")
         #---- OPT3: generate power fluxes from coadded fits (from OPT1->2)
         if await_confirmation("generate approximate power fluxes from coadds?") if "coadd_power" not in config else config["coadd_power"]:
-            coadd_gen = visit_powercalc(copaths, extname, outfile=outfile, overwrite=True, force=False)
+            writelog("Generating Power Fluxes...")
+            coadd_gen = visit_powercalc(copaths, extname, outfile=outfile, overwrite=True,)
+            writelog("Power Fluxes Generated")
         #---- OPT4: generate rolling averages of the orig. fits files
         # generate rolling averages of the fits, in their respective groups, and then save and split them into their respective segments
         gen= await_confirmation("regenerate rolling averages?") if "generate_avgs" not in config else config["generate_avgs"]
         # we have to always run this to get the paths out.
+        if gen:
+            writelog("Generating Rolling Averages...")
         avgpaths = gen_averages(filepaths_byv, filepaths_seg, avg_dir, generate=gen, window=window, progressbar=True if gen else None)
+        if gen:
+            writelog("Rolling Averages Generated")
         # using each pathed coadded fit, run pathfinder with conf, in silent mode, and then run powercalc.
         #---- OPT5: generate power fluxes on each rolling average (from OPT4)
         if await_confirmation("generate power fluxes on each rolling average using paths?") if "avg_power" not in config else config["avg_power"]:
             #---- 0PT5A: generate paths on each rolling average, or use the paths from the coadds?
             if await_confirmation("Generate paths on each rolling average? (Y) or use the paths from the coadds? (N)") if "avg_pathfinder" not in config else config["avg_pathfinder"]:
+                writelog("Running pathfinder on each rolling average, and then powercalc...")
                 fdicts = gen_path_powercalc(avgpaths, coadd_dir, outfile, extname,  overwrite=True, force=False)
             else:
+                writelog("Running powercalc on each rolling average...")
                 fdicts = copath_avg_powercalc(avgpaths, coadd_dir, outfile, extname,  overwrite=True, force=False)
-        if remove in ["both", "coadds"]:
+            writelog("Power Fluxes Generated")
+        writelog("Cleaning up generated files...")
+        nu = 0
+        if remove in ["all", "coadds"]:
             for visit in filepaths_seg:
                 os.remove(coadd_dir + f"/{visit}.fits")
-        if remove in ["both", "rollavgs"]:
+                nu+=1
+        if remove in ["all", "rollavgs"]:
             for visit in avgpaths:
                 for p in os.listdir(avg_dir + f"/{visit}"):
                     if os.path.isfile(p):
                         os.remove(p)
+                        nu+=1
+        writelog(f"Removed {nu} files")
         # ---- OPT6: generate gifs
         if await_confirmation("generate gifs?") if "gif" not in config else config["gif"]:
+            writelog("Generating GIFs...")
             power_gif(fdicts, gifdir, fps=5)
+            writelog("GIFs Generated")
         # for method in ["npy","npy2","npy3","npy4"]:
         #     shutil.rmtree(str(Dirs.TEMP)+"/bindata", ignore_errors=True)
         #     dump_powerdicts(fdicts, method=method)
         #---- OPT7: Dump arrays to storage
         if await_confirmation("dump arrays to storage? (Required for histograms, but may take up large amount of storage)") if "dump_arrays" not in config else config["dump_arrays"]:
             fd = [{k:v for k,v in fdict.items() if k in ["visit","roi","fullim","datetime"]} for fdict in fdicts]
+            writelog("Dumping Arrays...")
             dump_powerdicts(fd, method="npy")
+            writelog("Arrays Dumped")
         #----! OPT8: Generate histograms (not implemented yet, but the plotting.dpr_histogram_plot() has been made)
         if await_confirmation("generate histograms?") if "histogram" not in config else config["histogram"]:
-            raise NotImplementedError("Histograms not implemented yet.")
+            opt=["Select which types to plot:", "average per visit", "overlaid per visit", ]
+            ret = cutie.select_multiple(opt, [0], ticked_indices=[1])
+            if len(ret) > 0:
+                # list of visits in fdicts
+                fdic = list(set([f["visit"] for f in fdicts]))
+                writelog(f"Generating histograms for visits: {fdic}")
+                pb12 = tqdm(total=len(ret)*len(fdic), desc="Generating Histograms")
+                for r in ret:
+                    if r<3:
+                        methd = "avg" if r==1 else "indiv"
+                        for visit in fdic:
+                            found = glob(fpath(f"temp/bindata/{visit}_roi*"))
+                            pb12.set_postfix_str(f"{visit} {methd}: {len(found)} arrays.")
+                            dh = dpr_histogram_plot(found, method=methd)
+                            fig, ax, d = dh
+                            fig.suptitle("Histogram of Pixel Intensities within the DPR for visit "+visit)
+                            fig.savefig(fpath(f"figures/imgs/{visit}_roi_hist_{methd}.png"))
+                            pb12.update()
+                            
+                pb12.close()
+                writelog("Histograms Generated")
+                        
+
+                            
         # ----! OPT9: Generate figures (not implemented yet, but the plotting functions have been made)
         if await_confirmation("Generate Figures?") if "figure" not in config else config["figure"]:
-            # use cutie/func args to select what to plot.
-            # options 
-            #       per visit | overall
-            #       most recent | last 5 | last 10 | all
-            #       Power | Flux | Area | Torus Power Dawn | Torus Power Dusk | SW | Aurora Intensity |
-            raise NotImplementedError("Figures not implemented yet.")
-            figure_gen(include="(last5, last10, all, ...)", overall="True", pervisit="True", megafigure="True", plot_hst='["Total_Power","Avg_Flux","Area",...]', plot_hisaki_sw='["Torus_Power_Dawn","Torus_Power_Dusk","SW","Aurora_Power","Aurora_Flux",...]')
-
+            def_figconfig= dict(
+            stacked = True,
+            overlaid = True,
+            megafigure = True,
+            hst_cols = ["Total_Power","Avg_Flux","Area"],
+            hisaki_cols = ["Torus_Power_Dawn","Torus_Power_Dusk","Pdyn","Aurora_Power","Aurora_Flux"],
+            include = "last1")
+            if fig_config.get("auto",False):
+                fig_config = def_figconfig
+            else:
+                if "figtypes" not in fig_config:
+                    opt = ["Select which plot types to generate:", "Overlaid", "Stacked", "Megafigure"]
+                    inds =cutie.select_multiple(opt, [0], ticked_indices=[opt.index(i) for i in opt if i in def_figconfig.get("figtypes")])
+                    fig_config["figtypes"] = [opt[i] for i in inds]
+                fig_config.update({"stacked": "Stacked" in fig_config["figtypes"], "overlaid": "Overlaid" in fig_config["figtypes"], "megafigure": "Megafigure" in fig_config["figtypes"]})
+                fig_config.remove("figtypes")
+                if "default_cols" not in fig_config or fig_config.get("default_cols") is False:
+                    if "hst_cols" not in fig_config: 
+                        hst_cols = list(HST.colnames.values())
+                        opt2 = ["Select which HST columns to plot:", *hst_cols, ]
+                        fig_config["hst_cols"] = [opt2[i] for i in cutie.select_multiple(opt2, [0], ticked_indices=[i for i in opt2 if i in def_figconfig.get("hst_cols")])]
+                    if "hisaki_cols" not in fig_config:
+                        hisaki_cols = list(HISAKI.colnames.values())
+                        opt3 = ["Select which Hisaki columns to plot:", *hisaki_cols, ]
+                        fig_config["hisaki_cols"] = [opt3[i] for i in cutie.select_multiple(opt3, [0], ticked_indices=[i for i in opt3 if i in def_figconfig.get("hisaki_cols")])]
+                else:
+                    fig_config["hst_cols"] = def_figconfig.get("hst_cols")
+                    fig_config["hisaki_cols"] = def_figconfig.get("hisaki_cols")
+                
+                if "include" not in fig_config:
+                    opt4 = ["Select which datasets to plot:", "All", "Most Recent", "Last 5", "Last 10"]
+                    fig_config["include"] = opt4[cutie.select(opt4, opt4.index(def_figconfig.get("include")))]
+                
+            writelog("Generating Figures...")
+            if fig_config.get("stacked",False):
+                writelog("Generating Stacked Figure")
+                figure_gen(fig_config["hst_cols"],fig_config["hisaki_cols"],fig_config["include"],True,False,False)
+                writelog("Stacked Figure Generated")
+            if fig_config.get("overlaid",False):
+                writelog("Generating Overlaid Figure")
+                figure_gen(fig_config["hst_cols"],fig_config["hisaki_cols"],fig_config["include"],False,True,False)
+                writelog("Overlaid Figure Generated")
+            if fig_config.get("megafigure",False):
+                writelog("Generating Megafigure")
+                for h in fig_config["hst_cols"]:
+                    writelog(f"Generating Megafigure for {h}")
+                    figure_gen([h],fig_config["hisaki_cols"],fig_config["include"],False,False,True)
+                writelog("Megafigure Generated")
+            writelog("Figures Generated")
+        if remove in ["all", "bindata"]:
+            shutil.rmtree(str(Dirs.TEMP)+"/bindata", ignore_errors=True)
+        if remove in ["all", "temp"]:
+            shutil.rmtree(str(Dirs.TEMP), ignore_errors=True)
+        
+        writelog("Finished. Exiting...")
+                
+            
+            
+            
+          
     run_path_powercalc(
-        ignores={"groups": [], "visits": ["v01","v02","v03","v04","v05","v06","v07","v08"]},
+        ignores={"groups": [], "visits": []},
         byvisit=True,
-        segments=2,
+        segments=1,
         coadd_dir=fpath("temp/coadds"),
         avg_dir=fpath("temp/rollavgs"),
         gifdir=fpath("temp/gifs"),
@@ -615,7 +742,8 @@ if (
         extname="BOUNDARY",
         remove="none",
         window=5,
-        config = {"generate_coadd":False, "coadd_pathfinder":False, "coadd_power":False, "generate_avgs":False, "avg_power":True, "avg_pathfinder":False, "gif":False, "histogram":False, "figure":False, "dump_arrays":False}
+        config = {"generate_coadd":False, "coadd_pathfinder":False, "coadd_power":False, "generate_avgs":False, "avg_power":False, "avg_pathfinder":False, "gif":False, "histogram":False, "figure":True, "dump_arrays":False},
+        fig_config = {"auto":True}
     )
 
 

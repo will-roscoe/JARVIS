@@ -18,19 +18,20 @@ import matplotlib as mpl
 from itertools import zip_longest
 import pandas as pd
 from jarvis.utils import get_obs_interval, group_to_visit
+from jarvis.plotting import  dpr_histogram_plot
 
 
 
 
 
 
-# dpr_histogram_plot(glob(fpath("temp/bindata/09_roi*")))
-# plt.show()
+dpr_histogram_plot(glob(fpath("temp/bindata/10_roi_*")))
+plt.show()
 
 
 
 
-figure_gen()
+
 # fpaths = fits_from_glob(hst_fpath_list()[6])
 
 # copath = fpath('temp/coadds/v09sB.fits')

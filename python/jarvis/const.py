@@ -6,7 +6,7 @@ from pathlib import Path
 import cmasher as cmr
 import cv2
 from os.path import exists
-from collections import UserList
+from astropy import units as u
 FITSINDEX = 1 # DEFAULT FITSINDEX: the default target HDU within a fits file.
 # ~ defines the project root directory (as the root of the gh repo)
 GHROOT = Path(__file__).parents[2]# ~ if you move this file/folder, you need to change this line to match the new location.
@@ -400,20 +400,44 @@ plot.maps.marker = ExpandingList(["1","2","3","4","x","+","1","2","3","4","x","+
 plot.maps.hatch = ExpandingList(["\\\\","//","--","||","oo","xx","**"], "++")
 plot.size_a4 = {"width": 8.3, "height": 11.7}
 plot.margin = 1
+plot.inset_annotate_kws = dict(xy=(0, 1),xycoords="axes fraction",xytext=(+0.5, -0.5),textcoords="offset fontsize",fontsize="medium",verticalalignment="top",weight="bold",bbox={"facecolor": "#0000", "edgecolor": "none", "pad": 3.0},)
+plot.meta_annotate_kws = dict(xy=(1, 1),xycoords="axes fraction",xytext=(-0.05, +0.1),textcoords="offset fontsize",fontsize="medium",verticalalignment="bottom",horizontalalignment="right",annotation_clip=False,bbox={"facecolor": "#0000", "edgecolor": "none", "pad": 3.0},)
+plot.visit_annotate_kws = dict(xytext=(0, -9), 
+                                           textcoords="offset points", ha="center", va="center", 
+                                           fontsize="small", 
+                                           arrowprops=dict(arrowstyle="-", color="black", 
+                                            lw=0.5, shrinkA=0,shrinkB=0), bbox=dict(fc="#fff0", ec="#fff0",lw=0.2, pad=0),clip_on=False,)
+plot.gen = ConfigLike("Figure generation configurations")
+plot.gen.stacked = ConfigLike("Stacked figure configurations")
+plot.defaults = ConfigLike("Default figure configurations")
+plot.defaults.rcfile = str(GHROOT/"python/jarvis/resources/jarvis.mplstyle")
+plot.defaults.DOY_label = "Day of Year"
 
-    
+
+
+
+plot.gen.overlaid = ConfigLike("Overlaid figure configurations")
+plot.gen.mega = ConfigLike("Mega figure configurations")
+plot.gen.hist = ConfigLike("Histogram figure configurations")
+plot.gen.gif = ConfigLike("GIF figure configurations")
+
+
+
+
+
+
 HISAKI = ConfigLike("Mappings for Hisaki/SW dataset")
 HISAKI._desc = dict(                 # (Units from HISAKI fits files, rest were guessed)
-    jup_sw_pdyn =       ["Pdyn", "$P_{SW,dyn}$", "nPa"],  # Dynamic pressure of the solar wind in nanoPascals.
+    jup_sw_pdyn =       ["Pdyn", "$P_{SW,dyn}$", "nPa",],  # Dynamic pressure of the solar wind in nanoPascals.
     # Shared Columns
-    RADMON =            ["Rad_Mon", "$R_{rad}$", "counts/min"],  # Radiation monitor for measuring radiation in counts per minute.
-    JUPLOC =            ["Jup_Y", "$y_{J}$", "pixel"],  # Y-coordinate position of Jupiter in the image in pixels.
-    JPFWHM =            ["Jup_FWHM", "$FWHM_{J}$", "pixel"],  # Full width at half maximum (FWHM) of Jupiter's image in pixels.
-    INT_TIME =          ["Intg_Time", "$T_{int}$", "min"],  # Total time for image integration in minutes.
-    SLIT1Y =            ["Slit_B140", "$y_{slit1}$", "pixel"],  # Y-position of the bottom of slit 1 in the image in pixels.
-    SLIT2Y =            ["Slit_B20", "$y_{slit2}$", "pixel"],  # Y-position of the bottom of slit 2 in the image in pixels.
-    SLIT3Y =            ["Slit_T20", "$y_{slit3}$", "pixel"],  # Y-position of the top of slit 3 in the image in pixels.
-    SLIT4Y =            ["Slit_T140", "$y_{slit4}$", "pixel"],  # Y-position of the top of slit 4 in the image in pixels.
+    RADMON =            ["Rad_Mon", "$R_{rad}$", "counts/min",],  # Radiation monitor for measuring radiation in counts per minute.
+    JUPLOC =            ["Jup_Y", "$y_{J}$", "pixel",],  # Y-coordinate position of Jupiter in the image in pixels.
+    JPFWHM =            ["Jup_FWHM", "$FWHM_{J}$", "pixel",],  # Full width at half maximum (FWHM) of Jupiter's image in pixels.
+    INT_TIME =          ["Intg_Time", "$T_{int}$", "min", ],  # Total time for image integration in minutes.
+    SLIT1Y =            ["Slit_B140", "$y_{slit1}$", "pixel", ],  # Y-position of the bottom of slit 1 in the image in pixels.
+    SLIT2Y =            ["Slit_B20", "$y_{slit2}$", "pixel",],  # Y-position of the bottom of slit 2 in the image in pixels.
+    SLIT3Y =            ["Slit_T20", "$y_{slit3}$", "pixel", ],  # Y-position of the top of slit 3 in the image in pixels.
+    SLIT4Y =            ["Slit_T140", "$y_{slit4}$", "pixel", u],  # Y-position of the top of slit 4 in the image in pixels.
     JPFLAG =            ["Jup_Flag", "$JP_{flag}$", "pixel"],  # Flag indicating the position of Jupiter in the image in pixels.
     AURPFLG =           ["Aur_Flag", "$Aurora_{flag}$", "pixel"],  # Flag indicating the position of an aurora in the image in pixels.
     YEAR =              ["YEAR", "$Year$", "years"],  # Year of the observation.
@@ -441,13 +465,13 @@ HISAKI._desc = dict(                 # (Units from HISAKI fits files, rest were 
     EERR0710ADUSK =     ["Torus_Flux_Dusk_Error", "$F_{err, torus, flux, dusk}$", "eV/cm^2/s"],  # Error in the torus flux at dusk in eV/cm^2/s.
     PPOS0710ADUSK =     ["Torus_Dusk_Pos", "$P_{torus, dusk}$", "pixel"],  # Position of the torus region at dusk in pixels.
     # Aurora Columns
-    TPOW1190A =         ["Aurora_Power", "$F_{aurora}$", "GW"],  # Average auroral flux in gigawatts.
-    TERR1190A =         ["Aurora_Power_Err", "$F_{err, aurora}$", "GW"],  # Error in the auroral flux in gigawatts.
-    CONT1190A =         ["Aurora_Cont", "$C_{aurora}$", "counts"],  # Continuum intensity in the aurora region in counts.
-    LINT1190A =         ["Aurora_LINT", "$L_{aurora}$", "counts/min"],  # LINT (line integral) in the aurora region in counts per minute.
-    EFLX1190A =         ["Aurora_Flux", "$F_{aurora, flux}$", "eV/cm^2/s"],  # Flux in the aurora region in eV/cm^2/s.
-    EERR1190A =         ["Aurora_Flux_Err", "$F_{err, aurora, flux}$", "eV/cm^2/s"],  # Error in the auroral flux in eV/cm^2/s.
-    PPOS1190A =         ["Aurora_Pos", "$P_{aurora}$", "pixel"],  # Position of the aurora region in the image in pixels.
+    TPOW1190A =         ["Aurora_Power", "$F_{aurora}$", "GW"],#4  # Average auroral flux in gigawatts.
+    TERR1190A =         ["Aurora_Power_Err", "$F_{err, aurora}$", "GW"],#5  # Error in the auroral flux in gigawatts.
+    CONT1190A =         ["Aurora_Cont", "$C_{aurora}$", "counts"],#6  # Continuum intensity in the aurora region in counts.
+    LINT1190A =         ["Aurora_LINT", "$L_{aurora}$", "counts/min"],#7  # LINT (line integral) in the aurora region in counts per minute.
+    EFLX1190A =         ["Aurora_Flux", "$F_{aurora, flux}$", "eV/cm^2/s"],#8  # Flux in the aurora region in eV/cm^2/s.
+    EERR1190A =         ["Aurora_Flux_Err", "$F_{err, aurora, flux}$", "eV/cm^2/s"],#9  # Error in the auroral flux in eV/cm^2/s.
+    PPOS1190A =         ["Aurora_Pos", "$P_{aurora}$", "pixel"],#10  # Position of the aurora region in the image in pixels.
     TPOW1190ARAD1 =     ["Aurora_R1_Power", "$F_{aurora,r1}$", "GW"],  # Average auroral flux in gigawatts.
     TERR1190ARAD1 =     ["Aurora_R1_Power_Err", "$F_{err, aurora,r1}$", "GW"],  # Error in the auroral flux in gigawatts.
     CONT1190ARAD1 =     ["Aurora_R1_Cont", "$C_{aurora,r1}$", "counts"],  # Continuum intensity in the aurora region in counts.
@@ -466,21 +490,23 @@ HISAKI._desc = dict(                 # (Units from HISAKI fits files, rest were 
 HISAKI.colnames = {k: v[0] for k, v in HISAKI._desc.items()}
 HISAKI.colunits = {k: v[2] for k, v in HISAKI._desc.items()}
 HISAKI.tex = {k: v[1] for k, v in HISAKI._desc.items()}
+HISAKI.df = ConfigLike("Descriptors mapped to new column names")
+HISAKI.df._desc = {v[0]:[k, *v[1:]] for k,v in HISAKI._desc.items()}
+HISAKI.df.names = {k: v[0] for k, v in HISAKI.df._desc.items()}
+HISAKI.df.units = {k: v[2] for k, v in HISAKI.df._desc.items()}
+HISAKI.df.tex = {k: v[1] for k, v in HISAKI.df._desc.items()}
 def mapval(inp,output, _desc):
     # input is a string, matchin an item in one of the lists in _desc. output is a string or int or list of combinations of these
     strmap  = {"init":"key", "colname":0,"label":1,"unit":2, "tex":1}
     # turn into indices/"key"
     output = [strmap.get(o, o) for o in (output if isinstance(output, (list, tuple)) else [output])]
     # find the list containing the input, and assign the items and key to found
-
     for k,v in _desc.items():
         if inp in v:
             found = v +[k]
-            print(found)
             break
     # return the requested parts (if numeric, return at index, else return last)
     ret = [found[o] if isinstance(o,int) else found[-1] for o in output ] if isinstance(output, (list,tuple)) else found[output]
-    print(ret)
     return ret 
         
 HISAKI.mapval = lambda x,y: mapval(x,y,HISAKI._desc)
@@ -502,6 +528,11 @@ HST._desc = dict(
 HST.colnames = {k: v[0] for k, v in HST._desc.items()}
 HST.colunits = {k: v[2] for k, v in HST._desc.items()}
 HST.tex = {k: v[1] for k, v in HST._desc.items()}
+HST.df = ConfigLike("Descriptors mapped to new column names")
+HST.df._desc = {v[0]:[k, *v[1:]] for k,v in HST._desc.items()}
+HST.df.names = {k: v[0] for k, v in HST.df._desc.items()}
+HST.df.units = {k: v[2] for k, v in HST.df._desc.items()}
+HST.df.tex = {k: v[1] for k, v in HST.df._desc.items()}
 HST.mapval = lambda x,y: mapval(x,y,HST._desc)
 
 

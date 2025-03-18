@@ -98,8 +98,8 @@ def plot_visits(
             axs[j][i].set_xlim([dmin - 0.01 * delta, dmax + 0.01 * delta])
             axs[j][i].xaxis.set_major_locator(mpl.dates.MinuteLocator(interval=int(np.floor((delta.total_seconds() / 60) / 3))))
             axs[j][i].xaxis.set_major_formatter(mpl.dates.DateFormatter("%H:%M"))
-            axs[j][i].annotate(f"v{visits[i+icols*j]}",xy=(0, 1),xycoords="axes fraction",xytext=(+0.5, -0.5),textcoords="offset fontsize",fontsize="medium",verticalalignment="top",weight="bold",bbox={"facecolor": "#0000", "edgecolor": "none", "pad": 3.0},)
-            axs[j][i].annotate(f'{dmin.strftime("%d/%m/%y")}',xy=(1, 1),xycoords="axes fraction",xytext=(-0.05, +0.1),textcoords="offset fontsize",fontsize="medium",verticalalignment="bottom",horizontalalignment="right",annotation_clip=False,bbox={"facecolor": "#0000", "edgecolor": "none", "pad": 3.0},)
+            axs[j][i].annotate(f"v{visits[i+icols*j]}",)
+            axs[j][i].annotate(f'{dmin.strftime("%d/%m/%y")}',)
             axs[j][i].tick_params(axis="both", pad=0)
     fig.suptitle(f'{quantity} over visits {df['visit'].min()} to {df['visit'].max()}', fontsize=20)
     if "save" in ret:

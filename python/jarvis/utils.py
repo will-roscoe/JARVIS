@@ -907,20 +907,3 @@ def hist2xy(hist):
     freqs, bins = hist
     x = [(bins[i]+bins[i+1])/2 for i in range(len(bins)-1)]
     return x, freqs
-
-def import_fdictarrays(key=None,visits=None):
-    pass
-        # key = key if key else ["fullim", "roi", "imex", "coords"]
-        # with h5py.File(str(Dirs.TEMP)+"/power_arrays.h5", "r") as f:
-        #     visits = visits if visits else list(f.keys())
-        #     if all(isinstance(arg,str) for arg in [key,visits]):
-        #         return [f[f"{visits}/{key}_{i}"][:] for  i in range(len(f[visits])) if f"{visits}/{key}_{i}" in f[visits]]
-        #     elif all(isinstance(arg,(list,tuple)) for arg in [key,visits]):
-        #         dic = {}
-        #         for visit in visits:
-        #             dic[visit] = {k:[f[f"{visit}/{k}_{i}"][:] for i in range(len(f[f"{visit}/{k}_0"]))] for k in key}
-        #         return dic
-        #     elif isinstance(visits,str):
-        #         return {k:[f[f"{visits}/{k}_{i}"][:] for i in range(len(f[visits]))] for k in key}
-        #     else:
-        #         return {v:[f[f"{v}/{k}"][:] for k in f[v] if k.startswith(key)] for v in visits}

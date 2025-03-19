@@ -627,7 +627,7 @@ def datetime_to_doy(x, *_):
     return num2date(x).strftime("%j")
 
 def datetime_to_min(x, *_):
-    return num2date(x).strftime("%M:%S")
+    return num2date(x).strftime("%H:%M")
 def apply_plot_defaults(ax:plt.Axes=None, fig: plt.Figure =  None, day_of_year=True,visits=True, **kwargs):
     """Apply default settings to a plot. should be called just before saving the plot.
 
@@ -772,9 +772,10 @@ def apply_plot_defaults(ax:plt.Axes=None, fig: plt.Figure =  None, day_of_year=T
                 ff = FuncFormatter(datetime_to_min_delta)
 
             a.set_xlabel("")
-            a.xaxis.set_major_locator(MinuteLocator(interval=30))
+            a.xaxis.set_major_locator(MinuteLocator(interval=10))
             #a.xaxis.set_major_locator(MinuteLocator(interval=10))
             a.xaxis.set_major_formatter(ff)
+            a.xaxis.set_tick_params(fontsize="small")
             # a.xaxis.set_minor_locator(MinuteLocator(interval=5))
             #a.set_ylabel("")
             # get leftmost axis (multiple if several axes are the same x position, ie in a grid)

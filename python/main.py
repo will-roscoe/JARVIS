@@ -508,15 +508,18 @@ if (
         hst_datasets = prepdfs(hst_datasets)
         hisaki_dataset = hisaki_sw_get_safe(method="all")
         time = datetime.datetime.now().strftime("%Y-%m-%dT%H-%M-%S")
+        paths = []
         if stacked:
-            stacked_plot(hst_datasets=hst_datasets, hisaki_dataset=hisaki_dataset, hst_cols=hst_cols, hisaki_cols=hisaki_cols, savepath=fpath(f"figures/imgs/stacked_{time}.png"))
+            paths.append(stacked_plot(hst_datasets=hst_datasets, hisaki_dataset=hisaki_dataset, hst_cols=hst_cols, hisaki_cols=hisaki_cols, savepath=fpath("figures/imgs/")))
+            
         if overlaid: # plot all datasets on the same plot
-            overlaid_plot(overlaid_map, hst_datasets, hisaki_dataset, fpath(f"figures/imgs/overlaid_{time}.png"))
+            paths.append(overlaid_plot(overlaid_map, hst_datasets, hisaki_dataset, fpath("figures/imgs/")))
+            
         if megafigure:
-            megafigure_plot(hst_datasets=hst_datasets, hisaki_dataset=hisaki_dataset, hst_cols=hst_cols, hisaki_cols=hisaki_cols, savepath=fpath(f"figures/imgs/megafigure_{time}.png"))
+            paths.append(megafigure_plot(hst_datasets=hst_datasets, hisaki_dataset=hisaki_dataset, hst_cols=hst_cols, hisaki_cols=hisaki_cols, savepath=fpath("figures/imgs/")))
             # plot all datasets over full interval like overlaid, but then plot each visit separately below it in a grid.
             # example if we find 8 unique visits in the hst dataset, we will have a grid of 8 plots below the overlaid plot.
-   
+        return paths
     #@jprofile("main")
     def run_path_powercalc(
         ignores={"groups": [], "visits": ["v01","v02","v03","v04","v05","v06","v07","v08"]},
@@ -533,6 +536,7 @@ if (
         fig_config = {}
     ):
         global init_time
+        paths = []
         init_time = datetime.datetime.now()
         def writelog(msg, ):
             timedelta = datetime.datetime.now() - init_time
@@ -668,16 +672,17 @@ if (
                 writelog("Histograms Generated")
                         
 
-                            
+                      
         # ----! OPT9: Generate figures (not implemented yet, but the plotting functions have been made)
         if await_confirmation("Generate Figures?") if "figure" not in config else config["figure"]:
+            
             def_figconfig= dict(
-            stacked = True,
+            stacked =   True,
             overlaid = True,
             megafigure = True,
             hst_cols = ["Total_Power","Avg_Flux","Area"],
             hisaki_cols = ["Torus_Power_Dawn","Torus_Power_Dusk","Pdyn","Aurora_Power","Aurora_Flux"],
-            include = "last1")
+            include = "last5")
             if fig_config.get("auto",False):
                 fig_config = def_figconfig
             else:
@@ -705,25 +710,42 @@ if (
                     fig_config["include"] = opt4[cutie.select(opt4, opt4.index(def_figconfig.get("include")))]
                 
             writelog("Generating Figures...")
+            
             if fig_config.get("stacked",False):
                 writelog("Generating Stacked Figure")
-                figure_gen(fig_config["hst_cols"],fig_config["hisaki_cols"],fig_config["include"],True,False,False)
+                paths.extend(figure_gen(fig_config["hst_cols"],fig_config["hisaki_cols"],fig_config["include"],True,False,False))
                 writelog("Stacked Figure Generated")
             if fig_config.get("overlaid",False):
                 writelog("Generating Overlaid Figure")
-                figure_gen(fig_config["hst_cols"],fig_config["hisaki_cols"],fig_config["include"],False,True,False)
+                paths.extend(figure_gen(fig_config["hst_cols"],fig_config["hisaki_cols"],fig_config["include"],False,True,False))
                 writelog("Overlaid Figure Generated")
             if fig_config.get("megafigure",False):
                 writelog("Generating Megafigure")
                 for h in fig_config["hst_cols"]:
                     writelog(f"Generating Megafigure for {h}")
-                    figure_gen([h],fig_config["hisaki_cols"],fig_config["include"],False,False,True)
+                    paths.extend(figure_gen([h],fig_config["hisaki_cols"],fig_config["include"],False,False,True))
                 writelog("Megafigure Generated")
             writelog("Figures Generated")
         if remove in ["all", "bindata"]:
             shutil.rmtree(str(Dirs.TEMP)+"/bindata", ignore_errors=True)
         if remove in ["all", "temp"]:
             shutil.rmtree(str(Dirs.TEMP), ignore_errors=True)
+        if await_confirmation("Update Active Figures?") if "update" not in config else config["update"]:
+            ensure_dir(fpath("figures/finished"))
+            curr_files = os.listdir(fpath("figures/finished"))
+            for p in paths:
+                if p not in curr_files:
+                    if "overlaid" in p:
+                        shutil.copy(p, fpath("figures/finished/overlaid_plot.png"))
+                    elif "stacked" in p:
+                        shutil.copy(p, fpath("figures/finished/stacked_plot.png"))
+                    elif "megafigure" in p:
+                        col = p.split("[")[1].split("]")[0]
+                        shutil.copy(p, fpath(f"figures/finished/megafigure_plot_{col}.png"))
+                    # hist, gif
+                
+            
+        
         
         writelog("Finished. Exiting...")
                 
@@ -742,7 +764,7 @@ if (
         extname="BOUNDARY",
         remove="none",
         window=5,
-        config = {"generate_coadd":False, "coadd_pathfinder":False, "coadd_power":False, "generate_avgs":False, "avg_power":False, "avg_pathfinder":False, "gif":False, "histogram":False, "figure":True, "dump_arrays":False},
+        config = {"generate_coadd":False, "coadd_pathfinder":False, "coadd_power":False, "generate_avgs":False, "avg_power":False, "avg_pathfinder":False, "gif":False, "histogram":False, "figure":True, "dump_arrays":False, "update":True},
         fig_config = {"auto":True}
     )
 

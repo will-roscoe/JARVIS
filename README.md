@@ -17,3 +17,6 @@
 > [!CAUTION]
 > **Anyone with access to this link can edit!**
 > [Link](https://www.overleaf.com/4517484896vdgtfcmxykxp#d519e7)
+
+![Area]()
+

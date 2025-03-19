@@ -400,8 +400,8 @@ plot.maps.marker = ExpandingList(["1","2","3","4","x","+","1","2","3","4","x","+
 plot.maps.hatch = ExpandingList(["\\\\","//","--","||","oo","xx","**"], "++")
 plot.size_a4 = {"width": 8.3, "height": 11.7}
 plot.margin = 1
-plot.inset_annotate_kws = dict(xy=(0, 1),xycoords="axes fraction",xytext=(+0.5, -0.5),textcoords="offset fontsize",fontsize="medium",verticalalignment="top",weight="bold",bbox={"facecolor": "#0000", "edgecolor": "none", "pad": 3.0},)
-plot.meta_annotate_kws = dict(xy=(1, 1),xycoords="axes fraction",xytext=(-0.05, +0.1),textcoords="offset fontsize",fontsize="medium",verticalalignment="bottom",horizontalalignment="right",annotation_clip=False,bbox={"facecolor": "#0000", "edgecolor": "none", "pad": 3.0},)
+plot.inset_annotate_kws = dict(xy=(0, 1),xycoords="axes fraction",xytext=(+0.5, -0.5),textcoords="offset fontsize",verticalalignment="top",fontsize="small",bbox={"facecolor": "#0000", "edgecolor": "none", "pad": 3.0},)
+plot.meta_annotate_kws = dict(xy=(1, 1),xycoords="axes fraction",xytext=(-0.05, +0.1),textcoords="offset fontsize",verticalalignment="bottom",fontsize="small",horizontalalignment="right",annotation_clip=False,bbox={"facecolor": "#0000", "edgecolor": "none", "pad": 3.0},)
 plot.visit_annotate_kws = dict(xytext=(0, -9), 
                                            textcoords="offset points", ha="center", va="center", 
                                            fontsize="small", 

@@ -255,8 +255,8 @@ savefig.dpi:       300                                             # figure dots
         #savefig.facecolor: auto                                                # figure face color when saving
         #savefig.edgecolor: auto                                                # figure edge color when saving
         #savefig.format:    png                                                 # {png, ps, pdf, svg}
-        #savefig.bbox:      standard                                            # {tight, standard} 'tight' is incompatible with generating frames for animation
-        #savefig.pad_inches:  0.1                                               # padding to be used, when bbox is set to 'tight'
+savefig.bbox:      tight                                            # {tight, standard} 'tight' is incompatible with generating frames for animation
+        #savefig.pad_inches:  0.0                                               # padding to be used, when bbox is set to 'tight'
         #savefig.directory:   ~                                                 # default directory in savefig dialog, gets updated after interactive saves, unless set to the empty string (i.e.
                                                                                 # the current directory); use '.' to start at the current directory but update after interactive saves
         #savefig.transparent: False                                             # whether figures are saved with a transparent background by default

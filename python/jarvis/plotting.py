@@ -8,6 +8,7 @@ adapted from dmoral's original code by the JAR:VIS team.
 """
 
 # python standard libraries
+from calendar import c
 import contextlib
 import datetime
 import os
@@ -26,7 +27,7 @@ from imageio import imread, mimsave
 from matplotlib import pyplot as plt, rcParams
 from matplotlib import rc_file
 from matplotlib.colors import LogNorm
-from matplotlib.dates import AutoDateLocator, DayLocator, num2date
+from matplotlib.dates import AutoDateLocator, DayLocator, num2date, MinuteLocator
 from matplotlib.patheffects import withStroke
 from matplotlib.projections.polar import PolarAxes
 from matplotlib.ticker import FixedLocator, FuncFormatter, NullFormatter, NullLocator
@@ -625,6 +626,8 @@ def plot_discontinuous_angle(ax,ts, colname, threshold=180,  **kwargs):
 def datetime_to_doy(x, *_):
     return num2date(x).strftime("%j")
 
+def datetime_to_min(x, *_):
+    return num2date(x).strftime("%M:%S")
 def apply_plot_defaults(ax:plt.Axes=None, fig: plt.Figure =  None, day_of_year=True,visits=True, **kwargs):
     """Apply default settings to a plot. should be called just before saving the plot.
 
@@ -698,6 +701,7 @@ def apply_plot_defaults(ax:plt.Axes=None, fig: plt.Figure =  None, day_of_year=T
             topmost_ax.xaxis.set_major_locator(DayLocator(interval=kwargs.get("day_interval")) if kwargs.get("day_interval") is not None else AutoDateLocator())
             # bottom axis has visit number at ticks corresponding to them.
             visit_list = visits if isinstance(visits, (list, tuple)) else None
+
             dlim_a = ax[0].get_xlim()
             dlim_ax = [mpl.dates.num2date(a) for a in dlim_a]
             spanlist = []
@@ -721,15 +725,22 @@ def apply_plot_defaults(ax:plt.Axes=None, fig: plt.Figure =  None, day_of_year=T
                 for span in spanlist:
                     if visit_list is None or span[2] in visit_list:
                         for a in ax:
+                            axy = a.get_ylim()
                             a.axvspan(span[0], span[1], color="#aaa", alpha=0.2)
+                            a.set_ylim(axy)
                     else:
                         spanlist.remove(span)
                     # annotate the visitnumber just below the axes, for each span, like tick labels                
-                anns = [bottom_ax.annotate(f"{int(tick[2])}", xy=(tick[3], 0),**plot.visit_annotate_kws,
-                                           ) for i,tick in enumerate(spanlist)]
-                anns = sorted(anns, key=lambda a: a.xy[0])                
-                FLAG_NEED_ADJUST = True # need to adjust the annotations to avoid overlap, once the axes have been adjusted
+                if kwargs.get("annotate", True):
+                    anns = [bottom_ax.annotate(f"{int(tick[2])}", xy=(tick[3], 0),**plot.visit_annotate_kws,
+                                            ) for i,tick in enumerate(spanlist)]
+                    anns = sorted(anns, key=lambda a: a.xy[0])                
+                    FLAG_NEED_ADJUST = True # need to adjust the annotations to avoid overlap, once the axes have been adjusted
+                else:
+                    twinax.set_xlabel("Day of Year")
+                    bottom_ax.set_xlabel("")
 
+    
     #---- X-axis bounds ----#
     # 1. time_interval --> set x-axis limits to specified interval
     if kwargs.get("time_interval") is not None:
@@ -750,6 +761,29 @@ def apply_plot_defaults(ax:plt.Axes=None, fig: plt.Figure =  None, day_of_year=T
         for a in ax:
             a.set_xlim(lims)
     #---- Post-plot adjustments ----#
+    if kwargs.get("compact") is not None:
+        for a in ax:
+            if kwargs.get("compact",{}).get("time","default") == "default":
+                ff = FuncFormatter(datetime_to_min)
+            else:
+                init_time = ax[0].get_xlim()[0]
+                def datetime_to_min_delta(x,_):
+                    return datetime_to_min(x-init_time)
+                ff = FuncFormatter(datetime_to_min_delta)
+
+            a.set_xlabel("")
+            a.xaxis.set_major_locator(MinuteLocator(interval=30))
+            #a.xaxis.set_major_locator(MinuteLocator(interval=10))
+            a.xaxis.set_major_formatter(ff)
+            # a.xaxis.set_minor_locator(MinuteLocator(interval=5))
+            #a.set_ylabel("")
+            # get leftmost axis (multiple if several axes are the same x position, ie in a grid)
+        leftmost_ax = min(ax, key=lambda a: a.get_position().x0)
+        all_leftmost = [a for a in ax if a.get_position().x0 == leftmost_ax.get_position().x0]
+        for a in ax:
+            if a not in all_leftmost:
+                a.yaxis.set_tick_params(labelleft=False)
+                a.yaxis.set_label_text("")
     if FLAG_NEED_ADJUST:
         noolps = [False]*len(anns)
         count =0
@@ -818,9 +852,12 @@ def set_yaxis_exfmt(axe,label,unit=None,change_prefix=False, **kwargs):
             - clip_neg (bool, optional): Whether to clip negative values. Defaults to True.
     """
     ylim = list(axe.get_ylim())
+    
     if kwargs.get("clip_neg", True):
         ylim = [max(ylim[0],0), max(ylim[1],0)]
-    ylim[1]+=kwargs.get("y_extend",0.1)*np.diff(ylim)
+    #     print(ylim)
+    ylim[1]+=kwargs.get("y_extend",0.1)*abs(np.diff(ylim))
+    # print(ylim)
     axe.set_ylim(ylim)
     axis = axe.yaxis
     unit = unit if unit is not None else " "
@@ -938,7 +975,7 @@ def fill_between_qty(ax,xdf,df,quantity,visits, edgecorrect=False, fc=(0.7,0.7,0
     if edgecorrect:
         ax.fill_between(ranges['time'],  ranges["max"], ranges["min"],facecolor=(0,0,0,0), edgecolor=(1,1,1), interpolate=True, zorder=zord+1)
 
-def mgs_grid(fig, visits, main_height=4, grid_height=5, grid_kwargs={"wspace":0}, main_gs_kwargs={"hspace":0.5, "wspace":0}):
+def mgs_grid(fig, visits, main_height=4, grid_height=5, grid_kwargs={}, main_gs_kwargs={"hspace":0.5, "wspace":0}):
     """Create a main grid and subgrid of axes for the provided figure and visits.
     
     Args:
@@ -966,7 +1003,7 @@ def mgs_grid(fig, visits, main_height=4, grid_height=5, grid_kwargs={"wspace":0}
 
 
 
-def stacked_plot(hst_datasets, hisaki_dataset, savepath,hisaki_cols=[],hst_cols=[]):
+def stacked_plot(hst_datasets, hisaki_dataset, savepath,hisaki_cols=[],hst_cols=[], fill_between=True):
         """Plot a stacked x-axis plot of all columns in the datasets, over the timeperiod of hst_datasets.
 
         Args:
@@ -980,20 +1017,36 @@ def stacked_plot(hst_datasets, hisaki_dataset, savepath,hisaki_cols=[],hst_cols=
         xlim = get_time_interval_from_multi(hst_datasets)
         extend = np.timedelta64(1, "D")
         xlim = (xlim[0]-extend, xlim[1]+extend)
-        figure,axs = plt.subplots(len(hst_cols)+len(hisaki_cols),1,figsize=figsize(max=True),sharex=True, gridspec_kw={"hspace":0.05}, subplot_kw={"xmargin":0.02, "ymargin":0.02})
-        
+        figure,axs = plt.subplots(len(hst_cols)+len(hisaki_cols),1,figsize=figsize(max=True),sharex=True, gridspec_kw={"hspace":0.05}, subplot_kw={"xmargin":0.02, "ymargin":0.02}, constrained_layout=True)
+        hst_m = merge_dfs(hst_datasets)
         for i, col in enumerate(hst_cols):
             for hst in hst_datasets:
                 axs[i].scatter(hst["time"],hst[col],label=col, color=hst["color"][0], marker=hst["marker"][0], zorder=hst["zorder"][0], s=2)
                 mv = HST.mapval(col, ["label","unit"])
-                set_yaxis_exfmt(axs[i], label=mv[0], unit=mv[1])
+            #if col not in ["Total_Power", "Avg_Flux"]:
+            axs[i].set_ylim(0,hst_m[col].max())
+            set_yaxis_exfmt(axs[i], label=mv[0], unit=mv[1])
+            # else: 
+            #     dic = {"Total_Power": "Avg_Flux":}
+            #     axs[i].set_ylim(0,hst[col].max()*1.1)
+            #     axs[i].set_ylabel(mv[0] + " $" + mv[1]+"$")
+            if fill_between:
+                fill_between_qty(axs[i],hst_m,hst_m,quantity=col,visits=hst_m["Visit"].unique(), edgecorrect=True, zord=hst_m["zorder"][0]-10)
         for i, col in enumerate(hisaki_cols):
             axs[i+len(hst_cols)].plot(hisaki_dataset.time.datetime64,hisaki_dataset[col],label=col)
             mv = HISAKI.mapval(col, ["label","unit"])
             set_yaxis_exfmt(axs[i+len(hst_cols)], label=mv[0], unit=mv[1])
-        apply_plot_defaults(fig=figure, time_interval=xlim, day_interval=1)
-        plt.savefig(savepath)
+        # visits_ = list(list(hs["Visit"].unique()) for hs in hst_datasets)
+        # visits = set()
+        # for v in visits_:
+        #     visits = visits.union(v)
+        # visits = list(visits)
+        figure.suptitle(f"Comparison of Energy Flux, Area and Total Power against HISAKI data")
+        apply_plot_defaults(fig=figure, time_interval=xlim, day_interval=1, visits=True)
+        file = savepath+f"stacked_{datetime.datetime.now().strftime('%Y-%m-%dT%H-%M-%S')}.png"
+        figure.savefig(file)
         plt.close()
+        return file
 
 def overlaid_plot(cols, hst_datasets, hisaki_dataset, savepath, visit_intervals=False, fill_between=True):
     """ Plot a stacked x-axis plot of the provided columns from the datasets, with visit intervals and quantity ranges. Similar columns are grouped together.
@@ -1021,6 +1074,7 @@ def overlaid_plot(cols, hst_datasets, hisaki_dataset, savepath, visit_intervals=
     # identify complementary columns in the datasets
     # make a map of datasets to cols: True if hisaki, False if hst
     df_map = []
+    
     for col in cols:
         if isinstance(col,str):
             df_map.append(True if col in list(hisaki_dataset.columns) else False)
@@ -1037,7 +1091,8 @@ def overlaid_plot(cols, hst_datasets, hisaki_dataset, savepath, visit_intervals=
             
             df_map.append(part)
     # axes is a list of axes and 2-tuples of axes (for twin axes)
-    figure,axs = plt.subplots(len(cols),1,figsize=figsize(max=True),sharex=True, gridspec_kw={"hspace":0.05}, subplot_kw={"xmargin":0.02, "ymargin":0.02})
+    figure,axs = plt.subplots(len(cols),1,figsize=figsize(max=True),sharex=True, gridspec_kw={"hspace":0.05}, subplot_kw={"xmargin":0.02, "ymargin":0.02}, constrained_layout=True)
+    figure.suptitle(f"Comparison of Energy Flux, Area and Total Power against HISAKI data")
     axes = []
     for i, col in enumerate(cols):
         if isinstance(col,str):
@@ -1048,13 +1103,15 @@ def overlaid_plot(cols, hst_datasets, hisaki_dataset, savepath, visit_intervals=
         ax.plot(hisaki_dataset.time.datetime64,hisaki_dataset[col],label=col)
         mv = HISAKI.mapval(col, ["label","unit"])
         set_yaxis_exfmt(ax, label=mv[0], unit=mv[1])
+    hst_m = merge_dfs(hst_datasets)
     def plot_hst(ax, col):
         for hst in hst_datasets:
             ax.scatter(hst["time"],hst[col],label=col, color=hst["color"][0], marker=hst["marker"][0], zorder=hst["zorder"][0], s=2)
             mv = HST.mapval(col, ["label","unit"])
-            if fill_between:
-                fill_between_qty(ax,hst,hst,quantity=col,visits=hst["Visit"].unique(), edgecorrect=True, zord=hst["zorder"][0]-10)
-            set_yaxis_exfmt(ax, label=mv[0], unit=mv[1])
+        ax.set_ylim(0,hst_m[col].max())
+        set_yaxis_exfmt(ax, label=mv[0], unit=mv[1])
+        if fill_between:
+                fill_between_qty(ax,hst_m,hst_m,quantity=col,visits=hst_m["Visit"].unique(), edgecorrect=True, zord=hst_m["zorder"][0]-10)
     def plot_one(ax,col,dfv):
         if dfv:
             plot_hisaki(ax,col)
@@ -1078,23 +1135,36 @@ def overlaid_plot(cols, hst_datasets, hisaki_dataset, savepath, visit_intervals=
                                 plot_one(axes[idx][idy],ccc,df_map[idx][idy][idz])
     # if visit_intervals:
     #     plot_visit_intervals(axs,merged["Visit"].unique(), annotate_ax="top")
-    apply_plot_defaults(fig=figure, time_interval=xlim, day_interval=1, visits=list(set(*[hs["Visit"].unique() for hs in hst_datasets])))
-    plt.savefig(savepath)
+    # visits_ = list(list(hs["Visit"].unique()) for hs in hst_datasets)
+    # visits = set()
+    # for v in visits_:
+    #     visits = visits.union(v)
+    # visits = list(visits)
+    apply_plot_defaults(fig=figure, time_interval=xlim, day_interval=1, visits=True)
+    file = savepath+f"overlaid_{datetime.datetime.now().strftime('%Y-%m-%dT%H-%M-%S')}.png"
+    figure.savefig(file)
     plt.close()
+    return file
 
 
 
 
-
-def megafigure_plot(hisaki_cols,hst_cols, hst_datasets, hisaki_dataset, savepath):
+def megafigure_plot(hisaki_cols,hst_cols, hst_datasets, hisaki_dataset, savepath, fill_between=True):
     xlim = get_time_interval_from_multi(hst_datasets)
     extend = np.timedelta64(1, "D")
     xlim = (xlim[0]-extend, xlim[1]+extend)
-    visits = list(set(*[hs["Visit"].unique() for hs in hst_datasets]))
-    figure = plt.figure(figsize=figsize(max=True))
+    visits_ = list(list(hs["Visit"].unique()) for hs in hst_datasets)
+    visits = set()
+    for v in visits_:
+        visits = visits.union(v)
+    visits = list(visits)
+    figure = plt.figure(figsize=figsize(width =1.4, aspect=3/2), constrained_layout=True)
+    
+    figure.suptitle(f"Overview of {", ".join([h.replace("_"," ") for h in hst_cols])} over all visits")
     main_ax,axs = mgs_grid(figure, visits) #  I,J grid of subplots, per visit
     icols = len(axs)
     jrows = len(axs[0])
+    merged = merge_dfs(hst_datasets)
     for j in range(jrows):
         for i in range(icols):
             ax = axs[j][i]
@@ -1103,8 +1173,16 @@ def megafigure_plot(hisaki_cols,hst_cols, hst_datasets, hisaki_dataset, savepath
             for col in hst_cols:
                 for h in hst_datasets:
                     ax.scatter(h["time"],h[col],label=col, color=h["color"][0], marker=h["marker"][0], zorder=h["zorder"][0], s=0.5)
+                    ax.plot(h["time"],h[col], color=h["color"][0], lw=0.2, zorder=h["zorder"][0])
                 mv = HST.mapval(col, ["label","unit"])
+                ax.set_ylim(0,merged[col].max())
                 set_yaxis_exfmt(ax, label=mv[0], unit=mv[1])
+                # get min and max for this visit.
+            xdf = merged.where(merged["Visit"] == visits[i+j*icols])
+            dmax, dmin = [xdf["time"].max(), xdf["time"].min()]
+                
+            
+            ax.set_xlim(dmax, dmin)
             for col in hisaki_cols:
                 tax=ax.twinx()
                 # make ticks, labels, spine invisible on the y-axis
@@ -1112,19 +1190,25 @@ def megafigure_plot(hisaki_cols,hst_cols, hst_datasets, hisaki_dataset, savepath
                     tax.spines["left"].set_visible(False)
                     tax.set_yticklabels([])
                     tax.set_yticks([])
-    
-                tax.plot(hisaki_dataset.time.datetime64,hisaki_dataset[col],label=col, lw=0.1, color = "black")
-            apply_plot_defaults(ax=ax, day_of_year=False,visits=False)
+
+                tax.plot(hisaki_dataset.time.datetime64,hisaki_dataset[col],label=col, lw=0.2, color = "black")
+            apply_plot_defaults(ax=ax, day_of_year=False,visits=False, compact={})
             ax.annotate(f"v{visits[i+j*icols]}", **plot.inset_annotate_kws)
     for i, col in enumerate(hst_cols):
         ax = main_ax
         for h in hst_datasets:
             ax.scatter(h["time"],h[col],label=col, color=h["color"][0], marker=h["marker"][0], zorder=h["zorder"][0], s=0.5)
+        if fill_between:
+            fill_between_qty(ax,merged,merged,quantity=col,visits=merged["Visit"].unique(), edgecorrect=True, zord=merged["zorder"][0]-10)
+       
         mv = HST.mapval(col, ["label","unit"])
-        set_yaxis_exfmt(ax, label=mv[0], unit=mv[1])
-        apply_plot_defaults(ax=[main_ax], time_interval=xlim, day_interval=1, visits=False)
-    figure.savefig(savepath)
+    main_ax.set_ylim(0,merged[col].max())
+    set_yaxis_exfmt(main_ax, label=mv[0], unit=mv[1])
+    apply_plot_defaults(ax=[main_ax], time_interval=xlim, day_interval=1, visits=True, annotate=False)
+    file = savepath+f"megafigure_[{".".join(hst_cols)}]{datetime.datetime.now().strftime('%Y-%m-%dT%H-%M-%S')}.png"
+    figure.savefig(file)
     plt.close()
+    return file
 
 
 def dpr_histogram_plot(array_path, method="indiv", bins=1000,rolling_avg=0.05,stats=False,log="y", **kwargs):
@@ -1136,6 +1220,7 @@ def dpr_histogram_plot(array_path, method="indiv", bins=1000,rolling_avg=0.05,st
     data[data <= 0] = np.nan
     data = np.nan_to_num(data, nan=0)
     fig,ax = plt.subplots(figsize=figsize())
+    fig.suptitle("Distribution of Observed...")
     if rolling_avg:
         kernel = np.ones(int(bins*rolling_avg))/int(bins*rolling_avg)
     if ndim == 2:

@@ -1162,38 +1162,37 @@ def megafigure_plot(hisaki_cols,hst_cols, hst_datasets, hisaki_dataset, savepath
     
     figure.suptitle(f"Overview of {", ".join([h.replace("_"," ") for h in hst_cols])} over all visits")
     main_ax,axs = mgs_grid(figure, visits) #  I,J grid of subplots, per visit
-    icols = len(axs)
-    jrows = len(axs[0])
+    icols, jrows = approx_grid_dims(visits)
     merged = merge_dfs(hst_datasets)
-    for j in range(jrows):
-        for i in range(icols):
-            ax = axs[j][i]
-            if i == 0:
-                ax.set_ylabel(f"Visit {visits[i+j*icols]}")
-            for col in hst_cols:
-                for h in hst_datasets:
-                    ax.scatter(h["time"],h[col],label=col, color=h["color"][0], marker=h["marker"][0], zorder=h["zorder"][0], s=0.5)
-                    ax.plot(h["time"],h[col], color=h["color"][0], lw=0.2, zorder=h["zorder"][0])
-                mv = HST.mapval(col, ["label","unit"])
-                ax.set_ylim(0,merged[col].max())
-                set_yaxis_exfmt(ax, label=mv[0], unit=mv[1])
-                # get min and max for this visit.
-            xdf = merged.where(merged["Visit"] == visits[i+j*icols])
-            dmax, dmin = [xdf["time"].max(), xdf["time"].min()]
+    for i in range(icols):    
+        for j in range(jrows):
+            if i + icols * j < len(visits):
+                ax = axs[j][i]
+                if i == 0:
+                    ax.set_ylabel(f"Visit {visits[i+j*icols]}")
+                for col in hst_cols:
+                    for h in hst_datasets:
+                        ax.scatter(h["time"],h[col],label=col, color=h["color"][0], marker=h["marker"][0], zorder=h["zorder"][0], s=0.5)
+                        ax.plot(h["time"],h[col], color=h["color"][0], lw=0.2, zorder=h["zorder"][0])
+                    mv = HST.mapval(col, ["label","unit"])
+                    ax.set_ylim(0,merged[col].max())
+                    set_yaxis_exfmt(ax, label=mv[0], unit=mv[1])
+                    # get min and max for this visit.
+                xdf = merged.where(merged["Visit"] == visits[i+j*icols])
+                dmax, dmin = [xdf["time"].max(), xdf["time"].min()]
+                    
                 
-            
-            ax.set_xlim(dmax, dmin)
-            for col in hisaki_cols:
-                tax=ax.twinx()
-                # make ticks, labels, spine invisible on the y-axis
-                with contextlib.suppress(Exception):
-                    tax.spines["left"].set_visible(False)
-                    tax.set_yticklabels([])
-                    tax.set_yticks([])
-
-                tax.plot(hisaki_dataset.time.datetime64,hisaki_dataset[col],label=col, lw=0.2, color = "black")
-            apply_plot_defaults(ax=ax, day_of_year=False,visits=False, compact={})
-            ax.annotate(f"v{visits[i+j*icols]}", **plot.inset_annotate_kws)
+                ax.set_xlim(dmin,dmax)
+                for col in hisaki_cols:
+                    tax=ax.twinx()
+                    # make ticks, labels, spine invisible on the y-axis
+                    with contextlib.suppress(Exception):
+                        tax.spines["left"].set_visible(False)
+                        tax.set_yticklabels([])
+                        tax.set_yticks([])
+                    tax.plot(hisaki_dataset.time.datetime64,hisaki_dataset[col],label=col, lw=0.2, color = "black")
+                apply_plot_defaults(ax=ax, day_of_year=False,visits=False, compact={})
+                ax.annotate(f"v{visits[i+j*icols]}", **plot.inset_annotate_kws)
     for i, col in enumerate(hst_cols):
         ax = main_ax
         for h in hst_datasets:

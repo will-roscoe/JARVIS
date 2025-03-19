@@ -364,6 +364,16 @@ def merge_dfs(dfs: list[DataFrame]) -> DataFrame:
     for df in dfs:
         cols.extend(df.columns)
     cols = list(set(cols))
+    # ensure each df has all cols
+    for i, df in enumerate(dfs):
+        for col in cols:
+            if col not in df.columns:
+                dfs[i][col] = np.nan
+    # print cols, first index and types for each df
+    # for i, df in enumerate(dfs):
+    #     print(f"-------{i=},\n {df.columns=},\n,\n {df.dtypes=}")
+
+    cols.remove("Date_Created")
     df = dfs[0].copy()
     for i, df_ in enumerate(dfs[1:]):
         df = pd.merge(

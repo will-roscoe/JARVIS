@@ -682,7 +682,7 @@ if (
             megafigure = True,
             hst_cols = ["Total_Power","Avg_Flux","Area"],
             hisaki_cols = ["Torus_Power_Dawn","Torus_Power_Dusk","Pdyn","Aurora_Power","Aurora_Flux"],
-            include = "last5")
+            include = "last15")
             if fig_config.get("auto",False):
                 fig_config = def_figconfig
             else:

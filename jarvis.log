@@ -1,1 +1,170 @@
 Logging initialized
+Starting...
+Visits Selected = v01,v02,v04,v03,v08,v09,v10,v13,v15,v11,v12,v16,v18,v19,v20,v21,v23,v24
+Organized Paths
+Cleaning up generated files...
+Removed 0 files
+Generating Figures...
+Generating Stacked Figure
+Set y-axis label to $P_{Tot}$ $(GW)$ with limits min=0, max=144 and exponent 0
+Plotted 36 ranges of Total_Power on 
+Set y-axis label to $F_{avg}$ $(\times 10^{-9}~GW/km^2)$ with limits min=0, max=2.66e-07 and exponent -9
+Plotted 36 ranges of Avg_Flux on 
+Set y-axis label to $A$ $(\times 10^{9}~km^2)$ with limits min=0, max=1.85e+09 and exponent 9
+Plotted 36 ranges of Area on 
+Set y-axis label to $F_{torus, dawn}$ $(GW)$ with limits min=44, max=215 and exponent 0
+Set y-axis label to $F_{torus, dusk}$ $(GW)$ with limits min=75.2, max=273 and exponent 0
+Set y-axis label to $P_{SW,dyn}$ $(nPa)$ with limits min=0, max=0.407 and exponent 0
+Set y-axis label to $F_{aurora}$ $(\times 10^{3}~GW)$ with limits min=28.6, max=2.66e+03 and exponent 3
+Set y-axis label to $F_{aurora, flux}$ $(eV/cm^2/s)$ with limits min=0.159, max=231 and exponent 0
+Adjusting visit number annotations to avoid overlap
+Applied plot defaults on 8 using day_of_year=True, visits=True, kwargs:{time_interval=(Timestamp('2016-05-15 23:43:30'), Timestamp('2016-06-03 12:20:06')),day_interval=1}
+Stacked Figure Generated
+Generating Overlaid Figure
+Set y-axis label to $P_{Tot}$ $(GW)$ with limits min=0, max=144 and exponent 0
+Plotted 36 ranges of Total_Power on 
+Set y-axis label to $F_{avg}$ $(\times 10^{-9}~GW/km^2)$ with limits min=0, max=2.66e-07 and exponent -9
+Plotted 36 ranges of Avg_Flux on 
+Set y-axis label to $A$ $(\times 10^{9}~km^2)$ with limits min=0, max=1.85e+09 and exponent 9
+Plotted 36 ranges of Area on 
+Set y-axis label to $F_{torus, dawn}$ $(GW)$ with limits min=44, max=215 and exponent 0
+Set y-axis label to $F_{torus, dusk}$ $(GW)$ with limits min=44, max=232 and exponent 0
+Set y-axis label to $F_{aurora}$ $(\times 10^{3}~GW)$ with limits min=0, max=2.74e+03 and exponent 3
+Set y-axis label to $P_{SW,dyn}$ $(nPa)$ with limits min=0, max=0.407 and exponent 0
+Set y-axis label to $F_{aurora, flux}$ $(eV/cm^2/s)$ with limits min=0.159, max=231 and exponent 0
+Adjusting visit number annotations to avoid overlap
+Applied plot defaults on 7 using day_of_year=True, visits=True, kwargs:{time_interval=(Timestamp('2016-05-15 23:43:30'), Timestamp('2016-06-03 12:20:06')),day_interval=1}
+Overlaid Figure Generated
+Generating Megafigure
+Generating Megafigure for Total_Power
+calculated figure width of 8.82in and height of 5.88in
+Initialized 3 axes in 3x6 grid + 1 main axes.
+Set y-axis label to $P_{Tot}$ $(GW)$ with limits min=0, max=144 and exponent 0
+Applied plot defaults on 1 using day_of_year=False, visits=False, kwargs:{compact={'time': 'delta'}}
+Set y-axis label to $P_{Tot}$ $(GW)$ with limits min=0, max=144 and exponent 0
+Applied plot defaults on 1 using day_of_year=False, visits=False, kwargs:{compact={'time': 'delta'}}
+Set y-axis label to $P_{Tot}$ $(GW)$ with limits min=0, max=144 and exponent 0
+Applied plot defaults on 1 using day_of_year=False, visits=False, kwargs:{compact={'time': 'delta'}}
+Set y-axis label to $P_{Tot}$ $(GW)$ with limits min=0, max=144 and exponent 0
+Applied plot defaults on 1 using day_of_year=False, visits=False, kwargs:{compact={'time': 'delta'}}
+Set y-axis label to $P_{Tot}$ $(GW)$ with limits min=0, max=144 and exponent 0
+Applied plot defaults on 1 using day_of_year=False, visits=False, kwargs:{compact={'time': 'delta'}}
+Set y-axis label to $P_{Tot}$ $(GW)$ with limits min=0, max=144 and exponent 0
+Applied plot defaults on 1 using day_of_year=False, visits=False, kwargs:{compact={'time': 'delta'}}
+Set y-axis label to $P_{Tot}$ $(GW)$ with limits min=0, max=144 and exponent 0
+Applied plot defaults on 1 using day_of_year=False, visits=False, kwargs:{compact={'time': 'delta'}}
+Set y-axis label to $P_{Tot}$ $(GW)$ with limits min=0, max=144 and exponent 0
+Applied plot defaults on 1 using day_of_year=False, visits=False, kwargs:{compact={'time': 'delta'}}
+Set y-axis label to $P_{Tot}$ $(GW)$ with limits min=0, max=144 and exponent 0
+Applied plot defaults on 1 using day_of_year=False, visits=False, kwargs:{compact={'time': 'delta'}}
+Set y-axis label to $P_{Tot}$ $(GW)$ with limits min=0, max=144 and exponent 0
+Applied plot defaults on 1 using day_of_year=False, visits=False, kwargs:{compact={'time': 'delta'}}
+Set y-axis label to $P_{Tot}$ $(GW)$ with limits min=0, max=144 and exponent 0
+Applied plot defaults on 1 using day_of_year=False, visits=False, kwargs:{compact={'time': 'delta'}}
+Set y-axis label to $P_{Tot}$ $(GW)$ with limits min=0, max=144 and exponent 0
+Applied plot defaults on 1 using day_of_year=False, visits=False, kwargs:{compact={'time': 'delta'}}
+Set y-axis label to $P_{Tot}$ $(GW)$ with limits min=0, max=144 and exponent 0
+Applied plot defaults on 1 using day_of_year=False, visits=False, kwargs:{compact={'time': 'delta'}}
+Set y-axis label to $P_{Tot}$ $(GW)$ with limits min=0, max=144 and exponent 0
+Applied plot defaults on 1 using day_of_year=False, visits=False, kwargs:{compact={'time': 'delta'}}
+Set y-axis label to $P_{Tot}$ $(GW)$ with limits min=0, max=144 and exponent 0
+Applied plot defaults on 1 using day_of_year=False, visits=False, kwargs:{compact={'time': 'delta'}}
+Set y-axis label to $P_{Tot}$ $(GW)$ with limits min=0, max=144 and exponent 0
+Applied plot defaults on 1 using day_of_year=False, visits=False, kwargs:{compact={'time': 'delta'}}
+Set y-axis label to $P_{Tot}$ $(GW)$ with limits min=0, max=144 and exponent 0
+Applied plot defaults on 1 using day_of_year=False, visits=False, kwargs:{compact={'time': 'delta'}}
+Set y-axis label to $P_{Tot}$ $(GW)$ with limits min=0, max=144 and exponent 0
+Applied plot defaults on 1 using day_of_year=False, visits=False, kwargs:{compact={'time': 'delta'}}
+Plotted 36 ranges of Total_Power on 
+Set y-axis label to $P_{Tot}$ $(GW)$ with limits min=0, max=144 and exponent 0
+Adjusting visit number annotations to avoid overlap
+Applied plot defaults on 1 using day_of_year=True, visits=True, kwargs:{time_interval=(Timestamp('2016-05-15 23:43:30'), Timestamp('2016-06-03 12:20:06')),day_interval=1,annotate=True}
+Generating Megafigure for Avg_Flux
+calculated figure width of 8.82in and height of 5.88in
+Initialized 3 axes in 3x6 grid + 1 main axes.
+Set y-axis label to $F_{avg}$ $(\times 10^{-9}~GW/km^2)$ with limits min=0, max=2.66e-07 and exponent -9
+Applied plot defaults on 1 using day_of_year=False, visits=False, kwargs:{compact={'time': 'delta'}}
+Set y-axis label to $F_{avg}$ $(\times 10^{-9}~GW/km^2)$ with limits min=0, max=2.66e-07 and exponent -9
+Applied plot defaults on 1 using day_of_year=False, visits=False, kwargs:{compact={'time': 'delta'}}
+Set y-axis label to $F_{avg}$ $(\times 10^{-9}~GW/km^2)$ with limits min=0, max=2.66e-07 and exponent -9
+Applied plot defaults on 1 using day_of_year=False, visits=False, kwargs:{compact={'time': 'delta'}}
+Set y-axis label to $F_{avg}$ $(\times 10^{-9}~GW/km^2)$ with limits min=0, max=2.66e-07 and exponent -9
+Applied plot defaults on 1 using day_of_year=False, visits=False, kwargs:{compact={'time': 'delta'}}
+Set y-axis label to $F_{avg}$ $(\times 10^{-9}~GW/km^2)$ with limits min=0, max=2.66e-07 and exponent -9
+Applied plot defaults on 1 using day_of_year=False, visits=False, kwargs:{compact={'time': 'delta'}}
+Set y-axis label to $F_{avg}$ $(\times 10^{-9}~GW/km^2)$ with limits min=0, max=2.66e-07 and exponent -9
+Applied plot defaults on 1 using day_of_year=False, visits=False, kwargs:{compact={'time': 'delta'}}
+Set y-axis label to $F_{avg}$ $(\times 10^{-9}~GW/km^2)$ with limits min=0, max=2.66e-07 and exponent -9
+Applied plot defaults on 1 using day_of_year=False, visits=False, kwargs:{compact={'time': 'delta'}}
+Set y-axis label to $F_{avg}$ $(\times 10^{-9}~GW/km^2)$ with limits min=0, max=2.66e-07 and exponent -9
+Applied plot defaults on 1 using day_of_year=False, visits=False, kwargs:{compact={'time': 'delta'}}
+Set y-axis label to $F_{avg}$ $(\times 10^{-9}~GW/km^2)$ with limits min=0, max=2.66e-07 and exponent -9
+Applied plot defaults on 1 using day_of_year=False, visits=False, kwargs:{compact={'time': 'delta'}}
+Set y-axis label to $F_{avg}$ $(\times 10^{-9}~GW/km^2)$ with limits min=0, max=2.66e-07 and exponent -9
+Applied plot defaults on 1 using day_of_year=False, visits=False, kwargs:{compact={'time': 'delta'}}
+Set y-axis label to $F_{avg}$ $(\times 10^{-9}~GW/km^2)$ with limits min=0, max=2.66e-07 and exponent -9
+Applied plot defaults on 1 using day_of_year=False, visits=False, kwargs:{compact={'time': 'delta'}}
+Set y-axis label to $F_{avg}$ $(\times 10^{-9}~GW/km^2)$ with limits min=0, max=2.66e-07 and exponent -9
+Applied plot defaults on 1 using day_of_year=False, visits=False, kwargs:{compact={'time': 'delta'}}
+Set y-axis label to $F_{avg}$ $(\times 10^{-9}~GW/km^2)$ with limits min=0, max=2.66e-07 and exponent -9
+Applied plot defaults on 1 using day_of_year=False, visits=False, kwargs:{compact={'time': 'delta'}}
+Set y-axis label to $F_{avg}$ $(\times 10^{-9}~GW/km^2)$ with limits min=0, max=2.66e-07 and exponent -9
+Applied plot defaults on 1 using day_of_year=False, visits=False, kwargs:{compact={'time': 'delta'}}
+Set y-axis label to $F_{avg}$ $(\times 10^{-9}~GW/km^2)$ with limits min=0, max=2.66e-07 and exponent -9
+Applied plot defaults on 1 using day_of_year=False, visits=False, kwargs:{compact={'time': 'delta'}}
+Set y-axis label to $F_{avg}$ $(\times 10^{-9}~GW/km^2)$ with limits min=0, max=2.66e-07 and exponent -9
+Applied plot defaults on 1 using day_of_year=False, visits=False, kwargs:{compact={'time': 'delta'}}
+Set y-axis label to $F_{avg}$ $(\times 10^{-9}~GW/km^2)$ with limits min=0, max=2.66e-07 and exponent -9
+Applied plot defaults on 1 using day_of_year=False, visits=False, kwargs:{compact={'time': 'delta'}}
+Set y-axis label to $F_{avg}$ $(\times 10^{-9}~GW/km^2)$ with limits min=0, max=2.66e-07 and exponent -9
+Applied plot defaults on 1 using day_of_year=False, visits=False, kwargs:{compact={'time': 'delta'}}
+Plotted 36 ranges of Avg_Flux on 
+Set y-axis label to $F_{avg}$ $(\times 10^{-9}~GW/km^2)$ with limits min=0, max=2.66e-07 and exponent -9
+Adjusting visit number annotations to avoid overlap
+Applied plot defaults on 1 using day_of_year=True, visits=True, kwargs:{time_interval=(Timestamp('2016-05-15 23:43:30'), Timestamp('2016-06-03 12:20:06')),day_interval=1,annotate=True}
+Generating Megafigure for Area
+calculated figure width of 8.82in and height of 5.88in
+Initialized 3 axes in 3x6 grid + 1 main axes.
+Set y-axis label to $A$ $(\times 10^{9}~km^2)$ with limits min=0, max=1.85e+09 and exponent 9
+Applied plot defaults on 1 using day_of_year=False, visits=False, kwargs:{compact={'time': 'delta'}}
+Set y-axis label to $A$ $(\times 10^{9}~km^2)$ with limits min=0, max=1.85e+09 and exponent 9
+Applied plot defaults on 1 using day_of_year=False, visits=False, kwargs:{compact={'time': 'delta'}}
+Set y-axis label to $A$ $(\times 10^{9}~km^2)$ with limits min=0, max=1.85e+09 and exponent 9
+Applied plot defaults on 1 using day_of_year=False, visits=False, kwargs:{compact={'time': 'delta'}}
+Set y-axis label to $A$ $(\times 10^{9}~km^2)$ with limits min=0, max=1.85e+09 and exponent 9
+Applied plot defaults on 1 using day_of_year=False, visits=False, kwargs:{compact={'time': 'delta'}}
+Set y-axis label to $A$ $(\times 10^{9}~km^2)$ with limits min=0, max=1.85e+09 and exponent 9
+Applied plot defaults on 1 using day_of_year=False, visits=False, kwargs:{compact={'time': 'delta'}}
+Set y-axis label to $A$ $(\times 10^{9}~km^2)$ with limits min=0, max=1.85e+09 and exponent 9
+Applied plot defaults on 1 using day_of_year=False, visits=False, kwargs:{compact={'time': 'delta'}}
+Set y-axis label to $A$ $(\times 10^{9}~km^2)$ with limits min=0, max=1.85e+09 and exponent 9
+Applied plot defaults on 1 using day_of_year=False, visits=False, kwargs:{compact={'time': 'delta'}}
+Set y-axis label to $A$ $(\times 10^{9}~km^2)$ with limits min=0, max=1.85e+09 and exponent 9
+Applied plot defaults on 1 using day_of_year=False, visits=False, kwargs:{compact={'time': 'delta'}}
+Set y-axis label to $A$ $(\times 10^{9}~km^2)$ with limits min=0, max=1.85e+09 and exponent 9
+Applied plot defaults on 1 using day_of_year=False, visits=False, kwargs:{compact={'time': 'delta'}}
+Set y-axis label to $A$ $(\times 10^{9}~km^2)$ with limits min=0, max=1.85e+09 and exponent 9
+Applied plot defaults on 1 using day_of_year=False, visits=False, kwargs:{compact={'time': 'delta'}}
+Set y-axis label to $A$ $(\times 10^{9}~km^2)$ with limits min=0, max=1.85e+09 and exponent 9
+Applied plot defaults on 1 using day_of_year=False, visits=False, kwargs:{compact={'time': 'delta'}}
+Set y-axis label to $A$ $(\times 10^{9}~km^2)$ with limits min=0, max=1.85e+09 and exponent 9
+Applied plot defaults on 1 using day_of_year=False, visits=False, kwargs:{compact={'time': 'delta'}}
+Set y-axis label to $A$ $(\times 10^{9}~km^2)$ with limits min=0, max=1.85e+09 and exponent 9
+Applied plot defaults on 1 using day_of_year=False, visits=False, kwargs:{compact={'time': 'delta'}}
+Set y-axis label to $A$ $(\times 10^{9}~km^2)$ with limits min=0, max=1.85e+09 and exponent 9
+Applied plot defaults on 1 using day_of_year=False, visits=False, kwargs:{compact={'time': 'delta'}}
+Set y-axis label to $A$ $(\times 10^{9}~km^2)$ with limits min=0, max=1.85e+09 and exponent 9
+Applied plot defaults on 1 using day_of_year=False, visits=False, kwargs:{compact={'time': 'delta'}}
+Set y-axis label to $A$ $(\times 10^{9}~km^2)$ with limits min=0, max=1.85e+09 and exponent 9
+Applied plot defaults on 1 using day_of_year=False, visits=False, kwargs:{compact={'time': 'delta'}}
+Set y-axis label to $A$ $(\times 10^{9}~km^2)$ with limits min=0, max=1.85e+09 and exponent 9
+Applied plot defaults on 1 using day_of_year=False, visits=False, kwargs:{compact={'time': 'delta'}}
+Set y-axis label to $A$ $(\times 10^{9}~km^2)$ with limits min=0, max=1.85e+09 and exponent 9
+Applied plot defaults on 1 using day_of_year=False, visits=False, kwargs:{compact={'time': 'delta'}}
+Plotted 36 ranges of Area on 
+Set y-axis label to $A$ $(\times 10^{9}~km^2)$ with limits min=0, max=1.85e+09 and exponent 9
+Adjusting visit number annotations to avoid overlap
+Applied plot defaults on 1 using day_of_year=True, visits=True, kwargs:{time_interval=(Timestamp('2016-05-15 23:43:30'), Timestamp('2016-06-03 12:20:06')),day_interval=1,annotate=True}
+Megafigure Generated
+Figures Generated
+Finished. Exiting...

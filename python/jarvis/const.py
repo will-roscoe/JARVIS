@@ -4,6 +4,7 @@
 import logging
 from multiprocessing.pool import INIT
 from pathlib import Path
+from typing import Callable
 import cmasher as cmr
 import cv2
 from os.path import exists
@@ -51,11 +52,92 @@ class ExpandingList:
         return self._data[index]
     def __len__(self):
         return len(self._data)
-    
-    
 
+class CyclingList(ExpandingList):
+    def __init__(self, items):
+        super().__init__(items, overflow=None)
+    def __getitem__(self, index):
+        if index >= len(self._data):
+            index = index % len(self._data)
+        return self._data[index]
+        
     
-
+class UniquePropDef:
+    def __init__(self, mappable=None, func=None):
+        if func is not None:
+            if isinstance(func, Callable):
+                self._func = func
+                self.type = "func"
+        elif mappable is not None:
+            if isinstance(mappable, dict):
+                self._map = mappable
+                self.type = "dict"
+            elif isinstance(mappable, (tuple,list)):
+                self._map = CyclingList(mappable)
+                self.type = "cycle"
+            else:
+                self._map = mappable
+                self.type = "single"
+        self.counter = 0
+    def __call__(self, value=None):
+        if value is None:
+            value = self.counter
+            self.counter +=1
+        if self.type == "func":
+            return self._func(value)
+        elif self.type == "dict":
+            init = self._map.get(value, None)
+            if init is None:
+                for k,v in self._map.items():
+                    if value in k or k in value:
+                        return v
+                raise ValueError(f"Value {value} not found in mapping, or in a key in mapping, or key not found in value.")
+            return init
+        elif self.type == "cycle":
+            return self._map[value]
+        elif self.type == "single":
+            return self._map
+    def __iter__(self):
+        return self
+    def __next__(self):
+        return self()
+    def reset(self):
+        self.counter = 0
+class PropDef:
+    def __init__(self, primary, *alternates):
+        if isinstance(primary, Callable):
+            self._def = UniquePropDef(func=primary)
+        else:
+            self._def = UniquePropDef(mappable=primary)
+        self._alt = []
+        if alternates:
+            for alt in alternates:
+                if isinstance(alt, Callable):
+                    self._alt.append(UniquePropDef(func=alt))
+                else:
+                    self._alt.append(UniquePropDef(mappable=alt))
+    def __call__(self, value=None):
+        try:
+            if value is None:
+                return self._def()
+            return self._def(value)
+        except Exception:
+            for alt in self._alt:
+                try:
+                    if value is None:
+                        return alt()
+                    return alt(value)
+                except Exception:
+                    pass
+            raise ValueError(f"Value {value} could not be found in either the primary or alternate mappings.")
+    def __iter__(self):
+        return self
+    def __next__(self):
+        return self()
+    def reset(self):
+        for alt in self._alt:
+            alt.reset()
+        self._def.reset()
 ######## Dirs ##################################################################
 # DEFAULT PATHS
 Dirs = ConfigLike("Default paths for the project")
@@ -422,12 +504,15 @@ log.write("Logging initialized")
 plot = ConfigLike("Plotting configurations")
 plot.maps = ConfigLike("Default property maps for mpl properties.")
 plot.maps.color=ExpandingList(["#060","#0a0","#0f0","#dd0","#fa0","#f50","#f00","#b00","#f08","#b0b","#80f","#00f","#0af"], "#aaa")
+plot.maps.c = PropDef({"obspath_obspower":"#f00", "copath_copower":"#00f", "copath_obspower":"#2b2"}, "#aaa")
+plot.maps.lbl = PropDef({"obspath_obspower":"Path(Obs)$\\rightarrow$Power(Obs)", "copath_copower":"Path(Coadd)$\\rightarrow$Power(Coadd)", "copath_obspower":"Path(Coadd)$\\rightarrow$Power(Obs)"}, "")
+plot.maps.colorcategories = {"obspath_obspower":"#f00", "copath_copower":"#00f", "copath_obspower":"#2b2"}
 plot.maps.marker = ExpandingList(["1","2","3","4","x","+","1","2","3","4","x","+"], ".")
 plot.maps.hatch = ExpandingList(["\\\\","//","--","||","oo","xx","**"], "++")
 plot.size_a4 = {"width": 8.3, "height": 11.7}
 plot.margin = 1
-plot.inset_annotate_kws = dict(xy=(0, 1),xycoords="axes fraction",xytext=(+0.5, -0.5),textcoords="offset fontsize",verticalalignment="top",fontsize="small",bbox={"facecolor": "#0000", "edgecolor": "none", "pad": 3.0},)
-plot.meta_annotate_kws = dict(xy=(1, 1),xycoords="axes fraction",xytext=(-0.05, +0.1),textcoords="offset fontsize",verticalalignment="bottom",fontsize="small",horizontalalignment="right",annotation_clip=False,bbox={"facecolor": "#0000", "edgecolor": "none", "pad": 3.0},)
+plot.inset_annotate_kws = dict(xy=(0, 1),xycoords="axes fraction",xytext=(+0.5, -0.5),textcoords="offset fontsize",verticalalignment="top",fontsize="small",fontweight="bold",bbox={"facecolor": "#0000", "edgecolor": "none", "pad": 3.0},)
+plot.meta_annotate_kws = dict(xy=(1, 1),xycoords="axes fraction",xytext=(-0.05, +0.1),textcoords="offset fontsize",verticalalignment="bottom",fontsize="x-small",horizontalalignment="right",annotation_clip=False,bbox={"facecolor": "#0000", "edgecolor": "none", "pad": 3.0},)
 plot.visit_annotate_kws = dict(xytext=(0, -9), 
                                            textcoords="offset points", ha="center", va="center", 
                                            fontsize="small", 

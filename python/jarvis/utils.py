@@ -464,7 +464,8 @@ def prepdfs(fp,clip_neg=False, sortby="time", splitbyext=False):
     for i,df in enumerate(dfs):
         df["time"]= pd.to_datetime(df["Obs_Date"] + " " + df["Obs_Time"])
         df["created_time"] = pd.to_datetime(df["Date_Created"])
-        #TODO @will-roscoe add color definition for predefined file kws (obspath_obspower, copath_copower, copath_obspower.)
+        df["color"] = plot.maps.c(fp[i])
+        df["lbl"] = plot.maps.lbl(fp[i])
     # if sortby is a colname != "created_time", sort by that col
     if sortby != "created_time" and np.any(sortby in dfs[i].columns for i in range(len(dfs))):
         dfs = [df.sort_values(by=sortby) for df in dfs]
@@ -476,10 +477,14 @@ def prepdfs(fp,clip_neg=False, sortby="time", splitbyext=False):
         if clip_neg:
             for col in ["Avg_Flux","Total_Power","Area"]:
                 dfs[i][col] = dfs[i][col].where(dfs[i][col] > 0, 0)
-        dfs[i]["hatch"] = plot.maps.hatch[i]
-        dfs[i]["color"] = plot.maps.color[i]
-        dfs[i]["marker"] = plot.maps.marker[i]
-        dfs[i]["zorder"] = len(dfs)-i+5
+        if "hatch" not in dfs[i].columns:
+            dfs[i]["hatch"] = plot.maps.hatch[i]
+        # if "color" not in dfs[i].columns:
+        #     dfs[i]["color"] = plot.maps.color[i]
+        if "marker" not in dfs[i].columns:
+            dfs[i]["marker"] = plot.maps.marker[i]
+        if "zorder" not in dfs[i].columns:
+            dfs[i]["zorder"] = len(dfs)-i+5
         # for each df, make any values < 0  equal 0
     if splitbyext:
         exts = get_uniques(dfs,"EXT") + {""}

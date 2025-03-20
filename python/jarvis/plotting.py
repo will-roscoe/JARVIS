@@ -13,6 +13,7 @@ import datetime
 import os
 from datetime import timedelta, timezone
 from glob import glob
+from tkinter import Label
 
 import matplotlib as mpl
 import numpy as np
@@ -32,10 +33,11 @@ from matplotlib.patheffects import withStroke
 from matplotlib.projections.polar import PolarAxes
 from matplotlib.ticker import FuncFormatter
 from pandas import DataFrame, Series
+from sympy import expand
 from tqdm import tqdm
 
 # local modules
-from .const import CONST, FITSINDEX, HISAKI, HST, plot
+from .const import CONST, FITSINDEX, HISAKI, HST, plot,log
 from .reading_mfp import moonfploc
 from .utils import (
     adapted_hdul,
@@ -666,7 +668,6 @@ def apply_plot_defaults(ax:plt.Axes=None, fig: plt.Figure =  None, day_of_year=T
                 ax.append(a)
     if not isinstance(ax, (list, tuple)):
         ax = [ax]
-
     #----text scaling ----#
     # scale the text size of each y axis label based on the bbox of the label and height of the axis. each label should fit within the axis height (at least or less)
     if fig is None:
@@ -704,7 +705,7 @@ def apply_plot_defaults(ax:plt.Axes=None, fig: plt.Figure =  None, day_of_year=T
         else:
             # dates at topmost axis, with label, with ticks at top
             topmost_ax = max(ax, key=lambda a: a.get_position().y1)
-            topmost_ax.tick_params(axis="x",direction="in", labeltop=True, top=True, labelbottom=False)
+            topmost_ax.tick_params(axis="x",direction="in", labeltop=True, top=True, labelbottom=False, bottom=True)
             topmost_ax.set_xlabel(plot.defaults.DOY_label)
             topmost_ax.xaxis.set_label_position("top")
 
@@ -729,7 +730,8 @@ def apply_plot_defaults(ax:plt.Axes=None, fig: plt.Figure =  None, day_of_year=T
                 twinax = bottom_ax.twiny()
                 twinax.set_xlabel("Visit", labelpad=14)
                 twinax.xaxis.set_label_position("bottom")
-                twinax.tick_params(axis="both",labeltop=False, labelbottom=False)
+                twinax.tick_params(axis="both",labeltop=False, labelbottom=False, bottom=False, top=False)
+                bottom_ax.tick_params(top=True, bottom=True)
                 for span in spanlist:
                     if visit_list is None or span[2] in visit_list:
                         for a in ax:
@@ -747,6 +749,7 @@ def apply_plot_defaults(ax:plt.Axes=None, fig: plt.Figure =  None, day_of_year=T
                 else:
                     twinax.set_xlabel("Day of Year")
                     bottom_ax.set_xlabel("")
+    
 
 
     #---- X-axis bounds ----#
@@ -790,6 +793,7 @@ def apply_plot_defaults(ax:plt.Axes=None, fig: plt.Figure =  None, day_of_year=T
                 a.yaxis.set_tick_params(labelleft=False)
                 a.yaxis.set_label_text("")
     if adjust_annotations:
+        log.write("Adjusting visit number annotations to avoid overlap")
         noolps = [False]*len(anns)
         count =0
         while not all(noolps) and count < 100:
@@ -815,7 +819,10 @@ def apply_plot_defaults(ax:plt.Axes=None, fig: plt.Figure =  None, day_of_year=T
                         noolps[i] = True
         else:
             if count > 100:
-                tqdm.write(f"Visit number overlap resolution reached maximum iterations, continuing without full resolution. approx overlaps: {sum(noolps)}")
+                log.write(f"Visit number overlap resolution reached maximum iterations, continuing without full resolution. approx overlaps: {sum(noolps)}")
+    kwstr = "kwargs:{"f"{",".join([str(k)+'='+str(v) for k,v in kwargs.items()])}"  "}"
+    log.write(f"Applied plot defaults on {len(ax)} using {day_of_year=}, {visits=}, {kwstr}" )
+
 
 def get_axis_exp(lims,*args, e3_only=True):
     """Return a suggested exponent for the axis labels based on the range of the data.
@@ -889,9 +896,9 @@ def set_yaxis_exfmt(axe,label,unit=None,change_prefix=False, **kwargs):
     unitpart = "$(" +  exp_lbl +unit +")$"
     label = label + " " + unitpart if len(unitpart) > 2 else label
     axe.set_ylabel(label)
-
     axis.set_major_formatter(plt.FuncFormatter(lambda x, _: f"{x/10**exponent:g}"))
-
+    log.write(f"Set y-axis label to {label} with limits min={np.min(ylim[0]):.3g}, max={np.max(ylim[1]):.3g} and exponent {exponent}")
+    return label
 
 
 def figsize(**kwargs):
@@ -918,6 +925,7 @@ def figsize(**kwargs):
         height = kwargs["height"]*size["height"]
     else:
         height = width/kwargs.get("aspect", 3/2)
+    log.write(f"calculated figure width of {width:.2f}in and height of {height:.2f}in")
     return width, height
 
 
@@ -944,7 +952,7 @@ def plot_visit_intervals(axs,visits,fitsdirs=hst_fpath_list()[:-1],color="#aaa",
         fvisit = group_to_visit(int(f.split("_")[-1][:2]))
         for ax in axs if isinstance(axs,(list,tuple)) else axs.flatten() if isinstance(axs,np.ndarray) else [axs]:
             ax.axvspan(mind, maxd, alpha=0.5, color="#aaa5" if fvisit not in visits else color, **kwargs)
-
+    log.write(f"Plotted {len(fitsdirs)} visit intervals on {len(axs)} axes.")
 
 def fill_between_qty(ax,xdf,df,quantity,visits, edgecorrect=False, fc=(0.7,0.7,0.7,0.3), ec=(0.7,0.7,0.7,0.3), hatch="\\\\",zord=5):
     r"""Plot the quantity ranges for the specified visits as shaded regions on the provided axes.
@@ -978,6 +986,9 @@ def fill_between_qty(ax,xdf,df,quantity,visits, edgecorrect=False, fc=(0.7,0.7,0
     ax.fill_between(ranges['time'],  ranges["max"], ranges["min"],facecolor=fc, edgecolor=ec,hatch=hatch,linewidth=0.5,  interpolate=True, zorder=zord)
     if edgecorrect:
         ax.fill_between(ranges['time'],  ranges["max"], ranges["min"],facecolor=(0,0,0,0), edgecolor=(1,1,1), interpolate=True, zorder=zord+1)
+    log.write(f"Plotted {len(ranges)} ranges of {quantity} on {ax.get_label()}")
+    return mpl.patches.Patch(facecolor=fc, edgecolor=ec, hatch=hatch, label="Range of "+quantity.replace("_"," "))
+
 
 def mgs_grid(fig, visits, main_height=4, grid_height=5, grid_kwargs={}, main_gs_kwargs={"hspace":0.1, "wspace":0}):
     """Create a main grid and subgrid of axes for the provided figure and visits.
@@ -1002,9 +1013,35 @@ def mgs_grid(fig, visits, main_height=4, grid_height=5, grid_kwargs={}, main_gs_
     main_ax.xaxis.set_major_formatter(mpl.dates.DateFormatter("%d/%m/%y"))
     main_ax.xaxis.set_minor_locator(mpl.dates.DayLocator(interval=1))
     axs = [[fig.add_subplot(mgs[j, i], label=f"v{visits[i+icols*j]}") for i in range(icols)] for j in range(jrows)]
+    log.write(f"Initialized {len(axs)} axes in {jrows}x{icols} grid + 1 main axes.")   
     return main_ax, axs
 
 
+def set_fig_legend(fig,handle_dict,hst_kwargs={}, hisaki_kwargs={}, **kwargs):
+    hst_true = len(handle_dict["HST"]) > 0
+    hisaki_true = len(handle_dict["HISAKI"]) > 0
+    two_legends = hst_true and hisaki_true
+    hst_kw = {"title":"HST Derived Data", "fontsize":"small", "mode":"expand"}
+    hst_kw.update(hst_kwargs)
+    hisaki_kw = {"title":"HISAKI Data", "fontsize":"small" ,"mode":"expand"}
+    hisaki_kw.update(hisaki_kwargs)
+    kw = {}
+    kw.update(kwargs)
+    if two_legends:
+        hstvals=handle_dict["HST"].values()
+        hst_l = fig.legend(handles=hstvals,loc="outside lower left", ncols=np.ceil(len(hstvals)/4),**hst_kwargs)
+        bbox_l = hst_l.get_bbox_to_anchor()
+        hst_l.set_bbox_to_anchor((bbox_l.x0, bbox_l.y0, bbox_l.width/2, bbox_l.height))
+        bbox_his = (bbox_l.x0+bbox_l.width, bbox_l.y0, bbox_l.width/2, bbox_l.height)
+        hisvals = handle_dict["HISAKI"].values()
+        hisaki_l = fig.legend(handles=hisvals,loc="outside lower right",ncols=np.ceil(len(hisvals)/4),bbox_to_anchor=bbox_his, **hisaki_kwargs)
+        return hst_l, hisaki_l
+
+    kw.update(hst_kw if hst_true else hisaki_kw)
+    kw["title"] = None
+    s_handles = handle_dict["HST"] if hst_true else handle_dict["HISAKI"]
+    hst_l = fig.legend(handles=s_handles.values(),loc="outside lower center",ncols=np.ceil(len(s_handles)/2), **hst_kwargs)
+    return hst_l
 
 
 def stacked_plot(hst_datasets, hisaki_dataset, savepath,hisaki_cols=[],hst_cols=[], fill_between=True):
@@ -1133,8 +1170,7 @@ def overlaid_plot(cols, hst_datasets, hisaki_dataset, savepath, visit_intervals=
 
 
 
-
-def megafigure_plot(hisaki_cols,hst_cols, hst_datasets, hisaki_dataset, savepath, fill_between=True):
+def megafigure_plot(hisaki_cols,hst_cols, hst_datasets, hisaki_dataset, savepath, fill_between=True,show_delta=True):
     """Plot a megafigure of all the provided columns from the datasets, with visit intervals and quantity ranges.
 
     Args:
@@ -1144,7 +1180,7 @@ def megafigure_plot(hisaki_cols,hst_cols, hst_datasets, hisaki_dataset, savepath
         hisaki_dataset (DataFrame): The HISAKI dataset to plot.
         savepath (str): The path to save the plot to.
         fill_between (bool, optional): Whether to fill between the quantities. Defaults to True.
-
+        show_delta (bool, optional): Whether to show the timedelta instead of the time on the grid x ticks and annotations
     Returns:
         str: The path to the saved plot
 
@@ -1161,6 +1197,7 @@ def megafigure_plot(hisaki_cols,hst_cols, hst_datasets, hisaki_dataset, savepath
 
     figure.suptitle(f"Overview of {", ".join([h.replace("_"," ") for h in hst_cols])} over all visits")
     main_ax,axs = mgs_grid(figure, visits) #  I,J grid of subplots, per visit
+    legend_handles = {"HST":{}, "HISAKI":{}}
     icols, jrows = approx_grid_dims(visits)
     merged = merge_dfs(hst_datasets)
     for i in range(icols):
@@ -1171,8 +1208,8 @@ def megafigure_plot(hisaki_cols,hst_cols, hst_datasets, hisaki_dataset, savepath
                     ax.set_ylabel(f"Visit {visits[i+j*icols]}")
                 for col in hst_cols:
                     for h in hst_datasets:
-                        ax.scatter(h["time"],h[col],label=col, color=h["color"][0], marker=h["marker"][0], zorder=h["zorder"][0], s=0.5)
-                        ax.plot(h["time"],h[col], color=h["color"][0], lw=0.2, zorder=h["zorder"][0])
+                        ax.scatter(h["time"],h[col],label=col, color=h["color"][0], marker=h["marker"][0], zorder=h["zorder"][0], s=1)
+                        ax.plot(h["time"],h[col], color=h["color"][0], lw=0.7, zorder=h["zorder"][0])
                     mv = HST.mapval(col, ["label","unit"])
                     ax.set_ylim(0,merged[col].max())
                     set_yaxis_exfmt(ax, label=mv[0], unit=mv[1])
@@ -1190,27 +1227,44 @@ def megafigure_plot(hisaki_cols,hst_cols, hst_datasets, hisaki_dataset, savepath
                         tax.set_yticklabels([])
                         tax.set_yticks([])
                     #tax.plot(hisaki_dataset.time.datetime64,hisaki_dataset[col],label=col, lw=0.2, color = "black")
-                apply_plot_defaults(ax=ax, day_of_year=False,visits=False, compact={})
+                apply_plot_defaults(ax=ax, day_of_year=False,visits=False, compact={"time":"delta"} if show_delta else {})
                 ax.set_ylabel("")
-                ax.tick_params(axis="x", labelsize="small")
+                ax.tick_params(axis="x", labelsize="x-small")
                 ax.annotate(f"v{visits[i+j*icols]}", **plot.inset_annotate_kws)
-                ax.annotate(dmin.strftime("%d/%m/%y"), **plot.meta_annotate_kws)
+                if show_delta:
+                    ax.annotate(dmin.strftime("%j/%Y, %H:%M:%S"),**plot.meta_annotate_kws)
+                else:
+                    ax.annotate(dmin.strftime("%j/%Y"), **plot.meta_annotate_kws)
                 if i!=0:
                     ax.tick_params(axis="y", labelleft=False, labelright=False)
+    
     for i, col in enumerate(hst_cols):
         ax = main_ax
         for h in hst_datasets:
-            ax.scatter(h["time"],h[col],label=col, color=h["color"][0], marker=h["marker"][0], zorder=h["zorder"][0], s=0.5)
+            ax.scatter(h["time"],h[col],label=col, color=h["color"][0], marker=h["marker"][0], zorder=h["zorder"][0], s=1)
+            plt_ = ax.plot(h["time"],h[col], color=h["color"][0], lw=0.7, zorder=h["zorder"][0])
+            if h["lbl"][0] not in legend_handles["HST"]:
+                legend_handles["HST"][h["lbl"][0]] = mpl.lines.Line2D([0], [0], color=h["color"][0], lw=0.7, label=h["lbl"][0])
         if fill_between:
-            fill_between_qty(ax,merged,merged,quantity=col,visits=merged["Visit"].unique(), edgecorrect=True, zord=merged["zorder"][0]-10)
-
+            patch =fill_between_qty(ax,merged,merged,quantity=col,visits=merged["Visit"].unique(), edgecorrect=True, zord=merged["zorder"][0]-10)
+    if fill_between:
+        legend_handles["HST"].update({"Quantity Range":patch})
         mv = HST.mapval(col, ["label","unit"])
     main_ax.set_ylim(0,merged[col].max())
-    set_yaxis_exfmt(main_ax, label=mv[0], unit=mv[1])
-    apply_plot_defaults(ax=[main_ax], time_interval=xlim, day_interval=1, visits=True, annotate=False)
+
+    label = set_yaxis_exfmt(main_ax, label=mv[0], unit=mv[1])
+    # label aligned to the centre y of the grid, and the right x of the grid
+    main_ax.set_ylabel("")
+    figure.supylabel(label, fontsize="medium")
+    apply_plot_defaults(ax=[main_ax], time_interval=xlim, day_interval=1, visits=True, annotate=True)
+    main_ax.xaxis.set_tick_params(labeltop=True, labelbottom=False, top=True, bottom=True)
+    set_fig_legend(figure,legend_handles)
+    
+    
     file = savepath+f"megafigure_[{".".join(hst_cols)}]{datetime.datetime.now().strftime('%Y-%m-%dT%H-%M-%S')}.png"
     figure.savefig(file)
     plt.close()
+    
     return file
 
 

@@ -495,7 +495,7 @@ def figure_gen(hst_cols,hisaki_cols,include="last5",stacked=False,overlaid=True,
     else:
         hst_datasets = get_datapaths()
     hst_datasets = prepdfs(hst_datasets)
-    hisaki_dataset = hisaki_sw_get_safe(method="all")
+    hisaki_dataset = hisaki_sw_get_safe("Pdyn")
     paths = []
     if stacked:
         paths.append(stacked_plot(hst_datasets=hst_datasets, hisaki_dataset=hisaki_dataset, hst_cols=hst_cols, hisaki_cols=hisaki_cols, savepath=fpath("figures/imgs/")))
@@ -504,7 +504,7 @@ def figure_gen(hst_cols,hisaki_cols,include="last5",stacked=False,overlaid=True,
         paths.append(overlaid_plot(overlaid_map, hst_datasets, hisaki_dataset, fpath("figures/imgs/")))
 
     if megafigure:
-        paths.append(megafigure_plot(hst_datasets=hst_datasets, hisaki_dataset=hisaki_dataset, hst_cols=hst_cols, hisaki_cols=hisaki_cols, savepath=fpath("figures/imgs/")))
+        paths.append(megafigure_plot(hst_datasets=hst_datasets, hisaki_dataset=hisaki_dataset, hst_cols=hst_cols, hisaki_cols=[], savepath=fpath("figures/imgs/")))
         # plot all datasets over full interval like overlaid, but then plot each visit separately below it in a grid.
         # example if we find 8 unique visits in the hst dataset, we will have a grid of 8 plots below the overlaid plot.
     return paths

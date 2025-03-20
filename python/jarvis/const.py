@@ -504,7 +504,8 @@ log.write("Logging initialized")
 plot = ConfigLike("Plotting configurations")
 plot.maps = ConfigLike("Default property maps for mpl properties.")
 plot.maps.color=ExpandingList(["#060","#0a0","#0f0","#dd0","#fa0","#f50","#f00","#b00","#f08","#b0b","#80f","#00f","#0af"], "#aaa")
-plot.maps.c = PropDef({"obspath_obspower":"#f00", "copath_copower":"#00f", "copath_obspower":"#2b2"}, "#aaa")
+plot.maps.c = PropDef({"obspath_obspower":"#f00", "copath_copower":"#00f", "copath_obspower":"#2b2", "Pdyn":"#fa0", "Power_Dawn":"#a0f","Power_Dusk":"#0af","Dawn":"#f00","Dusk":"#00f","Flux":"#0f0"
+                       }, "#aaa")
 plot.maps.lbl = PropDef({"obspath_obspower":"Path(Obs)$\\rightarrow$Power(Obs)", "copath_copower":"Path(Coadd)$\\rightarrow$Power(Coadd)", "copath_obspower":"Path(Coadd)$\\rightarrow$Power(Obs)"}, "")
 plot.maps.colorcategories = {"obspath_obspower":"#f00", "copath_copower":"#00f", "copath_obspower":"#2b2"}
 plot.maps.marker = ExpandingList(["1","2","3","4","x","+","1","2","3","4","x","+"], ".")
@@ -512,25 +513,28 @@ plot.maps.hatch = ExpandingList(["\\\\","//","--","||","oo","xx","**"], "++")
 plot.size_a4 = {"width": 8.3, "height": 11.7}
 plot.margin = 1
 plot.inset_annotate_kws = dict(xy=(0, 1),xycoords="axes fraction",xytext=(+0.5, -0.5),textcoords="offset fontsize",verticalalignment="top",fontsize="small",fontweight="bold",bbox={"facecolor": "#0000", "edgecolor": "none", "pad": 3.0},)
-plot.meta_annotate_kws = dict(xy=(1, 1),xycoords="axes fraction",xytext=(-0.05, +0.1),textcoords="offset fontsize",verticalalignment="bottom",fontsize="x-small",horizontalalignment="right",annotation_clip=False,bbox={"facecolor": "#0000", "edgecolor": "none", "pad": 3.0},)
+plot.meta_annotate_kws = dict(xy=(1, 1),xycoords="axes fraction",xytext=(-0.05, +0.1),textcoords="offset fontsize",verticalalignment="bottom",fontsize="x-small",horizontalalignment="right",annotation_clip=False,bbox={"facecolor": "#0000", "edgecolor": "none", "pad": 3.0},zorder=100)
 plot.visit_annotate_kws = dict(xytext=(0, -9), 
                                            textcoords="offset points", ha="center", va="center", 
                                            fontsize="small", 
                                            arrowprops=dict(arrowstyle="-", color="black", 
                                             lw=0.5, shrinkA=0,shrinkB=0), bbox=dict(fc="#fff0", ec="#fff0",lw=0.2, pad=0),clip_on=False,)
-plot.gen = ConfigLike("Figure generation configurations")
-plot.gen.stacked = ConfigLike("Stacked figure configurations")
+
+plot.stacked = ConfigLike("Stacked figure configurations")
 plot.defaults = ConfigLike("Default figure configurations")
 plot.defaults.rcfile = str(GHROOT/"python/jarvis/resources/jarvis.mplstyle")
 plot.defaults.DOY_label = "Day of Year"
+plot.defaults.plot = {"lw":0.7}
+plot.defaults.scatter = {"s":1,"linewidths":0.5}
 
 
 
-
-plot.gen.overlaid = ConfigLike("Overlaid figure configurations")
-plot.gen.mega = ConfigLike("Mega figure configurations")
-plot.gen.hist = ConfigLike("Histogram figure configurations")
-plot.gen.gif = ConfigLike("GIF figure configurations")
+plot.overlaid = ConfigLike("Overlaid figure configurations")
+plot.mega = ConfigLike("Mega figure configurations")
+plot.mega.figsize = {"width":1.4, "aspect":3/2}
+plot.mega.figure = {"constrained_layout":True}
+plot.hist = ConfigLike("Histogram figure configurations")
+plot.gif = ConfigLike("GIF figure configurations")
 
 
 

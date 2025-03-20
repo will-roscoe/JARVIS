@@ -16,6 +16,7 @@ from glob import glob
 from tkinter import Label
 
 import matplotlib as mpl
+from matplotlib import legend
 import numpy as np
 import pandas as pd
 
@@ -53,6 +54,7 @@ from .utils import (
     get_obs_interval,
     get_time_interval_from_multi,
     group_to_visit,
+    hisaki_sw_get_safe,
     hist2xy,
     hst_fpath_list,
     merge_dfs,
@@ -1013,7 +1015,7 @@ def mgs_grid(fig, visits, main_height=4, grid_height=5, grid_kwargs={}, main_gs_
     main_ax.xaxis.set_major_formatter(mpl.dates.DateFormatter("%d/%m/%y"))
     main_ax.xaxis.set_minor_locator(mpl.dates.DayLocator(interval=1))
     axs = [[fig.add_subplot(mgs[j, i], label=f"v{visits[i+icols*j]}") for i in range(icols)] for j in range(jrows)]
-    log.write(f"Initialized {len(axs)} axes in {jrows}x{icols} grid + 1 main axes.")   
+    log.write(f"Initialized {len(axs)} axes in {jrows}x{icols} grid + 1 main axes.")
     return main_ax, axs
 
 
@@ -1027,22 +1029,52 @@ def set_fig_legend(fig,handle_dict,hst_kwargs={}, hisaki_kwargs={}, **kwargs):
     hisaki_kw.update(hisaki_kwargs)
     kw = {}
     kw.update(kwargs)
+    # print(f"{len(handle_dict["HST"])=}, {len(handle_dict["HISAKI"])=}")
+    # for k,v in handle_dict["HST"].items():
+    #     print(f"{k}: {v.get_window_extent()} {v.get_label()}")
+    # for k,v in handle_dict["HISAKI"].items():
+    #     print(f"{k}: {v.get_window_extent()} {v.get_label()}")
     if two_legends:
         hstvals=handle_dict["HST"].values()
         hst_l = fig.legend(handles=hstvals,loc="outside lower left", ncols=np.ceil(len(hstvals)/4),**hst_kwargs)
         bbox_l = hst_l.get_bbox_to_anchor()
-        hst_l.set_bbox_to_anchor((bbox_l.x0, bbox_l.y0, bbox_l.width/2, bbox_l.height))
-        bbox_his = (bbox_l.x0+bbox_l.width, bbox_l.y0, bbox_l.width/2, bbox_l.height)
+        
+        #hst_l.set_bbox_to_anchor((bbox_l.x0, bbox_l.y0, bbox_l.width/2, bbox_l.height))
+        #bbox_his = (bbox_l.x0+bbox_l.width, bbox_l.y0, bbox_l.width/2, bbox_l.height)
         hisvals = handle_dict["HISAKI"].values()
-        hisaki_l = fig.legend(handles=hisvals,loc="outside lower right",ncols=np.ceil(len(hisvals)/4),bbox_to_anchor=bbox_his, **hisaki_kwargs)
+        hisaki_l = fig.legend(handles=hisvals,loc="outside lower right",ncols=np.ceil(len(hisvals)/4), **hisaki_kwargs)
+        #print(bbox_l, bbox_his)
         return hst_l, hisaki_l
+    if hisaki_true or hst_true:
+        kw.update(hst_kw if hst_true else hisaki_kw)
+        kw["title"] = None
+        s_handles = handle_dict["HST"] if hst_true else handle_dict["HISAKI"]
+        hst_l = fig.legend(handles=s_handles.values(),loc="outside lower center",ncols=np.ceil(len(s_handles)/2), **hst_kwargs)
+        return hst_l
+    return None
 
-    kw.update(hst_kw if hst_true else hisaki_kw)
-    kw["title"] = None
-    s_handles = handle_dict["HST"] if hst_true else handle_dict["HISAKI"]
-    hst_l = fig.legend(handles=s_handles.values(),loc="outside lower center",ncols=np.ceil(len(s_handles)/2), **hst_kwargs)
-    return hst_l
+def _plot_hisaki(ax, col,hisaki_dataset):
+    hisaki_dataset = hisaki_sw_get_safe(col)
+    pl = ax.plot(hisaki_dataset.time.datetime64,hisaki_dataset[col],label=col.replace("_"," "),color=plot.maps.c(col), **plot.defaults.plot)
+    mv = HISAKI.mapval(col, ["label","unit"])
+    set_yaxis_exfmt(ax, label=mv[0], unit=mv[1])
+    # print(pl)
+    log.write(f"Plotted HISAKI timeseries {col} on {ax.get_label()}")
+    return {col:mpl.lines.Line2D([0],[0],color=plot.maps.c(col),lw=2,label=col.replace("_"," "))}
 
+def _plot_hst(ax, col,hst_datasets,hst_m):
+    lh = {}
+    for hst in hst_datasets:
+        ax.scatter(hst["time"],hst[col],label=col, color=hst["color"][0], marker=hst["marker"][0], zorder=hst["zorder"][0], **plot.defaults.scatter)
+        ax.plot(hst["time"],hst[col], color=hst["color"][0],alpha=0.7, zorder=hst["zorder"][0], **plot.defaults.plot)
+        mv = HST.mapval(col, ["label","unit"])
+        log.write(f"Plotted HST timeseries {col} on {ax.get_label()}")
+        lh.update({hst["lbl"][0]:mpl.lines.Line2D([0], [0], color=hst["color"][0], lw=2, label=hst["lbl"][0], marker=hst["marker"][0])})
+    ax.set_ylim(0,hst_m[col].max())
+    set_yaxis_exfmt(ax, label=mv[0], unit=mv[1])
+
+    # print(lh)
+    return lh
 
 def stacked_plot(hst_datasets, hisaki_dataset, savepath,hisaki_cols=[],hst_cols=[], fill_between=True):
         """Plot a stacked x-axis plot of all columns in the datasets, over the timeperiod of hst_datasets.
@@ -1061,22 +1093,21 @@ def stacked_plot(hst_datasets, hisaki_dataset, savepath,hisaki_cols=[],hst_cols=
         extend = np.timedelta64(1, "D")
         xlim = (xlim[0]-extend, xlim[1]+extend)
         figure,axs = plt.subplots(len(hst_cols)+len(hisaki_cols),1,figsize=figsize(max=True),sharex=True, gridspec_kw={"hspace":0.05}, subplot_kw={"xmargin":0.02, "ymargin":0.02}, constrained_layout=True)
+        for i,ax in enumerate(axs):
+            ax.set_label(f"axes[{i}]")
+        legend_handles = {"HST":{}, "HISAKI":{}}
         hst_m = merge_dfs(hst_datasets)
         for i, col in enumerate(hst_cols):
-            for hst in hst_datasets:
-                axs[i].scatter(hst["time"],hst[col],label=col, color=hst["color"][0], marker=hst["marker"][0], zorder=hst["zorder"][0], s=2)
-                mv = HST.mapval(col, ["label","unit"])
-            #if col not in ["Total_Power", "Avg_Flux"]:
-            axs[i].set_ylim(0,hst_m[col].max())
-            set_yaxis_exfmt(axs[i], label=mv[0], unit=mv[1])
+            pl=_plot_hst(axs[i], col,hst_datasets,hst_m)
+            legend_handles["HST"].update(pl)
             if fill_between:
                 fill_between_qty(axs[i],hst_m,hst_m,quantity=col,visits=hst_m["Visit"].unique(), edgecorrect=True, zord=hst_m["zorder"][0]-10)
         for i, col in enumerate(hisaki_cols):
-            axs[i+len(hst_cols)].plot(hisaki_dataset.time.datetime64,hisaki_dataset[col],label=col)
-            mv = HISAKI.mapval(col, ["label","unit"])
-            set_yaxis_exfmt(axs[i+len(hst_cols)], label=mv[0], unit=mv[1])
+            pl=_plot_hisaki(axs[i+len(hst_cols)], col,hisaki_dataset)
+            legend_handles["HISAKI"].update(pl)
         figure.suptitle("Comparison of Energy Flux, Area and Total Power against HISAKI data")
         apply_plot_defaults(fig=figure, time_interval=xlim, day_interval=1, visits=True)
+        set_fig_legend(figure,legend_handles)
         file = savepath+f"stacked_{datetime.datetime.now().strftime('%Y-%m-%dT%H-%M-%S')}.png"
         figure.savefig(file)
         plt.close()
@@ -1103,6 +1134,7 @@ def overlaid_plot(cols, hst_datasets, hisaki_dataset, savepath, visit_intervals=
     xlim = (xlim[0]-extend, xlim[1]+extend)
     # identify complementary columns in the datasets
     # make a map of datasets to cols: True if hisaki, False if hst
+    legend_handles = {"HST":{}, "HISAKI":{}}
     df_map = []
     for col in cols:
         if isinstance(col,str):
@@ -1125,20 +1157,21 @@ def overlaid_plot(cols, hst_datasets, hisaki_dataset, savepath, visit_intervals=
     axes = []
     for i, col in enumerate(cols):
         if isinstance(col,str):
+            axs[i].set_label(f"axes[{i}]")
             axes.append(axs[i])
+            
         else:
             axes.append([axs[i], axs[i].twinx()])
+            axes[-1][0].set_label(f"axes[{i}][left]")
+            axes[-1][1].set_label(f"axes[{i}][right]")
+
     def plot_hisaki(ax, col):
-        ax.plot(hisaki_dataset.time.datetime64,hisaki_dataset[col],label=col)
-        mv = HISAKI.mapval(col, ["label","unit"])
-        set_yaxis_exfmt(ax, label=mv[0], unit=mv[1])
+        pl=_plot_hisaki(ax, col,hisaki_dataset)
+        legend_handles["HISAKI"].update(pl)
     hst_m = merge_dfs(hst_datasets)
     def plot_hst(ax, col):
-        for hst in hst_datasets:
-            ax.scatter(hst["time"],hst[col],label=col, color=hst["color"][0], marker=hst["marker"][0], zorder=hst["zorder"][0], s=2)
-            mv = HST.mapval(col, ["label","unit"])
-        ax.set_ylim(0,hst_m[col].max())
-        set_yaxis_exfmt(ax, label=mv[0], unit=mv[1])
+        pl=_plot_hst(ax, col,hst_datasets,hst_m)
+        legend_handles["HST"].update(pl)
         if fill_between:
                 fill_between_qty(ax,hst_m,hst_m,quantity=col,visits=hst_m["Visit"].unique(), edgecorrect=True, zord=hst_m["zorder"][0]-10)
     def plot_one(ax,col,dfv):
@@ -1146,7 +1179,6 @@ def overlaid_plot(cols, hst_datasets, hisaki_dataset, savepath, visit_intervals=
             plot_hisaki(ax,col)
         else:
             plot_hst(ax,col)
-
     # go through the maps and plot the data on the designated axes, using the designated datasets
     for idx, col in enumerate(cols):
         if isinstance(col,str):
@@ -1163,6 +1195,10 @@ def overlaid_plot(cols, hst_datasets, hisaki_dataset, savepath, visit_intervals=
                             for idz, ccc in enumerate(cc):
                                 plot_one(axes[idx][idy],ccc,df_map[idx][idy][idz])
     apply_plot_defaults(fig=figure, time_interval=xlim, day_interval=1, visits=True)
+    if fill_between:
+        patch = fill_between_qty(axes[0],hst_m,hst_m,quantity=cols[0],visits=hst_m["Visit"].unique(), edgecorrect=True, zord=hst_m["zorder"][0]-10)
+        legend_handles["HST"].update({"Quantity Range":patch})
+    set_fig_legend(figure,legend_handles)
     file = savepath+f"overlaid_{datetime.datetime.now().strftime('%Y-%m-%dT%H-%M-%S')}.png"
     figure.savefig(file)
     plt.close()
@@ -1186,15 +1222,14 @@ def megafigure_plot(hisaki_cols,hst_cols, hst_datasets, hisaki_dataset, savepath
 
     """
     xlim = get_time_interval_from_multi(hst_datasets)
-    extend = np.timedelta64(1, "D")
-    xlim = (xlim[0]-extend, xlim[1]+extend)
+    # extend = np.timedelta64(1, "D")
+    # xlim = (xlim[0]-extend, xlim[1]+extend)
     visits_ = [list(hs["Visit"].unique()) for hs in hst_datasets]
     visits = set()
     for v in visits_:
         visits = visits.union(v)
     visits = list(visits)
-    figure = plt.figure(figsize=figsize(width =1.4, aspect=3/2), constrained_layout=True)
-
+    figure = plt.figure(figsize=figsize(**plot.mega.figsize), **plot.mega.figure)
     figure.suptitle(f"Overview of {", ".join([h.replace("_"," ") for h in hst_cols])} over all visits")
     main_ax,axs = mgs_grid(figure, visits) #  I,J grid of subplots, per visit
     legend_handles = {"HST":{}, "HISAKI":{}}
@@ -1207,17 +1242,10 @@ def megafigure_plot(hisaki_cols,hst_cols, hst_datasets, hisaki_dataset, savepath
                 if i == 0:
                     ax.set_ylabel(f"Visit {visits[i+j*icols]}")
                 for col in hst_cols:
-                    for h in hst_datasets:
-                        ax.scatter(h["time"],h[col],label=col, color=h["color"][0], marker=h["marker"][0], zorder=h["zorder"][0], s=1)
-                        ax.plot(h["time"],h[col], color=h["color"][0], lw=0.7, zorder=h["zorder"][0])
-                    mv = HST.mapval(col, ["label","unit"])
-                    ax.set_ylim(0,merged[col].max())
-                    set_yaxis_exfmt(ax, label=mv[0], unit=mv[1])
+                    _plot_hst(ax, col,hst_datasets,merged)
                     # get min and max for this visit.
                 xdf = merged.where(merged["Visit"] == visits[i+j*icols])
                 dmax, dmin = [xdf["time"].max(), xdf["time"].min()]
-
-
                 ax.set_xlim(dmin,dmax)
                 for col in hisaki_cols:
                     tax=ax.twinx()
@@ -1237,20 +1265,18 @@ def megafigure_plot(hisaki_cols,hst_cols, hst_datasets, hisaki_dataset, savepath
                     ax.annotate(dmin.strftime("%j/%Y"), **plot.meta_annotate_kws)
                 if i!=0:
                     ax.tick_params(axis="y", labelleft=False, labelright=False)
-    
     for i, col in enumerate(hst_cols):
-        ax = main_ax
-        for h in hst_datasets:
-            ax.scatter(h["time"],h[col],label=col, color=h["color"][0], marker=h["marker"][0], zorder=h["zorder"][0], s=1)
-            plt_ = ax.plot(h["time"],h[col], color=h["color"][0], lw=0.7, zorder=h["zorder"][0])
-            if h["lbl"][0] not in legend_handles["HST"]:
-                legend_handles["HST"][h["lbl"][0]] = mpl.lines.Line2D([0], [0], color=h["color"][0], lw=0.7, label=h["lbl"][0])
+        lhand=_plot_hst(main_ax, col,hst_datasets,merged)
+        legend_handles["HST"].update(lhand)
         if fill_between:
-            patch =fill_between_qty(ax,merged,merged,quantity=col,visits=merged["Visit"].unique(), edgecorrect=True, zord=merged["zorder"][0]-10)
+            patch =fill_between_qty(main_ax,merged,merged,quantity=col,visits=merged["Visit"].unique(), edgecorrect=True,zord=0.5)
     if fill_between:
         legend_handles["HST"].update({"Quantity Range":patch})
         mv = HST.mapval(col, ["label","unit"])
-    main_ax.set_ylim(0,merged[col].max())
+    for i, col in enumerate(hisaki_cols):
+        lhand = _plot_hisaki(main_ax, col,hisaki_dataset)
+        legend_handles["HISAKI"].update(lhand)
+    main_ax.set_ylim(0,merged[hst_cols[0]].max())
 
     label = set_yaxis_exfmt(main_ax, label=mv[0], unit=mv[1])
     # label aligned to the centre y of the grid, and the right x of the grid

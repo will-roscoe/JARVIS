@@ -40,8 +40,9 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.command == "gifs":
-        from python.jarvis.plotting import make_gif
         from jarvis.utils import ensure_dir, filename_from_hdul
+
+        from python.jarvis.plotting import make_gif
 
         ddir = fpath("datasets/HST")
         # find all directories in the HST directory, as absolute paths
@@ -56,9 +57,10 @@ if __name__ == "__main__":
             pb_.update(1)
 
     elif args.command == "imgs":
-        from python.jarvis.plotting import moind
         from jarvis.utils import ensure_dir, filename_from_hdul
         from matplotlib import pyplot as plt
+
+        from python.jarvis.plotting import moind
 
         ddir = fpath("datasets/HST")
         # find all directories in the HST directory, as absolute paths

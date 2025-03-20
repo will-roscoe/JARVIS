@@ -14,37 +14,11 @@ from .utils import adapted_hdul, fitsheader
 ##########################################################################################################
 #                            COORDINATE SYSTEM TRANSFORMS
 ##########################################################################################################
-######## Replaced by azimeq_to_polar below which is more general and can handle multiple points ########
-# def azimeq_to_polar(x: int, y: int, img: np.ndarray, rlim: int = 40) -> tuple:
-#     """Transform a point on an image (x,y=0,0 at top_left) to polar colatitude and longitude.
-
-#     Args:
-#         x (int): x "pixel" coordinate.
-#         y (int): y "pixel" coordinate.
-#         img: the image the coordinates are from.
-#         rlim: the maximum colatitude value.
-
-#     Returns: tuple(float,float): colatitude and longitude.
-
-#     """
-#     r0 = img.shape[1] / 2
-#     x_ = x - r0
-#     y_ = y - r0
-#     r = np.sqrt(x_**2 + y_**2)
-#     colat = r / r0 * rlim
-#     lon = np.degrees(np.arctan2(y_, x_)) + 90
-#     while lon < 0:
-#         lon += 360
-#     while lon > 360:
-#         lon -= 360
-#     return (colat, lon)
-
-
 def azimeq_to_polar(*points, img: np.ndarray, rlim: int = 40) -> np.ndarray:
     """Transform a x,y point or points to polar colatitude and longitude.
 
     Args:
-    xys (list,np.ndarray): list of x,y coordinates of the points [[x1,y1],[x2,y2],...]
+    *points (list,np.ndarray): list of x,y coordinates of the points [[x1,y1],[x2,y2],...]
     img (np.ndarray): the image the coordinates are from
     rlim (float): the maximum colatitude value
 
@@ -137,15 +111,15 @@ def azimuthal_equidistant(data, rlim=40, meridian_pos="N", origin="upper",clip_l
     lon_clip_pixel = [int(i / 360 * n_phi) for i in lon_clip]
     lon_mask = np.zeros_like(img, dtype=bool) # masking out the longitudes we dont want
     lon_mask[:, lon_clip_pixel[0] : lon_clip_pixel[1]] = True
-    img[lon_mask==False] = np.nan # set unused longitudes to the square bg. # noqa: ERA001
+    img[lon_mask==False] = np.nan # set unused longitudes to the square bg. # noqa: E712
     if not is_south:
         img = np.flip(img, axis=0)  # flip to have north pole at 0 index (image data is south at 0)
     # Compute the pixel corresponding to the longitude
     cml_pixel = int(corrected_cml / 360 * n_phi)
-    
+
     if kwargs.get("drawcml",False): # Annotate the line vertically at the correct longitude
         img[:, cml_pixel] = kwargs["drawcml"]
-    
+
     img = np.nan_to_num(img, nan=kwargs.get("proj_bg",np.max(np.nan_to_num(img)))) # turn nan values to circle bg
     # if zero, also set to proj_bg.
     img = np.where(img<=1, kwargs.get("proj_bg",np.max(np.nan_to_num(img))), img)

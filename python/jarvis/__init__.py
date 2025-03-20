@@ -39,6 +39,7 @@ except:  # noqa: E722
 
     warn("Kernel may need to be extracted for full functionality", ImportWarning)
 
+import datetime
 import logging
 import os
 
@@ -65,7 +66,7 @@ from .utils import (
 
 __version__ = "0.1.0-alpha"
 __all__ = (
-    ["cvis", "extensions", "stats", "transforms", "utils", "fpath", "fitsheader", "ensure_dir", "fits_from_glob", "hst_fitsfile_paths", "group_to_visit", "visit_to_group", "hst_segmented_paths", "hdulinfo", "get_obs_interval", "get_datetime", "get_datetime_interval", "get_timedelta", "datetime_to_yrdoysod", "yrdoysod_to_datetime", "get_data_over_interval", "plotting", "moind", "make_gif", "plot_moonfp", "plot_regions", "plot_polar", "prep_polarfits", "cvis", "pathtest", "generate_contours", "identify_contour", "plot_contourpoints", "save_contour", "power", "powercalc", "const", "KERNELDIR", "FITSINDEX", "GHROOT", "Dirs.DATA", "PYDIR", "PKGDIR"]
+    ["FITSINDEX", "GHROOT", "KERNELDIR", "PKGDIR", "PYDIR", "Dirs.DATA", "const", "cvis", "cvis", "datetime_to_yrdoysod", "ensure_dir", "extensions", "fits_from_glob", "fitsheader", "fpath", "generate_contours", "get_data_over_interval", "get_datetime", "get_datetime_interval", "get_obs_interval", "get_timedelta", "group_to_visit", "hdulinfo", "hst_fitsfile_paths", "hst_segmented_paths", "identify_contour", "make_gif", "moind", "pathtest", "plot_contourpoints", "plot_moonfp", "plot_polar", "plot_regions", "plotting", "power", "powercalc", "prep_polarfits", "save_contour", "stats", "transforms", "utils", "visit_to_group", "yrdoysod_to_datetime"]
 )
 AUTHORS = {
     "Will Roscoe": "@will-roscoe",
@@ -88,4 +89,8 @@ url = {https://github.com/will-roscoe/JARVIS}
 """
 if not os.path.exists(Dirs.DATA):
     raise FileNotFoundError(f"Neccesary directory not found at {Dirs.DATA}, containing data files.")
+
+
+global INIT_TIME
+INIT_TIME = datetime.datetime.now()
 

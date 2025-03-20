@@ -10,7 +10,6 @@ expected latitude and longitude of the four Galilean moons.
 
 import numpy as np
 
-# from scipy import stats
 from .utils import fpath
 
 

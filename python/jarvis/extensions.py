@@ -11,13 +11,12 @@ Classes:
 - QuickPlot: Predefined plotting functions for quick visualization of data in power.py [internal]
 """
 
+import os
+import warnings
 from contextlib import suppress
 from datetime import datetime
-import os
-from typing import ClassVar, Iterable, Union, Optional
-import warnings
+from typing import ClassVar, Iterable, Optional, Union
 
-from click import progressbar
 import cmasher as cmr
 import cv2
 import imageio
@@ -34,11 +33,22 @@ from matplotlib.text import Text
 from matplotlib.widgets import Button, CheckButtons, RadioButtons, Slider, TextBox
 from tqdm import tqdm
 
-from .const import PF,log
+from .const import PF, log
 from .cvis import contourhdu, imagexy
 from .plotting import prep_polarfits
-from .transforms import azimuthal_equidistant, contrast_adjust, azimeq_to_polar
-from .utils import assign_params, ensure_dir, filename_from_path, fitsheader, fpath, get_datetime, hdulinfo, merge_fdicts, rpath, split_path
+from .transforms import azimeq_to_polar, azimuthal_equidistant
+from .utils import (
+    assign_params,
+    ensure_dir,
+    filename_from_path,
+    fitsheader,
+    fpath,
+    get_datetime,
+    hdulinfo,
+    merge_fdicts,
+    rpath,
+    split_path,
+)
 
 try:  # this is to ensure that this file can be imported without needing PyQt6 or PyQt5, eg for QuickPlot
     from PyQt6 import QtGui  # type: ignore #
@@ -243,8 +253,7 @@ def pathfinder(
             # new image outputs with actual pixel values, and negatives clipped. we would want to normalize this still,
             # taking into consideration that the highest value is likely 6-10+ orders of magnitude higher than the target
             # make normed logaritmic, maximum at 1
-            
-            #img = contrast_adjust(img) # np.sqrt(log(img + 1))
+            #img = contrast_adjust(img) # np.sqrt(log(img + 1)) #noqa: ERA001
             normed = img
 
         def normalize01(lum_val,cliplim=cliplims, invert=False):
@@ -257,8 +266,6 @@ def pathfinder(
         result = {"EXTNAME": persists.get("EXTNAME", headername),"path": persists.get("path"),"snapshots": {},"attrs": {},}
         if do_steps:
             result["snapshots"]["img_0.png"] = img.copy()
-        oldlen = len(ACTIVE_FITS)
-
         if FIRST_RUN:
             log.write("Running first run cfgs")
             if show:
@@ -270,9 +277,9 @@ def pathfinder(
             cv_config = PF.defaults.cv_config
             active_selections = {"LUMXY": [], "IDXY": [], "AUTOID": None}
         log.write("Initial Configs: "+f"{view_config=}" if show else ""+f"{cv_config=}"+f"{active_selections=}"+f"{result=}")
-        
+
         for k, v in cv_config.items():
-            if k.upper() ==  "FIXEDRANGE":
+            if k.upper() ==  "FIXEDRANGE": #noqa: SIM102
                 if "FIXEDRANGE" in persists:
                     if "RANGE" in persists["FIXEDRANGE"]:
                         cv_config["FIXEDRANGE"] =  persists["FIXEDRANGE"]
@@ -373,8 +380,8 @@ def pathfinder(
                 nhattr |= __generate_conf_output()
                 nhattr |= __generate_coord_output()
                 nhattr |= {m: fitsheader(ACTIVE_FITS, m) for m in ["UDATE", "YEAR", "VISIT", "DOY", "EXPT"]}
-                if show:
-                    if noteattrs["text"] not in ["", None]:
+                if show:#noqa: SIM102
+                    if noteattrs["text"] not in ["", None]:#neccesary since noteattrs not defined when show==False
                         notes = noteattrs["text"].replace("\n", " " * 32)
                         notes = "".join([char if ord(char) < 128 else f"\\x{ord(char):02x}" for char in notes])
                         nhattr["NOTES"] = notes
@@ -390,10 +397,8 @@ def pathfinder(
                     ch = contourhdu(pth, name=extname, header=header)
                 ACTIVE_FITS.append(ch)
                 ACTIVE_FITS.flush()
-                #assert len(ACTIVE_FITS) == oldlen + 1, f"Save Failed: {len(ACTIVE_FITS)} != {oldlen+1}\n"
                 tqdm.write(f"Save Successful, contour added to fits file at index {len(ACTIVE_FITS)-1}")
                 if show:
-                    
                     linfax.clear()
                     linfax.text(
                         0.5,
@@ -414,7 +419,7 @@ def pathfinder(
             is_active = cv_config["FIXEDRANGE"]["ACTIVE"]
             step = cv_config["FIXEDRANGE"]["STEP"]
             if val == 4: # reset
-                fixedrange =cv_config["FIXEDRANGE"]["DEF"] 
+                fixedrange =cv_config["FIXEDRANGE"]["DEF"]
             elif val < 4: #increase/decrease limit
                 ind = int(val > 1)  # 0 for min, 1 for max val::{L+,L-,U+,U-,T,R)
                 fixedrange[ind] = np.clip(fixedrange[ind]+step*(1 - 2 * (val % 2)) ,0,1)
@@ -479,8 +484,8 @@ def pathfinder(
                     mask = cv2.morphologyEx(mask, morph, kernel)
                     if do_steps:
                         result["snapshots"][f"img_2_{i}.png"] = mask.copy()
-                if show:
-                    if view_config["mask"] != 0:
+                if show: #noqa: SIM102
+                    if view_config["mask"] != 0: # neccessary since view_config not defined when show==False
                         ax.imshow(mask, cmap=cmr.neutral if (view_config["mask"] in [1, 2]) else (cmr.neutral_r if view_config["mask"] in [3, 4] else cmr.guppy), alpha=(0.5 if view_config["mask"] in [1, 3, 5] else 1), zorder=0.1)
                 # find the contours of the mask
                 contours, hierarchy = cv2.findContours(image=mask, mode=cv_config["RETR"], method=cv_config["CHAIN"])
@@ -735,7 +740,7 @@ def pathfinder(
                 ret[f"LUMXY_{i}"] = f"{coord[0]:.3f},({coord[1][0]},{coord[1][1]})"
             for i, coord in enumerate(active_selections["IDXY"]):
                 ret[f"IDXY_{i}"] = f"({coord[0]},{coord[1]})"
-            if active_selections["AUTOID"] is not None:
+            if active_selections["AUTOID"] is not None and len(active_selections["AUTOID"]) == 2:
                 ret["AUTOID"] = f"({active_selections['AUTOID'][0]},{active_selections['AUTOID'][1]})"
             log.write(f"active_selections requested export: {ret}")
             return ret
@@ -751,8 +756,6 @@ def pathfinder(
                     spl =v.split(",")
                     lum = float(spl[0])
                     xy = [int(spl[1][1:]), int(spl[2][:-1])]
-                    x = int(v.split("(")[1].split(",")[0])
-                    y = int(v.split(",")[1].split(")")[0].replace("(",""))
                     log.write(f"LUMXY={v} ---> {[lum, xy]}")
                     active_selections["LUMXY"].append([lum, xy])
                 elif k.startswith("IDXY"):
@@ -955,7 +958,7 @@ def pathfinder(
             hover_event = fig.canvas.mpl_connect("motion_notify_event", __on_mouse_move_event)  # noqa: F841
             # ----TEXTENTRY----#
             textbox = TextBox(headernameax, "Header Name:", initial=result["EXTNAME"])
-            
+
 
             def __on_headername_text_change(text: str):
                 global result
@@ -1415,7 +1418,7 @@ def power_gif(powerdicts, outdir=fpath("figures/gifs/powercalcs"),fps=5,**kwargs
            "roi":lambda x : f"{outdir}/{x}_brojected_roi.gif",
             "imex": lambda x : f"{outdir}/{x}_polar_path.gif"}
     temp = fpath("temp/power_gif")
-    
+
     # group by visit
     grouped = merge_fdicts(powerdicts)
     plotter = QuickPlot()

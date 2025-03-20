@@ -16,15 +16,14 @@ JAR:VIS team - 21 / 02 / 2025;
 import datetime
 from typing import Tuple
 
-import imageio
 import matplotlib.pyplot as plt
 import numpy as np
 import spiceypy as spice
 from astropy.io import fits
 from matplotlib import path
 
-from .const import Power, FITSINDEX, Dirs, CONST
-from .utils import fitsheader, fpath, get_datetime
+from .const import CONST, FITSINDEX, Dirs, Power
+from .utils import fitsheader, get_datetime
 
 # --------------------------------- CONSTANTS ----------------------------------#
 # Nichols constants:
@@ -36,7 +35,7 @@ planets = ["Mercury", "Venus", "Earth", "Mars", "Jupiter", "Saturn", "Uranus", "
 inx = planets.index("Jupiter")
 naifobj = 99 + (inx + 1) * 100
 radii = spice.bodvcd(naifobj, "RADII", 3)
-# // print(radii)   
+# // print(radii)
 rpeqkm = radii[1][0]
 rpplkm = radii[1][2]
 oblt = 1.0 - rpplkm / rpeqkm
@@ -57,10 +56,9 @@ def __null(*args, **kwargs):
 
 __write_to_file, __print, __plot = __null, __null, __null
 if Power.WRITETO:
-    def __write_to_file(args,writeto=Power.WRITETO, **kwargs):
+    def __write_to_file(args,writeto=Power.WRITETO, **kwargs): #noqa: ARG001
         with open(writeto, "a") as f:
             f.write(" ".join([str(x) for x in [*args, "\n"]]))
-
 
 if Power.DISPLAY_PLOTS:
     from .extensions import QuickPlot as Qp
@@ -255,7 +253,7 @@ def powercalc(
     )  # > mask needs to be applied to un-rolled image
     dark_mask_2d = np.flip(dark_mask_2d, axis=1)  # > flip mask vertically to match image
     # --------------- FITS FILE HEADER INFO AND VARIABLE DEFS -----------------#
-    # __print(fits_obj.info(output=False))                  #> print file information
+    # __print(fits_obj.info(output=False))                  #> print file information #noqa: ERA001
     # > accessing specific header info entries:
     cml, dece, dist, cts2kr = fitsheader(fits_obj, "CML", "DECE", "DIST", "CTS2KR")
     # > CML:       Central meridian longitude
@@ -349,8 +347,8 @@ def powercalc(
         get_datetime(fits_obj),"power":total_power_emitted_from_roi, "flux":power_per_area, "area":area, "fullim":full_image, "roi":bimage_roi,"imex":image_extract,"coords":dpr_coords}
 
 
-    
-    
+
+
 
 def avg_intensity(img: np.ndarray) -> float:
     """Return the average intensity of the image."""

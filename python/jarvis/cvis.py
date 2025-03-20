@@ -15,7 +15,7 @@ from astropy.table import Table
 
 from .const import DPR, FITSINDEX
 from .plotting import plot_polar, prep_polarfits
-from .transforms import coadd, azimeq_to_polar, gaussian_blur
+from .transforms import azimeq_to_polar, coadd, gaussian_blur
 from .utils import adapted_hdul, assign_params, filename_from_path, fitsheader, fpath, hst_fpath_list, mcolor_to_lum
 
 

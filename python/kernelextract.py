@@ -1,22 +1,22 @@
 #!/usr/bin/env python3
-#################################################################
-#                            KERNELEXTRACT
-#################################################################
-# This script is used to compress and decompress kernel files.
-# command example:
-#  >>>python python/kernelextract.py decompress
-#  decompresses the kernel files from archive chunks
-#  >>>python python/kernelextract.py compress
-#  compresses the kernel files into archive chunks, not needed for normal operation
-#
-#  extra options:
-#  --kernel-dir: directory containing kernel files
-#  --archive-dir: directory to store compressed chunks
-#  --chunksize-mb: maximum chunk size in MB
-#  --force: overwrite existing files
-#  all options have default values though
-#  @author: will-roscoe
+"""KERNELEXTRACT: compress and decompress kernel files.
 
+This script is used to compress and decompress kernel files.
+command example:
+>>>python python/kernelextract.py decompress
+decompresses the kernel files from archive chunks
+>>>python python/kernelextract.py compress
+compresses the kernel files into archive chunks, not needed for normal operation
+
+extra options:
+  --kernel-dir: directory containing kernel files
+  --archive-dir: directory to store compressed chunks
+  --chunksize-mb: maximum chunk size in MB
+  --force: overwrite existing files
+all options have default values though
+
+@author: will-roscoe
+"""
 import argparse
 import os
 import tarfile

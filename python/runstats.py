@@ -1,18 +1,17 @@
-from jarvis.stats import correlate
-from Hisaki_Torus_Power import torus_plot
+import glob
+
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
-import glob
 from astropy.io import fits
 from jarvis import fpath
+from jarvis.stats import correlate
 from scipy import special
 
 torus_counter = 0
 torus_fitspath = glob.glob(r"C:datasets/Hisaki/Torus Power/*.fits")
 torus_groups_list = torus_fitspath[12:-30]
 power_dawn_all = np.array([])
-power_dusk_all = np.array([])   
+power_dusk_all = np.array([])
 torus_time_all = np.array([])
 
 for l in torus_groups_list:
@@ -58,11 +57,11 @@ data2 = power_dawn_average[0:len(data1)]
 
 def get_sigma(p_value):
     # the special.erfc(x) is the complementary error function, where x = sigma/sqrt(2)
-    # i.e. the table of p-value-to-sigma at 
-    # https://en.wikipedia.org/wiki/Normal_distribution#Standard_deviation_and_tolerance_intervals 
+    # i.e. the table of p-value-to-sigma at
+    # https://en.wikipedia.org/wiki/Normal_distribution#Standard_deviation_and_tolerance_intervals
     # is actually a table of erf(x), erfc(x), 1./erfc(x) for sigma values from 1 to 6
     # and special.erfcinv(alpha)*np.sqrt(2.) will return the significance level in sigma.
-    # 
+    #
     # however, WARNING - this sigma is only valid assuming the distributions are Normal
     # which a lot of this utils file assumes they aren't.
     # so use as guidance but not gospel, and very much with caution.

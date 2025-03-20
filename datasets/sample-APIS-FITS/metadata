@@ -6,3 +6,18 @@ Instrument : HST / STIS
 Obs. type : IMAGING
 Filter : F25SRF2
 Dataset : oez022t14
+
+
+
+  File "e:\Repositories\JARVIS\python\jarvis\power.py", line 315, in powercalc
+    bimage_roi = cylbroject(roi_im_full, fits_obj, ndiv=2)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "e:\Repositories\JARVIS\python\jarvis\power.py", line 196, in cylbroject
+    return _cylbroject(
+           ^^^^^^^^^^^^
+  File "e:\Repositories\JARVIS\python\jarvis\power.py", line 119, in _cylbroject
+    rimage = np.zeros((ysize, xsize))
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+numpy._core._exceptions._ArrayMemoryError: Unable to allocate 15.0 MiB for an array with shape (1400, 1400) and data type float64
+Generating Power Fluxes:  79%|██████████████████████████████████████▊          | 378/477 [04:40<01:13,  1.35it/s, SR:100.00%, P=55.333GW,I=14.331x10⁻⁸GW/km²]
+PS E:\Repositories\JARVIS> 

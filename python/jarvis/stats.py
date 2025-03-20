@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """This module contains functions for statistical analysis of data."""
 
-import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy.signal as si
@@ -41,10 +40,9 @@ def correlate(data1, data2):
         pearson = st.pearsonr(data1, data2)
         print(pearson)
         return pearson
-    else:
-        print("Data sets are not the same length. Data set 1 length: ", len(data1), "Data set 2 length: ", len(data2))
-        return None
- 
+    print("Data sets are not the same length. Data set 1 length: ", len(data1), "Data set 2 length: ", len(data2))
+    return None
+
 
 
 # Not sure but log or gamma (with θ/α >2) distribution may match data? ~~Will
@@ -62,7 +60,7 @@ def get_statstext(
     """
     freqs, bins = hist[:2]
     mids = 0.5 * (bins[1:] + bins[:-1]).flatten()
-    x = [mids[i] for i in range(int(len(mids))) for _ in range(int(freqs[i]))]
+    x = [mids[i] for i in range(len(mids)) for _ in range(int(freqs[i]))]
     if skewed:
         return ",\n".join(
             [

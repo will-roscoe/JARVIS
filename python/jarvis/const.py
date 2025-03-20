@@ -2,11 +2,16 @@
 """Constants and default values used throughout the project."""
 #ruff: noqa
 import logging
+from multiprocessing.pool import INIT
 from pathlib import Path
 import cmasher as cmr
 import cv2
 from os.path import exists
 from astropy import units as u
+import datetime
+from tqdm import tqdm
+
+init_time = globals().get("INIT_TIME",datetime.datetime.now())
 FITSINDEX = 1 # DEFAULT FITSINDEX: the default target HDU within a fits file.
 # ~ defines the project root directory (as the root of the gh repo)
 GHROOT = Path(__file__).parents[2]# ~ if you move this file/folder, you need to change this line to match the new location.
@@ -385,11 +390,32 @@ IMG.contrast.power = 1.4
 
 log = ConfigLike("Logging")
 log.ACTIVE = True
+log.WRITE_TO_CONSOLE = True
 log.logger = logging.getLogger("jarvis")
 log.logger.setLevel(logging.DEBUG)
 log.logger.addHandler(logging.FileHandler(GHROOT / "jarvis.log", mode="w"))
+log._last_log = init_time
 #log.logger.addHandler(logging.StreamHandler())
-log.write = log.logger.debug
+def log_func(msg,*args,exc_info=None,stack_info=False,stacklevel=1,extra=None, con=True, mod=None):
+    log.logger.debug(msg,*args,exc_info=exc_info,stack_info=stack_info,stacklevel=stacklevel,extra=extra)
+    if log.WRITE_TO_CONSOLE and con:
+        timedelta = datetime.datetime.now() - init_time
+        tlast = (datetime.datetime.now() - log._last_log).total_seconds()
+        log._last_log = datetime.datetime.now()
+        tlmin = int(tlast//60)
+        tlast = tlast%60
+        tl = f"{tlmin}m {int(tlast)}s" if tlmin >0 else f"{tlast:.2f}s" if tlast > 0 else ""
+        tl = f"(+{tl})" if tl not in ["","0s"] else tl
+        sec = timedelta.total_seconds()
+        mins = int(sec//60)
+        sec = sec%60
+        msec = int(sec%1 * 1000)
+        sec = int(sec)
+        msg = f"{mod: <10} {msg}" if mod else msg
+        tqdm.write(f"[{mins:0>3}:{sec:0>2}:{msec:0>3}] {msg} {tl}")
+
+
+log.write = log_func 
 log.write("Logging initialized")
 
 
@@ -534,5 +560,15 @@ HST.df.names = {k: v[0] for k, v in HST.df._desc.items()}
 HST.df.units = {k: v[2] for k, v in HST.df._desc.items()}
 HST.df.tex = {k: v[1] for k, v in HST.df._desc.items()}
 HST.mapval = lambda x,y: mapval(x,y,HST._desc)
+
+
+Presets = ConfigLike("Presets for the viewer")
+Presets.figure =           {"generate_coadd":False, "coadd_pathfinder":False, "coadd_power":False, "generate_avgs":False, "avg_power":False, "avg_pathfinder":False, "gif":False, "histogram":False, "figure":True,  "dump_arrays":False, "update":True }
+Presets.copath_copower =   {"generate_coadd":True,  "coadd_pathfinder":True,  "coadd_power":True,  "generate_avgs":False, "avg_power":False, "avg_pathfinder":False, "gif":False, "histogram":False, "figure":False, "dump_arrays":False, "update":False}
+Presets.copath_obspower =  {  "coadd_power":False, "generate_avgs":True,  "avg_power":True,  "avg_pathfinder":False, "gif":False, "histogram":False, "figure":False, "dump_arrays":False, "update":False}
+Presets.obspath_obspower = {  "coadd_power":False, "generate_avgs":True,  "avg_power":True, "avg_pathfinder":True,  "gif":False, "histogram":False, "figure":False, "dump_arrays":False, "update":False}
+
+
+
 
 

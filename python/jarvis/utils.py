@@ -6,14 +6,13 @@ import cProfile
 import functools
 import os
 import pstats
-
 from datetime import datetime, timedelta
 from glob import glob
 from os import listdir, makedirs, path
 from os import sep as os_sep
 from os.path import isfile
 from pathlib import Path
-from random import choice
+
 import cutie
 import numpy as np
 import pandas as pd
@@ -26,7 +25,7 @@ from matplotlib.colors import to_rgba
 from pandas import DataFrame
 from tqdm import tqdm
 
-from .const import FITSINDEX, GHROOT, HISAKI, Dirs, log, plot
+from .const import FITSINDEX, GHROOT, HISAKI, Dirs, plot
 
 
 #################################################################################
@@ -339,8 +338,11 @@ def mcolor_to_lum(*colors):
     return col
 
 def statusprint(num, fail_low=False):
-    # if fail_low: 0 corresopnds to H=0, 1 --> H=109
-    # if not fail_low: 0 corresponds to H=109, 1 --> H=0
+    """Return a colored percentage representation of the input number between 0-1.
+
+    - if fail_low: 0 corresopnds to H=0, 1 --> H=109
+    - if not fail_low: 0 corresponds to H=109, 1 --> H=0
+    """
     h = num*109 if fail_low else 109-num*109
     col = ColorHSL(int(h), 100,50)
     return f"{col}{num:.2%}{col.OFF}"
@@ -358,7 +360,7 @@ def merge_dfs(dfs: list[DataFrame]) -> DataFrame:
     Returns:
         DataFrame: A single dataframe with all the columns from the input data. shape will be (Num Unique Rows, Num Unique Columns)
 
-        """
+    """
     # get all possible cols from all dfs
     cols = []
     for df in dfs:
@@ -369,10 +371,6 @@ def merge_dfs(dfs: list[DataFrame]) -> DataFrame:
         for col in cols:
             if col not in df.columns:
                 dfs[i][col] = np.nan
-    # print cols, first index and types for each df
-    # for i, df in enumerate(dfs):
-    #     print(f"-------{i=},\n {df.columns=},\n,\n {df.dtypes=}")
-
     cols.remove("Date_Created")
     df = dfs[0].copy()
     for i, df_ in enumerate(dfs[1:]):
@@ -463,15 +461,15 @@ def prepdfs(fp,clip_neg=False, sortby="time", splitbyext=False):
         # newest_first = True will put the newest files first, False will put the oldest files first.
         fp = [x for _,x in sorted(zip(orde,fp), key=lambda pair: pair[0], reverse=True)]
     dfs = [pd.read_csv(f, sep=" ", index_col=False, names=["Visit", "Obs_Date", "Obs_Time", "Total_Power", "Avg_Flux", "Area","L_min","L_max","N_pts","Date_Created","EXT"]) for f in fp]
-    for df in dfs:
+    for i,df in enumerate(dfs):
         df["time"]= pd.to_datetime(df["Obs_Date"] + " " + df["Obs_Time"])
         df["created_time"] = pd.to_datetime(df["Date_Created"])
+        #TODO @will-roscoe add color definition for predefined file kws (obspath_obspower, copath_copower, copath_obspower.)
     # if sortby is a colname != "created_time", sort by that col
-    if sortby != "created_time":
-        if np.any(sortby in dfs[i].columns for i in range(len(dfs))):
-            dfs = [df.sort_values(by=sortby) for df in dfs]
-            dfs = [df.reset_index(drop=True) for df in dfs]
-            dfs = sorted(dfs,key=lambda x: x[sortby].iloc[0])
+    if sortby != "created_time" and np.any(sortby in dfs[i].columns for i in range(len(dfs))):
+        dfs = [df.sort_values(by=sortby) for df in dfs]
+        dfs = [df.reset_index(drop=True) for df in dfs]
+        dfs = sorted(dfs,key=lambda x: x[sortby].iloc[0])
     dfs = [df for df in dfs if len(df) > 0]
     # now add default props for plotting
     for i, d in enumerate(dfs):
@@ -514,6 +512,7 @@ def get_time_interval_from_multi(datasets, method="minmax"):
 
 
 def get_uniques(data, quantity):
+    """Return the unique values of a quantity in a list of dataframes or TimeSeries objects."""
     if not isinstance(data,(list,tuple)):
         data = [data]
     uniques = set()
@@ -716,7 +715,7 @@ def get_datapaths(sortbydate=True, newest_first=True,fdir=str(Dirs.GEN)):
     infiles = glob(fdir+"/*.txt")
     # sort by date on filename, but not specific to where in filename. could be anywhere in it, but in the form YYYY-MM-DDTHH-MM-SS
     # examples include "2025-03-11T18-36-00_DPR.txt", "BOUNDARY_2025-03-12T17-24-01.txt", "BOUNDARY_2025-03-12T23-49-39_window[5].txt"
-    # and should deal with not identifying one by placing it at the end of the list. 
+    # and should deal with not identifying one by placing it at the end of the list.
     # the globs will also still have the full path.
     if sortbydate:
         orde = []
@@ -800,7 +799,7 @@ def __dump_np(fdicts):
     for visit in fdicts:
         for key in [c for c in ["fullim","roi","imex","coords"] if c in fdicts[visit]]:
             for i, array in enumerate(fdicts[visit][key]):
-                fp = f"{str(Dirs.TEMP)}/bindata/{visit}_{key}_{fdicts[visit]['datetime'][i].strftime('%Y-%m-%dT%H-%M-%S')}.nparray.npy"
+                fp = f"{Dirs.TEMP!s}/bindata/{visit}_{key}_{fdicts[visit]['datetime'][i].strftime('%Y-%m-%dT%H-%M-%S')}.nparray.npy"
                 with open(fp, "wb") as f:
                     np.save(f, array)
                     # identify the size of the saved file:
@@ -817,7 +816,7 @@ def __dump_np2(fdicts):
     for visit in fdicts:
         for key in [c for c in ["fullim","roi","imex","coords"] if c in fdicts[visit]]:
             array=np.array(fdicts[visit][key])
-            fp = f"{str(Dirs.TEMP)}/bindata/{visit}_{key}.batcharray.npy"
+            fp = f"{Dirs.TEMP!s}/bindata/{visit}_{key}.batcharray.npy"
             with open(fp, "wb") as f:
                 np.save(f, array)
                 # identify the size of the saved file:
@@ -833,7 +832,7 @@ def __dump_np3(fdicts):
     size_tot = 0
     for visit in fdicts:
         array=np.array([fdicts[visit][key] for key in [c for c in ["fullim","roi","imex","coords"] if c in fdicts[visit]]])
-        fp = f"{str(Dirs.TEMP)}/bindata/{visit}.batcharray.npy"
+        fp = f"{Dirs.TEMP!s}/bindata/{visit}.batcharray.npy"
         with open(fp, "wb") as f:
             np.save(f, array)
             # identify the size of the saved file:
@@ -852,7 +851,7 @@ def __dump_np4(fdicts):
     for visit in fdicts:
         for i, key in enumerate(c for c in ["fullim","roi","imex","coords"] if c in fdicts[visit]):
             arr[int(visit[1:])][i] = np.array(fdicts[visit][key])
-    fp = f"{str(Dirs.TEMP)}/bindata/all.batcharray.npy"
+    fp = f"{Dirs.TEMP!s}/bindata/all.batcharray.npy"
     with open(fp, "wb") as f:
         np.save(f, arr)
         # identify the size of the saved file:
@@ -862,17 +861,11 @@ def __dump_np4(fdicts):
     tqdm.write("dumped "+pst)
 
 def dump_powerdicts(fdicts,method="h5"):
+    """Dump the power arrays to a file/files."""
     fdicts = merge_fdicts(fdicts)
     ensure_dir(str(Dirs.TEMP/"bindata"))
     if method == "h5":
         pass
-        # with h5py.File(str(Dirs.TEMP)+"/bindata/power_arrays.h5", "w") as f:
-        #     for visit, visit_data in fdicts.items():
-        #         grp = f.create_group(visit)
-        #         grp.create_dataset("datetime", data=np.array([np.datetime64(d) for d in visit_data["datetime"]]))  # Store as np.datetime64
-        #         for key in ["fullim", "roi", "imex", "coords"]:
-        #             for i, array in enumerate(visit_data[key]):
-        #                 grp.create_dataset(f"{key}_{i}", data=array, compression="gzip")  # Compression for efficiency
     elif method == "npy":
         __dump_np(fdicts)
     elif method == "npy2":
@@ -884,6 +877,7 @@ def dump_powerdicts(fdicts,method="h5"):
 
 
 def longest_common_prefix(strings):
+    """Return the longest common prefix of a list of strings."""
     prefix = []
     for chars in zip(*strings):
         if all(c == chars[0] for c in chars):
@@ -893,10 +887,12 @@ def longest_common_prefix(strings):
     return ''.join(prefix)
 
 def longest_common_suffix(strings):
+    """Return the longest common suffix of a list of strings."""
     reversed_strings = [s[::-1] for s in strings]
     return longest_common_prefix(reversed_strings)[::-1]
 
 def find_common_string(strings):
+    """Return the common substring of a list of strings."""
     if not strings:
         return ""
 
@@ -914,6 +910,7 @@ def find_common_string(strings):
 
 
 def hist2xy(hist):
+    """Convert a histogram to x, y format."""
     freqs, bins = hist
     x = [(bins[i]+bins[i+1])/2 for i in range(len(bins)-1)]
     return x, freqs

@@ -18,8 +18,8 @@
 > **Anyone with access to this link can edit!**
 > [Link](https://www.overleaf.com/4517484896vdgtfcmxykxp#d519e7)
 
-![megafigure_plot_Area.png](https://github.com/will-roscoe/JARVIS/blob/0a928d43097c7dfcdd305fa60cb1b710131dbb47/figures/finished/megafigure_plot_Area.png) ![megafigure_plot_Avg_Flux.png](https://github.com/will-roscoe/JARVIS/blob/0a928d43097c7dfcdd305fa60cb1b710131dbb47/figures/finished/megafigure_plot_Avg_Flux.png) ![megafigure_plot_Total_Power.png](https://github.com/will-roscoe/JARVIS/blob/0a928d43097c7dfcdd305fa60cb1b710131dbb47/figures/finished/megafigure_plot_Total_Power.png)
+![megafigure_plot_Area.png](https://github.com/will-roscoe/JARVIS/figures/finished/megafigure_plot_Area.png) ![megafigure_plot_Avg_Flux.png](https://github.com/will-roscoe/JARVIS/figures/finished/megafigure_plot_Avg_Flux.png) ![megafigure_plot_Total_Power.png](https://github.com/will-roscoe/JARVIS/figures/finished/megafigure_plot_Total_Power.png)
 
-![stacked_plot.png](https://github.com/will-roscoe/JARVIS/blob/0a928d43097c7dfcdd305fa60cb1b710131dbb47/figures/finished/stacked_plot.png)
+![stacked_plot.png](https://github.com/will-roscoe/JARVIS/figures/finished/stacked_plot.png)
 
-![overlaid_plot.png](https://github.com/will-roscoe/JARVIS/blob/0a928d43097c7dfcdd305fa60cb1b710131dbb47/figures/finished/overlaid_plot.png)
+![overlaid_plot.png](https://github.com/will-roscoe/JARVIS/figures/finished/overlaid_plot.png)

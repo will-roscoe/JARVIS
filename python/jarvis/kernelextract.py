@@ -21,8 +21,8 @@ import argparse
 import os
 import tarfile
 
-from jarvis.const import Dirs
-from jarvis.utils import fpath
+from .const import Dirs
+from .utils import fpath
 from tqdm import tqdm
 
 if __name__ == "__main__":

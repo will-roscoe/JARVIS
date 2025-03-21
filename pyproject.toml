@@ -1,0 +1,145 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+### Project metadata
+[project]
+name = "jarvis"
+version = "2025.0.0"
+authors = [
+        { name= "Will Roscoe", email="w.roscoe@lancaster.ac.uk"},
+        { name="Ronan Szeto"},
+        { name="Samuel Courthold"},
+        { name="Yifan Chen"},
+]
+description = "JAR:VIS - Jovian Auroral Research: Visualising Ionospheric Science"
+readme = "README.md"
+license = {file= "LICENSE.*"}
+keywords = ["jupiter", "aurora", "hst", "hisaki", "ultraviolet", "dark polar region"]
+requires-python = ">=3.8"
+dependencies = [ 
+        "astropy~=7.0.0",
+        "cmasher~=1.9.2",
+        "fastgif~=2.1",
+        "imageio~=2.34.1",
+        "keyboard~=0.13.5",
+        "matplotlib~=3.8.4",
+        "numpy~=2.2.3",
+        "opencv_python~=4.11.0.86",
+        "opencv_python_headless~=4.9.0.80",
+        "pandas~=2.2.3",
+        "python_dateutil~=2.9.0.post0",
+        "regex~=2024.5.15",
+        "scipy~=1.15.2",
+        "spiceypy~=6.0.0",
+        "sympy~=1.12",
+        "tqdm~=4.66.2",
+        "cutie",
+        "gprof2dot",
+]
+[project.optional-dependencies]
+ci = ["pytest~=8.3.4", "pytest-cov~=3.0.0", "interrogate", "ruff"]
+extensions = ["PyQt6"]
+[project.urls]
+Repository = "https://github.com/will-roscoe/JARVIS"
+
+
+### Tool Configurations
+### Ruff
+[tool.ruff]
+#include = ["python/jarvis/**/*.py"]
+line-length = 120
+show-fixes= true
+#output-file = "/.github/ruff_junit.xml.out"
+
+[tool.ruff.analyze]
+direction = "Dependents"
+
+[tool.ruff.format]
+#exclude = ["python/tests/*.py","python/*.py"]
+docstring-code-format = true
+docstring-code-line-length = 80
+indent-style = "space"
+skip-magic-trailing-comma = true
+
+[tool.ruff.lint.isort]
+split-on-trailing-comma = false
+[tool.ruff.lint]
+select = [
+        "E4", "E7", "E9", 
+        #"E2",
+        "F",
+        "N",
+        #"ANN001","ANN201",
+        "RET",
+        "B002","B015","B018","B021",
+        "A",
+        "COM","C",
+        "EXE",
+        "ICN",
+        "T201",
+        "Q003","Q004",
+        "RET",
+        "SIM",
+        "TD002","TD006",
+        #"TC001","TC002","TC003","TC004",
+        "ARG",
+        "I",
+        "NPY",
+        "PD002",
+        "W",
+        "UP",
+        #"DOC",
+        "D",
+        "RUF0",
+        "ERA001"
+        ]
+unfixable=["T201","ERA001"]
+task-tags = ["TODO","todo","FIX"]
+ignore = ["C901","D211","D213", "W191","E111","E114","E117","COM819"]
+mccabe.max-complexity= 16
+
+[tool.ruff.lint.per-file-ignores]
+# Also ignore `E402` in all `__init__.py` files.
+"**/__init__.py" = ["E402","F401"]
+#[tool.ruff.lint.per-file-includes]
+#"jarvis/*.py" = ["ANN001","ANN201"]
+
+[tool.ruff.lint.flake8-annotations]
+ignore-fully-untyped = true
+allow-star-arg-any = true
+
+## Interrogate
+[tool.interrogate] 
+# command : interrogate -vvv -c .\.github\pyproject.toml .\\python\\jarvis\
+ignore-init-method = false
+ignore-init-module = false
+ignore-magic = false
+ignore-semiprivate = true
+ignore-private = true
+ignore-property-decorators = false
+ignore-module = false
+ignore-nested-functions = true
+ignore-nested-classes = false
+ignore-setters = false
+ignore-overloaded-functions = false
+fail-under = 80
+exclude = ["*tests/*.py", "*resources/*.py"]
+ignore-regex=["^debug_.*", "^.*test.*"]
+# possible values: sphinx (default), google
+style = "sphinx"
+# possible values: 0 (minimal output), 1 (-v), 2 (-vv)
+verbose = 0
+quiet = false
+color = true
+omit-covered-files = false
+# output file logation
+generate-badge = "./.github/badges/interrogate.svg"
+badge-format = "svg"
+
+[tool.setuptools]
+package-dir = {""="python/jarvis"}
+[tool.setuptools.packages.find]
+where = ["python/jarvis", "datasets"]
+[tool.setuptools.package-data]
+"*" = ["*.fits", "*.txt","*.csv","*kernels/archive/archive.*","*.mk"]

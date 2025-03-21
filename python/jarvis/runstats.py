@@ -3,8 +3,8 @@ import glob
 import numpy as np
 import pandas as pd
 from astropy.io import fits
-from jarvis import fpath
-from jarvis.stats import correlate
+from .utils import fpath
+from .stats import correlate
 from scipy import special
 
 torus_counter = 0

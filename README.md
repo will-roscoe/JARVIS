@@ -13,10 +13,7 @@
 - **Moon-related emissions:** Io plasma torus and volcanic activity, potentially other moons​
 - **Solar wind interactions:** dayside compression, Dungey cycle, coronal mass ejection​
 - **Jupiter's magnetosphere & structure:** non-uniform magnetic field, atmosphere and core composition
-## Overleaf Project Link
-> [!CAUTION]
-> **Anyone with access to this link can edit!**
-> [Link](https://www.overleaf.com/4517484896vdgtfcmxykxp#d519e7)
+
 
 ![megafigure_plot_Area.png](https://github.com/will-roscoe/JARVIS/figures/finished/megafigure_plot_Area.png) ![megafigure_plot_Avg_Flux.png](https://github.com/will-roscoe/JARVIS/figures/finished/megafigure_plot_Avg_Flux.png) ![megafigure_plot_Total_Power.png](https://github.com/will-roscoe/JARVIS/figures/finished/megafigure_plot_Total_Power.png)
 

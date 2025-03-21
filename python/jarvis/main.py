@@ -1,8 +1,8 @@
 #! /usr/bin/env python3
 """Main script for running power calculations on Jupiter data."""
-from jarvis.const import Presets
-from jarvis.gen import run_path_powercalc
-from jarvis.utils import fpath
+from .const import Presets
+from .gen import run_path_powercalc
+from .utils import fpath
 
 if (__name__ == "__main__"):
     run_path_powercalc(

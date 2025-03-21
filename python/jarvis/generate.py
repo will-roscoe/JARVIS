@@ -6,7 +6,7 @@ Generate GIFs, images and Gaussian fits from FITS files
 import argparse
 import os
 
-from jarvis.utils import fits_from_glob, fpath
+from .utils import fits_from_glob, fpath
 from tqdm import tqdm
 
 if __name__ == "__main__":
@@ -40,9 +40,9 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.command == "gifs":
-        from jarvis.utils import ensure_dir, filename_from_hdul
+        from .utils import ensure_dir, filename_from_hdul
 
-        from python.jarvis.plotting import make_gif
+        from .plotting import make_gif
 
         ddir = fpath("datasets/HST")
         # find all directories in the HST directory, as absolute paths
@@ -57,10 +57,10 @@ if __name__ == "__main__":
             pb_.update(1)
 
     elif args.command == "imgs":
-        from jarvis.utils import ensure_dir, filename_from_hdul
+        from .utils import ensure_dir, filename_from_hdul
         from matplotlib import pyplot as plt
 
-        from python.jarvis.plotting import moind
+        from .plotting import moind
 
         ddir = fpath("datasets/HST")
         # find all directories in the HST directory, as absolute paths
